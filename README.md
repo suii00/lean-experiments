@@ -1,2 +1,2 @@
-# lean-sandbox
-このプロジェクトは Lean 4 の学習目的で、Codex/Claude codeの支援を受けて構築しました。
+# lean-experiments
+このプロジェクトは Lean 4 の学習目的で、Codex/Claude Code/Antigravityの支援を受けて構築しました。
