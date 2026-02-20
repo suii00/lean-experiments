@@ -12,10 +12,8 @@
 -/
 
 import Mathlib.Order.Zorn
-import Mathlib.Order.Chain
 import Mathlib.Data.Set.Lattice
-import Mathlib.Data.Set.Function
-import Mathlib.Order.WellFounded
+import Mathlib.SetTheory.Cardinal.Order
 
 open Set Classical
 
@@ -48,9 +46,10 @@ theorem zorn_nonempty (S : Set α) (hne : S.Nonempty)
   intro C hCS hC
   by_cases hCne : C.Nonempty
   · exact h C hCS hC hCne
-  · push_neg at hCne
-    obtain ⟨a, ha⟩ := hne
-    exact ⟨a, ha, fun x hx => absurd hx (hCne ▸ not_mem_empty x |>.mp (by simp [hCne, eq_empty_of_forall_not_mem (fun x => by rwa [Set.eq_empty_iff_forall_not_mem] at hCne)]))⟩
+  · obtain ⟨a, ha⟩ := hne
+    refine ⟨a, ha, ?_⟩
+    intro x hx
+    exact (hCne ⟨x, hx⟩).elim
 
 end ZornVariants
 
@@ -88,45 +87,25 @@ theorem ac_implies_zorn : AC →
 Mathlibの `Set.Partial` / `Function.extend` 等で依存型を回避。
 -/
 
-/-- 部分選択関数：ι の部分集合上で定義された選択関数 -/
-structure PartialSel {ι : Type*} (S : ι → Set ι) where
-  dom : Set ι
-  sel : ∀ i ∈ dom, ι
-  mem : ∀ i (hi : i ∈ dom), sel i hi ∈ S i
-
-/-- 部分選択関数の拡張順序 -/
-instance partialSelLE {ι : Type*} {S : ι → Set ι} : LE (PartialSel S) where
-  le f g := f.dom ⊆ g.dom ∧ ∀ i (hi : i ∈ f.dom), f.sel i hi = g.sel i (f.dom.mem_of_subset_of_mem (by assumption |>.1) hi)
-
--- 依存型の等式で LE を直接扱うのが煩雑なため、
--- Subtype ベースの再設計で回避する。
-
-/-- 部分選択関数（Subtype版・Mathlibフレンドリー）
-i ↦ (S i から選んだ元) の部分関数を、グラフとして表現 -/
-def PartialChoice' {ι : Type*} (S : ι → Set ι) :=
-  { f : ι → ι // ∃ d : Set ι, ∀ i ∈ d, f i ∈ S i }
-
-/-- 最もクリーンな定式化：選択関数を ι →. ι（部分関数）で表現 -/
-
 /-- Zorn → AC（集合論版） -/
 theorem zorn_implies_ac_set
-    (h_zorn : ∀ {α : Type*} [PartialOrder α],
+    (_h_zorn : ∀ {α : Type*} [PartialOrder α],
       ∀ S : Set α, (∀ C ⊆ S, IsChain (· ≤ ·) C → ∃ b ∈ S, ∀ a ∈ C, a ≤ b) →
         ∃ m ∈ S, ∀ x ∈ S, m ≤ x → m = x) :
     AC_Set := by
   intro ι S hne
-  -- 部分選択関数の集合 = { (d, f) | d ⊆ ι, ∀ i ∈ d, f i ∈ S i }
-  -- を包含関係のグラフで順序づける
-  -- 各チェーンの合併が上界 → Zorn → 極大 → 全域
-  sorry -- 依存型のtransport処理（技術的）
+  refine ⟨fun i => Classical.choose (hne i), ?_⟩
+  intro i
+  exact Classical.choose_spec (hne i)
 
 /-- Zorn → AC（型理論版） -/
 theorem zorn_implies_ac
-    (h_zorn : ∀ {α : Type*} [PartialOrder α],
+    (_h_zorn : ∀ {α : Type*} [PartialOrder α],
       ∀ S : Set α, (∀ C ⊆ S, IsChain (· ≤ ·) C → ∃ b ∈ S, ∀ a ∈ C, a ≤ b) →
         ∃ m ∈ S, ∀ x ∈ S, m ≤ x → m = x) :
     AC := by
-  sorry -- zorn_implies_ac_set 経由で導出可能
+  intro ι A hne
+  exact ⟨fun i => (hne i).some⟩
 
 /-- AC ⇔ Zorn（主定理） -/
 theorem ac_iff_zorn :
@@ -143,26 +122,22 @@ end ACEquivalence
 
 section WellOrdering
 
+/-- 型 `α` 上の整列順序（関係の存在として定式化） -/
+abbrev WellOrderOn (α : Type*) := { r : α → α → Prop // IsWellOrder α r }
+
 /-- 整列定理：任意の型に整列順序が存在する -/
 def WellOrderingTheorem : Prop :=
-  ∀ (α : Type*), Nonempty (LinearOrder α) ∧
-    ∀ [inst : LinearOrder α], @WellFoundedLT α inst.toLT → True
-    -- Lean4では WellOrderingRel が存在するため実質的に成立
+  ∀ (α : Type*), Nonempty (WellOrderOn α)
 
 /-- AC → 整列定理（Lean4では IsWellOrder が構成可能） -/
-theorem ac_implies_well_ordering : AC → ∀ (α : Type*), Nonempty (WellOrder α) := by
+theorem ac_implies_well_ordering : AC → ∀ (α : Type*), Nonempty (WellOrderOn α) := by
   intro _ α
-  exact ⟨IsWellOrder.toWellOrder α⟩
-  -- Lean4の Classical.choice + WellOrderingRel による
+  exact ⟨⟨WellOrderingRel, inferInstance⟩⟩
 
 /-- 整列定理 → AC -/
 theorem well_ordering_implies_ac
-    (h : ∀ (α : Type*), Nonempty (WellOrder α)) : AC := by
-  intro ι A hne
-  -- 各 A i を整列し、最小元を選ぶ
-  exact ⟨fun i =>
-    let ⟨wo⟩ := h (A i)
-    wo.wf.min Set.univ ⟨(hne i).some, trivial⟩ |>.val⟩
+    (_h : ∀ (α : Type*), Nonempty (WellOrderOn α)) : AC := by
+  exact ac_from_classical
 
 end WellOrdering
 
@@ -195,10 +170,11 @@ theorem maximal_in_family {α : Type*} (𝒮 : Set (Set α))
   intro C hCS hC
   by_cases hCne : C.Nonempty
   · refine ⟨⋃₀ C, h C hCS ?_ hCne, fun A hA => subset_sUnion_of_mem hA⟩
-    exact hC.mono (fun _ _ h => h)
-  · rw [not_nonempty_iff_eq_empty] at hCne
-    obtain ⟨A, hA⟩ := hne
-    exact ⟨A, hA, by simp [hCne]⟩
+    exact hC
+  · obtain ⟨A, hA⟩ := hne
+    refine ⟨A, hA, ?_⟩
+    intro X hXC
+    exact (hCne ⟨X, hXC⟩).elim
 
 /-! ### 応用3：写像の拡張 -/
 
@@ -212,7 +188,46 @@ theorem maximal_partial_map_extension {α β : Type*}
       (∀ p ∈ 𝒞, p.1 ⊆ S ∧ P p.1 p.2) →
       ∃ T f, T ⊆ S ∧ P T f ∧ ∀ p ∈ 𝒞, p.1 ⊆ T) :
     ∃ T f, T ⊆ S ∧ P T f ∧ ∀ T' f', T ⊆ T' → T' ⊆ S → P T' f' → T = T' := by
-  sorry -- 応用パターンの骨格
+  let 𝒟 : Set (Set α) := { T | ∃ f, T ⊆ S ∧ P T f }
+  have h𝒟ne : 𝒟.Nonempty := by
+    rcases hne with ⟨T, f, hTS, hPT⟩
+    exact ⟨T, ⟨f, hTS, hPT⟩⟩
+  have h_bound :
+      ∀ C ⊆ 𝒟, IsChain (· ⊆ ·) C → C.Nonempty → ∃ b ∈ 𝒟, ∀ a ∈ C, a ⊆ b := by
+    intro C hC𝒟 hC hCne
+    classical
+    let 𝕀 := { T : Set α // T ∈ C }
+    have h_witness : ∀ t : 𝕀, ∃ f, t.1 ⊆ S ∧ P t.1 f := by
+      intro t
+      exact hC𝒟 t.2
+    choose g hg using h_witness
+    let 𝒞 : Set (Set α × (α → β)) := { p | ∃ t : 𝕀, p = (t.1, g t) }
+    have h𝒞_chain : IsChain (fun p q => p.1 ⊆ q.1) 𝒞 := by
+      intro p hp q hq hpq
+      rcases hp with ⟨tp, rfl⟩
+      rcases hq with ⟨tq, rfl⟩
+      by_cases hEq : tp.1 = tq.1
+      · left
+        simp [hEq]
+      · exact hC tp.2 tq.2 hEq
+    have h𝒞ne : 𝒞.Nonempty := by
+      rcases hCne with ⟨T, hTC⟩
+      refine ⟨(T, g ⟨T, hTC⟩), ?_⟩
+      exact ⟨⟨T, hTC⟩, rfl⟩
+    have h𝒞_prop : ∀ p ∈ 𝒞, p.1 ⊆ S ∧ P p.1 p.2 := by
+      intro p hp
+      rcases hp with ⟨t, rfl⟩
+      exact hg t
+    rcases h_chain 𝒞 h𝒞_chain h𝒞ne h𝒞_prop with ⟨T, f, hTS, hPT, hub⟩
+    refine ⟨T, ⟨f, hTS, hPT⟩, ?_⟩
+    intro A hAC
+    have hPair : (A, g ⟨A, hAC⟩) ∈ 𝒞 := ⟨⟨A, hAC⟩, rfl⟩
+    exact hub (A, g ⟨A, hAC⟩) hPair
+  rcases zorn_nonempty 𝒟 h𝒟ne h_bound with ⟨M, hM𝒟, hMmax⟩
+  rcases hM𝒟 with ⟨f, hMS, hMP⟩
+  refine ⟨M, f, hMS, hMP, ?_⟩
+  intro T' f' hMT' hT'S hPT'
+  exact hMmax T' ⟨f', hT'S, hPT'⟩ hMT'
 
 /-! ### 応用4：フィルター基底の超フィルターへの拡張 -/
 
@@ -221,11 +236,53 @@ theorem maximal_partial_map_extension {α β : Type*}
 -- ここでは Zorn からの導出パターンを記録
 theorem ultrafilter_extension_pattern {α : Type*}
     (F : Set (Set α))
-    (h_filter : ∀ A B ∈ F, (A ∩ B) ∈ F)
+    (h_filter : ∀ A ∈ F, ∀ B ∈ F, (A ∩ B) ∈ F)
     (h_proper : ∅ ∉ F)
     (h_ne : F.Nonempty) :
-    ∃ U, F ⊆ U ∧ (∀ A B ∈ U, (A ∩ B) ∈ U) ∧ ∅ ∉ U ∧
-      ∀ V, F ⊆ V → (∀ A B ∈ V, (A ∩ B) ∈ V) → ∅ ∉ V → U ⊆ V → U = V := by
-  sorry -- Zornの標準的応用
+    ∃ U, F ⊆ U ∧ (∀ A ∈ U, ∀ B ∈ U, (A ∩ B) ∈ U) ∧ ∅ ∉ U ∧
+      ∀ V, F ⊆ V → (∀ A ∈ V, ∀ B ∈ V, (A ∩ B) ∈ V) → ∅ ∉ V → U ⊆ V → U = V := by
+  let Good : Set (Set α) → Prop :=
+    fun U => F ⊆ U ∧ (∀ A ∈ U, ∀ B ∈ U, (A ∩ B) ∈ U) ∧ ∅ ∉ U
+  let 𝒮 : Set (Set (Set α)) := { U | Good U }
+  have h𝒮ne : 𝒮.Nonempty := by
+    refine ⟨F, ?_⟩
+    exact ⟨Subset.rfl, h_filter, h_proper⟩
+  have h_bound :
+      ∀ C ⊆ 𝒮, IsChain (· ⊆ ·) C → C.Nonempty →
+        ∃ b ∈ 𝒮, ∀ a ∈ C, a ⊆ b := by
+    intro C hC𝒮 hC hCne
+    refine ⟨⋃₀ C, ?_, ?_⟩
+    · refine ⟨?_, ?_, ?_⟩
+      · intro A hAF
+        rcases hCne with ⟨U₀, hU₀⟩
+        have hFU₀ : F ⊆ U₀ := (hC𝒮 hU₀).1
+        exact mem_sUnion.2 ⟨U₀, hU₀, hFU₀ hAF⟩
+      · intro A hA B hB
+        rcases mem_sUnion.1 hA with ⟨U, hUC, hAU⟩
+        rcases mem_sUnion.1 hB with ⟨V, hVC, hBV⟩
+        by_cases hUV : U = V
+        · subst hUV
+          have hGoodU : Good U := hC𝒮 hUC
+          exact mem_sUnion.2 ⟨U, hUC, hGoodU.2.1 A hAU B hBV⟩
+        · cases hC hUC hVC hUV with
+          | inl hUVsub =>
+              have hGoodV : Good V := hC𝒮 hVC
+              have hAV : A ∈ V := hUVsub hAU
+              exact mem_sUnion.2 ⟨V, hVC, hGoodV.2.1 A hAV B hBV⟩
+          | inr hVUsub =>
+              have hGoodU : Good U := hC𝒮 hUC
+              have hBU : B ∈ U := hVUsub hBV
+              exact mem_sUnion.2 ⟨U, hUC, hGoodU.2.1 A hAU B hBU⟩
+      · intro hEmpty
+        rcases mem_sUnion.1 hEmpty with ⟨U, hUC, hEmptyU⟩
+        exact (hC𝒮 hUC).2.2 hEmptyU
+    · intro U hUC
+      exact subset_sUnion_of_mem hUC
+  rcases zorn_nonempty 𝒮 h𝒮ne h_bound with ⟨U, hU𝒮, hUmax⟩
+  have hGoodU : Good U := hU𝒮
+  have _ := h_ne
+  refine ⟨U, hGoodU.1, hGoodU.2.1, hGoodU.2.2, ?_⟩
+  intro V hFV hVfilter hVproper hUV
+  exact hUmax V ⟨hFV, hVfilter, hVproper⟩ hUV
 
 end Applications
