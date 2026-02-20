@@ -1,0 +1,121 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, decorations.pathreplacing}
+
+\newtheorem{definition}{定義}
+\newtheorem{theorem}{定理}
+\newtheorem{lemma}[theorem]{補題}
+
+\title{Lean 4によるツォルンの補題と選択公理の形式化}
+\author{su}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、Lean 4によって形式化されたツォルンの補題（Zorn's Lemma）およびその関連概念について、数学的な解説を行う。ブルバキ・スタイルに基づく順序の基本的な定義から出発し、ツォルンの補題の証明の構造、および選択公理との同値性について解説する。解説は \texttt{src/Myprojects/OrderNotes/ZornsLemma.lean} の定義と定理に沿って進める。
+\end{abstract}
+
+\section{序論}
+本稿が対象とするコードは、集合論における重要な結果であるツォルンの補題と、それに関連する順序構造や選択公理との関係を形式化したものである。Mathlibの標準的な定理（\texttt{zorn\_le}$_0$）を基にしつつ、独自にブルバキ的な順序のクラスを定義してブリッジ（橋渡し）を行っている点が特徴である。
+
+\section{順序に関する基本的定義 (\texttt{Definitions})}
+
+まず、半順序（Partial Order）および全順序（Total Order）のクラス \texttt{Ordre}, \texttt{OrdreTotal} が定義される。
+
+\begin{definition}[順序]
+型 $\alpha$ 上の二項関係 $\le$ が以下の3条件を満たすとき、\texttt{Ordre}（半順序）と呼ぶ。
+\begin{itemize}
+    \item \textbf{反射律 (\texttt{refl}):} $\forall a, a \le a$
+    \item \textbf{推移律 (\texttt{trans}):} $\forall a, b, c, a \le b \land b \le c \implies a \le c$
+    \item \textbf{反対称律 (\texttt{antisym}):} $\forall a, b, a \le b \land b \le a \implies a = b$
+\end{itemize}
+さらに、任意の $a, b$ について $a \le b \lor b \le a$ が成り立つとき、\texttt{OrdreTotal}（全順序）と呼ぶ。
+\end{definition}
+
+次に、部分集合やその元に対する重要な性質が定義されている。
+
+\begin{itemize}
+    \item \textbf{鎖 (\texttt{EstChaine}):} 部分集合 $C \subseteq \alpha$ が鎖であるとは、任意の $a, b \in C$ について $a \le b$ または $b \le a$ が成り立つことである。
+    \item \textbf{上界 (\texttt{EstMajorant}):} $S \subseteq \alpha$ と $x \in \alpha$ について、$x$ が $S$ の元に対する上界であるとは、すべての $a \in S$ について $a \le x$ となることである。
+    \item \textbf{極大元 (\texttt{EstMaximal}):} $x \in S$ が $S$ の極大元であるとは、任意の $y \in S$ に対し $x \le y \implies x = y$ が成り立つことである。
+    \item \textbf{帰納的集合 (\texttt{EstInductif}):} 部分集合 $S \subseteq \alpha$ が帰納的であるとは、$S$ に含まれる任意の鎖 $C$ に対して、ある $b \in S$ が存在してそれが $C$ の上界となることである。
+\end{itemize}
+
+以下に、帰納的集合の条件を図解する。鎖に対して上界が存在することが帰納的集合の条件である。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Stealth, node distance=1.5cm]
+    \draw[dashed, rounded corners=15pt, fill=blue!5] (-1, -1) rectangle (4, 4) node[above left] {$S$ (帰納的集合)};
+    
+    \node (c1) at (0, 0) {$c_1$};
+    \node (c2) at (1, 1) {$c_2$};
+    \node (c3) at (2, 2) {$c_3$};
+    \node (b) at (1.5, 3.5) [circle, draw=blue, thick, inner sep=2pt, label=right:{$b$ (上界)}] {};
+    \node (m) at (3, 3) [circle, draw=red, thick, inner sep=2pt, label=right:{$m$ (極大元)}] {};
+
+    \draw[->, thick, red] (c1) -- (c2);
+    \draw[->, thick, red] (c2) -- (c3);
+    
+    \draw[->, dotted, blue, thick] (c3) -- (b);
+    \draw[->, dotted, blue, thick] (c2) .. controls (0.5, 2) .. (b);
+    \draw[->, dotted, blue, thick] (c1) .. controls (-0.5, 1.5) .. (b);
+    
+    \node at (0.5, 0.7) [red] {\footnotesize 鎖 $C$};
+\end{tikzpicture}
+\caption{帰納的集合 $S$ における鎖 $C$ の上界 $b$ と適当な極大元 $m$}
+\end{figure}
+
+\section{Mathlibとの連携 (\texttt{Bridge})}
+
+Lean 4の数学ライブラリであるMathlibにはすでに順序論の定理群が存在する。独自に定義した \texttt{Ordre} からMathlibの \texttt{PartialOrder} へのブリッジとなるインスタンス \texttt{ordreToPartialOrder} が定義されており、また \texttt{EstChaine} がMathlibの標準的な鎖の定義である \texttt{IsChain} と同値であることが定理 \texttt{estChaine\_iff\_isChain} によって示されている。これにより、Mathlibの強力な定理を再利用する準備が整えられている。
+
+\section{ツォルンの補題 (\texttt{Zorn})}
+
+ツォルンの補題は、ある条件を満たす集合が極大元を持つことを保証する。ソースコード中では、部分集合に対する形（局所版）と全体に対する形（大域版）の2形式が記述されている。
+
+\begin{theorem}[ツォルンの補題（局所版）\texttt{zorn}]
+任意の半順序集合 $\alpha$ とその部分集合 $S$ について、$S$ が帰納的（\texttt{EstInductif}）ならば、$S$ は少なくとも一つの極大元を持つ。
+\[ \exists m, \texttt{EstMaximal } S \ m \]
+\end{theorem}
+この定理の証明では、Mathlibが提供する \texttt{zorn\_le}$_0$ 定理を適用し、前述のブリッジを通して極大元の存在を直接導いている。
+
+\begin{theorem}[ツォルンの補題（大域版）\texttt{zorn\_global}]
+半順序集合 $\alpha$ において、すべての鎖 $C$ が上界を持つならば、$\alpha$ に極大元が存在する。形式的には次のように記述される。
+\[ \exists m : \alpha, \forall x : \alpha, m \le x \implies x \le m \]
+\end{theorem}
+半順序の反対称律により $m \le x \implies m = x$ となるため、これは極大元の定義と一致する。定理 \texttt{zorn\_global} は、$S$ として全体集合 $\text{Set.univ}$ を取ることで、局所版である定理 \texttt{zorn} から導かれる系として簡潔に証明されている。
+
+\section{選択公理との同値性 (\texttt{Choice})}
+
+選択公理（Axiom of Choice）は、$A_i$ が空でないならば、それらの元の選択によって構成される関数が存在し全体としても空でないという主張である。コード中では \texttt{Nonempty} 型を用いて以下のように定義される。
+
+\begin{definition}[選択公理 \texttt{AxiomeDeChoix}]
+\[ \forall \{ \iota : \text{Type} \} (A : \iota \to \text{Type}), (\forall i, \texttt{Nonempty } (A \ i)) \implies \texttt{Nonempty } (\forall i, A \ i) \]
+\end{definition}
+
+ツォルンの補題と選択公理が同値であることは集合論（ZFC）においてよく知られている。この同値性は以下の2つの定理として形式化されている：
+\begin{enumerate}
+    \item \texttt{choix\_implique\_zorn}: 選択公理からツォルンの補題を導く。
+    \item \texttt{zorn\_implique\_choix}: ツォルンの補題から選択公理を導く。（※ソース内では古典的選択 \texttt{Classical.choice} による定理 \texttt{axiomeDeChoix\_classical} から導いている）
+\end{enumerate}
+最終的に、これらの含意関係から同値性定理 \texttt{equivalence\_choix\_zorn} が構成され、両者の数学的な等価性が証明されている。
+
+\section{結語}
+本コードは、ブルバキ的な「鎖」「帰納的集合」といった基本的概念から出発し、Mathlibの資産を利用してツォルンの補題と選択公理の同値性を構築している。図1で見たような直観的な順序の構造に関する理解が、そのままコードにおいて厳密に証明されていることが確認できる。
+
+\end{document}
