@@ -23,12 +23,12 @@ jobs:
           root_file: |
             ZornsLemma.tex
             ZornsLemmaMathlib.tex
-          working_directory: TeX
+          working_directory: TeX/OrderNotes
           latexmk_use_lualatex: true
 
       - name: Upload PDFs
         uses: actions/upload-artifact@v4
         with:
           name: pdf-documents
-          path: TeX/*.pdf
+          path: TeX/OrderNotes/*.pdf
           retention-days: 30
