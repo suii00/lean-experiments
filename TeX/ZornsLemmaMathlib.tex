@@ -1,0 +1,156 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, calc}
+
+\newtheorem{definition}{定義}
+\newtheorem{theorem}{定理}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{corollary}[theorem]{系}
+
+\title{Lean 4によるツォルンの補題・選択公理・整列定理の形式化}
+\author{su}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、Lean 4のMathlibを活用して形式化されたツォルンの補題（Zorn's Lemma）、選択公理（Axiom of Choice）、整列定理（Well-Ordering Theorem）の同値性、およびその応用について解説する。解説は \texttt{src/Myprojects/OrderNotes/ZornsLemmaMathlib.lean} の主要な定理に沿って行い、Mathlibの既存API（\texttt{zorn\_le} 等）を最大限に活用したコンパクトな証明構造を概観する。さらに、包含関係における極大集合の存在や部分写像の極大拡張など、ツォルンの補題の典型的な応用例についても述べる。
+\end{abstract}
+
+\section{序論}
+本形式化は、Mathlibが備えている強力な順序論のAPIを利用し、ツォルンの補題のバリエーション、選択公理・整列定理との関係、および代表的な応用を簡潔にまとめたものである。集合論における最も重要な原理の1つであるこれらの命題が、Lean 4上でどのように記述され、互いにどう関連づけられているかを確認する。
+
+\section{ツォルンの補題のバリエーション}
+
+Zornの補題には様々な定式化が存在するが、本定義では主に3つのバリエーションが提供されている。
+
+\begin{theorem}[ツォルンの補題（部分集合版） \texttt{zorn\_subset\_version}]
+半順序集合 $\alpha$ とその部分集合 $S$ が与えられているとする。$S$ に含まれる任意の鎖（全順序部分集合） $C$ が $S$ 内に上界を持つならば、$S$ は極大元を持つ。
+\[ \exists m \in S, \forall x \in S, m \le x \implies m = x \]
+\end{theorem}
+この定理は mathlib の \texttt{zorn\_le\_0} をベースに証明されている。
+
+\begin{theorem}[ツォルンの補題（空チェーン対応版） \texttt{zorn\_nonempty}]
+$S$ が空でない部分集合であり、「空でない」鎖 $C \subseteq S$ のみに対して上界の存在を仮定する場合でも、極大元の存在が保証される。
+\end{theorem}
+
+以下に、部分集合版のツォルンの補題における帰納的条件と極大元の関係を図解する。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Stealth, node distance=1.5cm]
+    % 集合Sの境界
+    \draw[dashed, rounded corners=20pt, fill=blue!5] (-1, -1) rectangle (5, 5);
+    \node at (4.5, 4.5) {$S$};
+    
+    % 鎖の要素
+    \node (x1) at (0, 0) {$x_1$};
+    \node (x2) at (1, 1.5) {$x_2$};
+    \node (x3) at (2, 2.5) {$x_3$};
+    \node (b) at (1.5, 3.8) [circle, draw=blue, thick, inner sep=2pt, label=above:{$b$ (上界)}] {};
+    \node (m) at (3.5, 4.2) [circle, draw=red, thick, inner sep=2pt, label=right:{$m$ (極大元)}] {};
+
+    % 鎖の順序関係
+    \draw[->, thick, red] (x1) -- (x2);
+    \draw[->, thick, red] (x2) -- (x3);
+    
+    % 上界への関係
+    \draw[->, dotted, blue, thick] (x3) -- (b);
+    \draw[->, dotted, blue, thick] (x2) .. controls (0.5, 2.8) .. (b);
+    \draw[->, dotted, blue, thick] (x1) .. controls (-0.5, 2.0) .. (b);
+    
+    \node at (0.8, 0.8) [red] {\small 鎖 $C$};
+\end{tikzpicture}
+\caption{部分集合 $S$ 内の鎖 $C$ とその上界 $b$、および保証される極大元 $m$}
+\end{figure}
+
+
+\section{選択公理との同値性}
+
+選択公理（Axiom of Choice, AC）には「型理論的定式化」と「集合論的定式化」の2種類が用意されている。Mathlib（Lean 4）が基盤とする論理では、古典的選択子 \texttt{Classical.choice} によって選択公理は事実上定理として導かれる。
+
+\begin{definition}[選択公理（型理論版） \texttt{AC}]
+任意の添字族 $A : \iota \to \text{Type}^*$ について、各 $A_i$ が空でないならば、その直積も空ではない。
+\[ \forall i, \text{Nonempty} (A_i) \implies \text{Nonempty} (\forall i, A_i) \]
+\end{definition}
+
+本形式化の主定理として、選択公理とツォルンの補題が同値であることが証明されている。
+\begin{theorem}[\texttt{ac\_iff\_zorn}]
+選択公理が成り立つことと、ツォルンの補題（部分集合版）が成り立つことは同値である。
+\end{theorem}
+
+
+\section{整列定理との関係}
+
+任意の集合（型）には整列順序（Well-Ordering）を入れることができる、というのが整列定理である。\texttt{WellOrderOn} を用いて関係として定義されている。
+
+\begin{theorem}[整列定理]
+任意の型 $\alpha$ に対して、$\alpha$ を整列可能にするような関係 $r$ が存在する。
+\end{theorem}
+
+形式化では、以下の2つの含意が示されている。
+\begin{itemize}
+    \item \texttt{ac\_implies\_well\_ordering}: 選択公理から整列定理を導く。Lean 4の枠組みでは \texttt{WellOrderingRel} を用いて直接構成できる。
+    \item \texttt{well\_ordering\_implies\_ac}: 整列定理から選択公理を導く。（\texttt{ac\_from\_classical} に帰着）
+\end{itemize}
+
+
+\section{ツォルンの補題の典型的応用}
+
+後半 (§4) では、数学の様々な分野に現れるツォルンの補題の代表的な応用例が定理としてパッケージ化されている。
+
+\subsection{帰納的集合の極大元}
+\texttt{Inductive} な集合（任意の鎖が上界を持つ集合）は極大元を持つ（\texttt{inductive\_has\_maximal}）。これは最も直接的な応用である。
+
+\subsection{集合族における極大元（包含順序）}
+集合の族 $\mathcal{S}$ に対して、包含関係 $\subseteq$ に関して帰納的な条件を満たせば、極大となる集合 $M$ が存在する。
+\begin{theorem}[\texttt{maximal\_in\_family}]
+$\mathcal{S} \neq \emptyset$ であり、$\mathcal{S}$ の鎖 $\mathcal{C}$ に対してその和集合 $\bigcup \mathcal{C}$ がまた $\mathcal{S}$ に属するならば、$\mathcal{S}$ は包含関係に関する極大元を持つ。
+\end{theorem}
+
+\subsection{写像の拡張}
+部分的に定義された関数の極大拡張の存在（\texttt{maximal\_partial\_map\_extension}）。
+与えられた性質 $P$ を満たしつつ定義域を広げていく鎖の上限が存在するならば、拡張できない「極大な」部分写像が存在することが導かれる。代数学（代数的閉包の構成等）や関数解析（ハーン・バナッハの定理等）で用いられる標準的なパターンである。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Stealth, node distance=2cm]
+    \node (A) at (0, 0) {$T$};
+    \node (B) at (3, 0) {$T'$};
+    \node (C) at (6, 0) {$M$ (極大定義域)};
+    
+    \node (Y) at (3, -2.5) {$\beta$ (終域)};
+    
+    \draw[->, thick, right hook-latex] (A) -- (B) node[midway, above] {$\subseteq$};
+    \draw[->, thick, right hook-latex] (B) -- (C) node[midway, above] {$\subseteq$};
+    
+    \draw[->, thick] (A) -- (Y) node[midway, left] {$f$};
+    \draw[->, thick] (B) -- (Y) node[midway, right] {$f'$};
+    \draw[->, thick] (C) -- (Y) node[midway, right] {$f_{\max}$};
+
+    \node at (1.5, -1.2) [rotate=30] {$\simeq$};
+    \node at (4.5, -1.2) [rotate=30] {$\simeq$};
+\end{tikzpicture}
+\caption{性質 $P$ を満たす写像の包含に関する拡張の連鎖と極大拡張 $f_{\max}$}
+\end{figure}
+
+\subsection{真フィルターからの超フィルター構成}
+真フィルターから超フィルター（極大フィルター）を作る操作も、ツォルンの補題によって構成できる（\texttt{ultrafilter\_extension\_pattern}）。これも \texttt{maximal\_in\_family} の枠組みと類似した論法である。
+
+\section{結語}
+\texttt{ZornsLemmaMathlib.lean} における形式化は、Mathlibの組み込みAPIを効果的に利用し、基礎的な同値性定理から実践的な応用パターンまでを網羅的に提供している。これらの定理群は、より抽象的かつ複雑な数学的対象を構成するための強力な基盤となる。
+
+\end{document}
