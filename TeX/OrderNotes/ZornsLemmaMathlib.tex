@@ -1,7 +1,7 @@
 \documentclass[a4paper,11pt]{ltjsarticle}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{tikz}
-\usetikzlibrary{positioning, arrows.meta, shapes.geometric, calc}
+\usetikzlibrary{positioning, arrows, arrows.meta, shapes.geometric, calc}
 
 \newtheorem{definition}{定義}
 \newtheorem{theorem}{定理}
@@ -134,8 +134,8 @@ $\mathcal{S} \neq \emptyset$ であり、$\mathcal{S}$ の鎖 $\mathcal{C}$ に�
     
     \node (Y) at (3, -2.5) {$\beta$ (終域)};
     
-    \draw[->, thick] (A) -- (B) node[midway, above] {$\subseteq$};
-    \draw[->, thick] (B) -- (C) node[midway, above] {$\subseteq$};
+    \draw[->, thick, right hook-latex] (A) -- (B) node[midway, above] {$\subseteq$};
+    \draw[->, thick, right hook-latex] (B) -- (C) node[midway, above] {$\subseteq$};
     
     \draw[->, thick] (A) -- (Y) node[midway, left] {$f$};
     \draw[->, thick] (B) -- (Y) node[midway, right] {$f'$};
