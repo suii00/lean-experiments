@@ -1,0 +1,33 @@
+# Lean 4 build artifacts
+build/
+lake-packages/
+.lake/
+
+# IDE files
+.vscode/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Node.js (if using)
+node_modules/
+
+#LaTeX中間生成物
+*.pdf
+*.gz
+*.fls
+*.log
+*.aux
+*.fdb_latexmk
+*.out
+*.toc
+
+tmp_*
+log_*.txt
