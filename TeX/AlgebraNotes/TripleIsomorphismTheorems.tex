@@ -1,0 +1,126 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usetikzlibrary{positioning, arrows, arrows.meta, shapes.geometric, calc}
+
+\newtheorem{definition}{定義}
+\newtheorem{theorem}{定理}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{corollary}[theorem]{系}
+
+\title{Lean 4による群の同型定理の形式化}
+\author{su}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、Lean 4のMathlibを活用して形式化された群の第一・第二・第三同型定理、およびブルバキ流の普遍性に基づく定式化について解説する。解説は \texttt{src/MyProjects/AlgebraNotes/TripleIsomorphismTheorems.lean} に沿って展開し、各定理の数学的主張や可換図式を用いた圏論的な普遍性の理解を深めることを目的とする。
+\end{abstract}
+
+\section{序論}
+群の準同型定理（同型定理）は、群論のみならず代数学全般において基本的な役割を果たす。本形式化では、これら三つの同型定理をMathlibの商群（\texttt{QuotientGroup}）APIを用いて構成し、さらにそれらを射の普遍性や因子分解の観点から統一的に捉えるブルバキ流のアプローチを採り入れている。
+
+\section{第一同型定理}
+第一同型定理は、群準同型の像と、核による商群が同型になることを主張する。
+
+\begin{theorem}[第一同型定理 \texttt{firstIsomorphismTheorem}]
+群 $G, H$ と群準同型 $\varphi : G \to H$ に対し、以下が成り立つ。
+\[ G / \ker \varphi \cong \operatorname{Im} \varphi \]
+\end{theorem}
+
+また、これは以下の普遍性として捉え直すことができる。
+
+\begin{theorem}[普遍性 \texttt{firstIsomorphismTheorem\_universalProperty}]
+任意の準同型 $\varphi : G \to H$ は、商群 $G / \ker \varphi$ を経由して自然に因子分解される。すなわち、$\pi : G \to G / \ker \varphi$ を自然な射影とするとき、準同型 $\bar{\varphi} : G / \ker \varphi \to \operatorname{Im} \varphi$ がただ一つ存在して $\varphi = \iota \circ \bar{\varphi} \circ \pi$ を満たす（$\iota$ は包含写像）。
+\end{theorem}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[row sep=large, column sep=large]
+G \arrow[r, "\varphi"] \arrow[d, "\pi"'] & \operatorname{Im}\varphi \arrow[hook, r, "\iota"] & H \\
+G / \ker \varphi \arrow[ru, "\bar{\varphi}"', "\cong", dashed] & & 
+\end{tikzcd}
+\caption{第一同型定理における準同型の因子分解図式}
+\end{figure}
+
+\section{第二同型定理（ダイヤモンド同型定理）}
+
+第二同型定理は、部分群と正規部分群の積と交わりに関する同型を与える。Lean 4上の定式化では、集合論的な和集合ではなく、部分群の束における上限 $\sqcup$ を用いて $H \sqcup K$ として表現される。
+
+\begin{theorem}[第二同型定理 \texttt{secondIsomorphismTheorem}]
+群 $G$ の部分群 $K$ と正規部分群 $H \triangleleft G$ に対して、次が成り立つ。
+\[ K / (H \cap K) \cong (K H) / H \]
+ここで $K H$ は集合論的積であり、Lean上の部分群としては $K \sqcup H$ に対応する。また分母の $H \cap K$ は $K$ における $H$ の部分群 \texttt{H.subgroupOf K} として扱われる。
+\end{theorem}
+
+この定理は、ダイヤモンド定理とも呼ばれるように、部分群の包含関係が菱形をなす様子として視覚化できる。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.5cm]
+  \node (KH) at (0,3) {$K \sqcup H = KH$};
+  \node (K) at (-1.5,1.5) {$K$};
+  \node (H) at (1.5,1.5) {$H$};
+  \node (KcapH) at (0,0) {$K \cap H$};
+
+  \draw[-] (KH) -- (K) node[midway, above left] {商};
+  \draw[-] (KH) -- (H) node[midway, above right] {};
+  \draw[-] (K) -- (KcapH) node[midway, below left] {};
+  \draw[-] (H) -- (KcapH) node[midway, below right] {商};
+  
+  \draw[<->, dashed, thick] (-0.8, 2.2) -- (0.8, 0.8) node[midway, right] {$\cong$};
+\end{tikzpicture}
+\caption{第二同型定理のダイヤモンド図式（対角の商が同型）}
+\end{figure}
+
+\section{第三同型定理（対応定理）}
+
+第三同型定理は、正規部分群による商群の、さらにその正規部分群による商群をとる操作に関する定理である。
+
+\begin{theorem}[第三同型定理 \texttt{thirdIsomorphismTheorem}]
+群 $G$ の正規部分群 $H, K \triangleleft G$ が $H \le K$ を満たすとする。このとき、$K/H$ は $G/H$ の正規部分群となり、次が成り立つ。
+\[ (G / H) / (K / H) \cong G / K \]
+\end{theorem}
+
+形式化においては、準同型写像 $\pi_{H, K} : G \to (G/H) / (K/H)$ を構成し（\texttt{thirdIsoMap}）、その核が $K$ に等しいこと（\texttt{thirdIsoMap\_ker}）、全射であること（\texttt{thirdIsoMap\_surjective}）を示して第一同型定理に帰着させる手法をとっている。
+
+\section{ブルバキ流普遍性の統一的定式化}
+
+最後に、上の定理群の背景にある圏論的な普遍性について述べる。
+
+\begin{theorem}[準同型の因子分解定理 \texttt{quotient\_lift\_unique}]
+群準同型 $\varphi : G \to H$ と正規部分群 $N \triangleleft G$ が与えられたとき、$N \le \ker \varphi$ ならば、商群を経由する準同型 $\psi : G / N \to H$ が一意に存在して $\varphi = \psi \circ \pi_N$ を満たす。
+\end{theorem}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[row sep=large, column sep=large]
+G \arrow[r, "\varphi"] \arrow[d, "\pi_N"'] & H \\
+G / N \arrow[ru, "\psi"', dashed, "\exists !"] & 
+\end{tikzcd}
+\caption{因子分解定理の可換図式 ($N \subseteq \ker \varphi$)}
+\end{figure}
+
+さらに、核と商の双対性から同型定理の本質が表現される。
+\begin{theorem}[核と商の双対性 \texttt{kernel\_quotient\_duality}]
+正規部分群 $N \triangleleft G$ に対して、$N = \ker \varphi$ を満たすならば、商群と像は同型となる：
+\[ G / N \cong \operatorname{Im} \varphi \]
+\end{theorem}
+
+\section{結語}
+本形式化ファイル \texttt{TripleIsomorphismTheorems.lean} は、群の基本的な同型定理を網羅し、それらがいかに普遍性や商群の性質に裏打ちされているかをLean 4の強力な型システムの上で明確に示している。
+
+\end{document}
