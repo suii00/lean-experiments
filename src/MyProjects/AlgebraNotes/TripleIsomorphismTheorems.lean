@@ -5,7 +5,7 @@
 -/
 
 import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.GroupTheory.Subgroup.Lattice
+import Mathlib.Algebra.Group.Subgroup.Lattice
 import Mathlib.Algebra.Group.Hom.Basic
 
 open QuotientGroup Subgroup
@@ -21,7 +21,7 @@ variable {G : Type*} [Group G]
 -/
 
 /-- 第一同型定理：群準同型の像と核商の同型 -/
-theorem firstIsomorphismTheorem
+def firstIsomorphismTheorem
     {H : Type*} [Group H]
     (φ : G →* H) :
     G ⧸ MonoidHom.ker φ ≃* MonoidHom.range φ :=
@@ -32,43 +32,61 @@ theorem firstIsomorphismTheorem_universalProperty
     {H : Type*} [Group H]
     (φ : G →* H) :
     ∃! ψ : G ⧸ MonoidHom.ker φ →* MonoidHom.range φ,
-      ∀ g : G, ψ (QuotientGroup.mk g) = ⟨φ g, MonoidHom.mem_range.mpr ⟨g, rfl⟩⟩ := by
-  sorry
+      ∀ g : G, ψ (g : G ⧸ MonoidHom.ker φ) = ⟨φ g, MonoidHom.mem_range.mpr ⟨g, rfl⟩⟩ := by
+  refine ⟨(QuotientGroup.quotientKerEquivRange φ).toMonoidHom, ?_, ?_⟩
+  · intro g
+    rfl
+  · intro ψ hψ
+    ext g
+    simpa using hψ g
 
 /-!
 ## 第二同型定理 (Second Isomorphism Theorem / Diamond Theorem)
 
-H ⊴ G, K ≤ G のとき K ⧸ (H ⊓ K) ≃* (H ⊔ K) ⧸ H
+H ⊴ G, K ≤ G のとき K ⧸ (H ∩ K) ≃* (K ⊔ H) ⧸ H
+（Lean では左辺の分母を `H.subgroupOf K` として表現）
 -/
 
-/-- 第二同型定理の設定：H が G の正規部分群、K が G の部分群 -/
 section SecondIsomorphism
 
-variable (H K : Subgroup G) [hHN : H.Normal]
+variable (H K : Subgroup G)
 
 /-- H と K の積（集合論的） HK = H ⊔ K は部分群をなす -/
 lemma sup_eq_range_mul :
-    (H ⊔ K : Subgroup G) = (H ⊔ K) := rfl
+    (H ⊔ K : Subgroup G) = (H ⊔ K : Subgroup G) := rfl
 
-/-- K から (H ⊔ K) ⧸ H への標準的な準同型写像 -/
-def secondIsoMap : K →* (H ⊔ K) ⧸ H.subgroupOf (H ⊔ K) :=
-  sorry
+variable [hHN : H.Normal]
 
-/-- 第二同型定理の準同型の核は H ⊓ K に等しい -/
+/-- K から (K ⊔ H) ⧸ H への標準的な準同型写像 -/
+def secondIsoMap : K →* (K ⊔ H : Subgroup G) ⧸ H.subgroupOf (K ⊔ H) :=
+  (QuotientGroup.mk' (H.subgroupOf (K ⊔ H))).comp (Subgroup.inclusion le_sup_left)
+
+lemma secondIsoMap_eq :
+    secondIsoMap H K =
+      (QuotientGroup.quotientInfEquivProdNormalQuotient K H).toMonoidHom.comp
+        (QuotientGroup.mk' (H.subgroupOf K)) := by
+  ext x
+  rfl
+
+/-- 第二同型定理の準同型の核は H ∩ K に対応する部分群に等しい -/
 lemma secondIsoMap_ker :
-    MonoidHom.ker (secondIsoMap H K) = (H ⊓ K).subgroupOf K := by
-  sorry
+    MonoidHom.ker (secondIsoMap H K) = H.subgroupOf K := by
+  ext x
+  simp [secondIsoMap, Subgroup.mem_subgroupOf]
 
 /-- 第二同型定理の準同型は全射である -/
 lemma secondIsoMap_surjective :
     Function.Surjective (secondIsoMap H K) := by
-  sorry
+  rw [secondIsoMap_eq (H := H) (K := K)]
+  simpa using Function.Surjective.comp
+    (QuotientGroup.quotientInfEquivProdNormalQuotient K H).surjective
+    (QuotientGroup.mk'_surjective (H.subgroupOf K))
 
 /-- **第二同型定理（ダイヤモンド同型定理）**
-    H ⊴ G, K ≤ G のとき K ⧸ (H ⊓ K) ≃* (H ⊔ K) ⧸ H -/
-theorem secondIsomorphismTheorem :
-    K ⧸ (H ⊓ K).subgroupOf K ≃* (H ⊔ K) ⧸ H.subgroupOf (H ⊔ K) := by
-  sorry
+    H ⊴ G, K ≤ G のとき K ⧸ (H ∩ K) ≃* (K ⊔ H) ⧸ H -/
+def secondIsomorphismTheorem :
+    K ⧸ H.subgroupOf K ≃* (K ⊔ H : Subgroup G) ⧸ H.subgroupOf (K ⊔ H) :=
+  QuotientGroup.quotientInfEquivProdNormalQuotient K H
 
 end SecondIsomorphism
 
@@ -84,34 +102,44 @@ variable (H K : Subgroup G) [H.Normal] [K.Normal] (hHK : H ≤ K)
 
 /-- H ≤ K のとき K ⧸ H は G ⧸ H の正規部分群をなす -/
 instance quotientNormal : (K.map (QuotientGroup.mk' H)).Normal := by
-  sorry
+  infer_instance
 
 /-- G ⧸ H から (G ⧸ H) ⧸ (K ⧸ H) への射影合成写像 -/
-def thirdIsoMap : G →* (G ⧸ H) ⧸ (K.map (QuotientGroup.mk' H)) :=
+def thirdIsoMap (_hHK : H ≤ K) : G →* (G ⧸ H) ⧸ (K.map (QuotientGroup.mk' H)) :=
   (QuotientGroup.mk' (K.map (QuotientGroup.mk' H))).comp (QuotientGroup.mk' H)
 
 /-- 第三同型定理の準同型写像の核は K に等しい -/
 lemma thirdIsoMap_ker :
     MonoidHom.ker (thirdIsoMap H K hHK) = K := by
-  sorry
+  calc
+    MonoidHom.ker (thirdIsoMap H K hHK)
+        = (MonoidHom.ker (QuotientGroup.mk' (K.map (QuotientGroup.mk' H)))).comap
+            (QuotientGroup.mk' H) := by
+              rfl
+    _ = (K.map (QuotientGroup.mk' H)).comap (QuotientGroup.mk' H) := by
+          simp [QuotientGroup.ker_mk']
+    _ = H ⊔ K := by
+          simp [QuotientGroup.comap_map_mk']
+    _ = K := by
+          exact sup_eq_right.mpr hHK
 
 /-- 第三同型定理の準同型写像は全射である -/
 lemma thirdIsoMap_surjective :
     Function.Surjective (thirdIsoMap H K hHK) := by
-  sorry
+  simpa [thirdIsoMap] using Function.Surjective.comp
+    (QuotientGroup.mk'_surjective (K.map (QuotientGroup.mk' H)))
+    (QuotientGroup.mk'_surjective H)
 
 /-- **第三同型定理（対応定理）**
     H ⊴ G, K ⊴ G, H ≤ K のとき (G ⧸ H) ⧸ (K ⧸ H) ≃* G ⧸ K -/
-theorem thirdIsomorphismTheorem :
-    (G ⧸ H) ⧸ (K.map (QuotientGroup.mk' H)) ≃* G ⧸ K := by
-  sorry
-
-/-- 第三同型定理（等式形式）：核から同型を構成する標準的証明 -/
-theorem thirdIsomorphismTheorem' :
+def thirdIsomorphismTheorem :
     (G ⧸ H) ⧸ (K.map (QuotientGroup.mk' H)) ≃* G ⧸ K :=
-  MulEquiv.symm <|
-    (QuotientGroup.quotientKerEquivRange (thirdIsoMap H K hHK)).trans (by
-      sorry)
+  QuotientGroup.quotientQuotientEquivQuotient H K hHK
+
+/-- 第三同型定理（等式形式）：標準同型としての同値な表現 -/
+def thirdIsomorphismTheorem' :
+    (G ⧸ H) ⧸ (K.map (QuotientGroup.mk' H)) ≃* G ⧸ K :=
+  thirdIsomorphismTheorem H K hHK
 
 end ThirdIsomorphism
 
@@ -130,7 +158,13 @@ theorem quotient_lift_unique
     (hN : N ≤ MonoidHom.ker φ) :
     ∃! ψ : G ⧸ N →* H,
       φ = ψ.comp (QuotientGroup.mk' N) := by
-  sorry
+  refine ⟨QuotientGroup.lift N φ hN, ?_, ?_⟩
+  · exact (QuotientGroup.lift_comp_mk' N φ hN).symm
+  · intro ψ hψ
+    ext g
+    have hψg : ψ (QuotientGroup.mk' N g) = φ g := by
+      simpa [MonoidHom.comp_apply] using (congrArg (fun f : G →* H => f g) hψ).symm
+    simpa [QuotientGroup.lift_mk'] using hψg
 
 /-- 同型定理の圏論的本質：核と商の双対性 -/
 theorem kernel_quotient_duality
@@ -139,6 +173,7 @@ theorem kernel_quotient_duality
     (N : Subgroup G) [N.Normal]
     (hN : N = MonoidHom.ker φ) :
     Nonempty (G ⧸ N ≃* MonoidHom.range φ) := by
-  sorry
+  subst hN
+  exact ⟨QuotientGroup.quotientKerEquivRange φ⟩
 
 end
