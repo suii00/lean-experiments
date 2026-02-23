@@ -10,7 +10,6 @@ import Mathlib.RingTheory.Ideal.Basic
 import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.RingTheory.Ideal.Maps
 import Mathlib.RingTheory.Ideal.Operations
-import Mathlib.Order.GaloisConnection
 
 namespace NoetherCorrespondence
 
@@ -51,12 +50,13 @@ def backward : Ideal (R ⧸ I) → IdealOver I :=
 /-- イデアル写像のメンバーシップ特徴付け -/
 lemma mem_map_iff (J : Ideal R) (x : R ⧸ I) :
     x ∈ Ideal.map (π I) J ↔ ∃ r ∈ J, (π I) r = x := by
-  exact Submodule.mem_map
+  simpa [and_left_comm, and_assoc] using
+    (Ideal.mem_map_iff_of_surjective (π I) Ideal.Quotient.mk_surjective (I := J) (y := x))
 
 /-- イデアル引き戻しのメンバーシップ特徴付け -/
 lemma mem_comap_iff (K : Ideal (R ⧸ I)) (r : R) :
     r ∈ Ideal.comap (π I) K ↔ (π I) r ∈ K := by
-  exact Submodule.mem_comap
+  rfl
 
 /-- π の全射性：すべての商環の元は持ち上げを持つ -/
 lemma π_surjective : Function.Surjective (π I) :=
@@ -66,7 +66,7 @@ lemma π_surjective : Function.Surjective (π I) :=
 lemma comap_contains_I (K : Ideal (R ⧸ I)) :
     I ≤ Ideal.comap (π I) K := by
   intro r hr
-  simp [mem_comap_iff, π, Ideal.Quotient.eq_zero_iff_mem.mpr hr]
+  simp [π, Ideal.Quotient.eq_zero_iff_mem.mpr hr]
 
 /-- 像と引き戻しの関係：I ≤ J のとき comap(map(J)) = J -/
 lemma comap_map_eq (J : Ideal R) (hIJ : I ≤ J) :
@@ -76,7 +76,7 @@ lemma comap_map_eq (J : Ideal R) (hIJ : I ≤ J) :
   constructor
   · intro ⟨s, hs, hrs⟩
     have h : r - s ∈ I := by
-      rwa [← Ideal.Quotient.eq, eq_comm] at hrs
+      exact Ideal.Quotient.eq.mp hrs.symm
     have : r = s + (r - s) := by ring
     rw [this]
     exact J.add_mem hs (hIJ h)
@@ -95,9 +95,7 @@ lemma map_comap_eq (K : Ideal (R ⧸ I)) :
 /-- backward は forward の左逆写像 -/
 lemma backward_forward_id (J : IdealOver I) :
     backward I (forward I J) = J := by
-  ext r
-  simp only [forward, backward, Subtype.mk.injEq]
-  exact (comap_map_eq I J.val J.property).symm ▸ Iff.rfl
+  exact Subtype.ext (comap_map_eq I J.1 J.2)
 
 /-- forward は backward の左逆写像 -/
 lemma forward_backward_id (K : Ideal (R ⧸ I)) :
@@ -107,7 +105,7 @@ lemma forward_backward_id (K : Ideal (R ⧸ I)) :
 
 /-- **ノーター対応定理（双射部分）**
     I を含む R のイデアル格子と R/I のイデアル格子は全単射対応する -/
-theorem noether_correspondence :
+def noether_correspondence :
     IdealOver I ≃ Ideal (R ⧸ I) where
   toFun     := forward I
   invFun    := backward I
@@ -122,7 +120,8 @@ theorem noether_correspondence :
     I ⊆ J かつ J が素イデアルなら π(J) も素イデアル -/
 lemma forward_preserves_prime (J : Ideal R) (hIJ : I ≤ J) (hJ : J.IsPrime) :
     (Ideal.map (π I) J).IsPrime := by
-  apply Ideal.map_isPrime_of_surjective (π_surjective I)
+  letI : J.IsPrime := hJ
+  refine Ideal.map_isPrime_of_surjective (f := π I) (π_surjective I) ?_
   intro r hr
   rw [RingHom.mem_ker] at hr
   exact hIJ (Ideal.Quotient.eq_zero_iff_mem.mp hr)
@@ -131,9 +130,9 @@ lemma forward_preserves_prime (J : Ideal R) (hIJ : I ≤ J) (hJ : J.IsPrime) :
     π(J) が素イデアルなら J も素イデアル -/
 lemma backward_preserves_prime (J : Ideal R) (hIJ : I ≤ J)
     (hK : (Ideal.map (π I) J).IsPrime) : J.IsPrime := by
-  rw [comap_map_eq I J hIJ ▸ show J = Ideal.comap (π I) (Ideal.map (π I) J) from
-    (comap_map_eq I J hIJ).symm]
-  exact Ideal.comap_isPrime
+  letI : (Ideal.map (π I) J).IsPrime := hK
+  simpa [comap_map_eq I J hIJ] using
+    (Ideal.comap_isPrime (f := π I) (K := Ideal.map (π I) J))
 
 /-- **素イデアル対応定理**
     I ⊆ J のとき J が素イデアル ⟺ π(J) が素イデアル -/
@@ -143,64 +142,26 @@ theorem prime_correspondence (J : Ideal R) (hIJ : I ≤ J) :
 
 /-!
 ## Part VI: 構造保存 — 最大イデアル対応
-
-### 修正箇所の数学的解説
-
-`forward_preserves_maximal` の証明で鍵となるのは以下の2点：
-
-1. **L ≠ J の証明**：L = J を仮定すると
-     K = π(π⁻¹(K)) = π(L) = π(J) = map π J
-   となり K ≠ map π J に矛盾。
-   map_comap_eq（π の全射性による）を使えば ext による元ごとの議論は不要。
-
-2. **L = ⊤ から K = ⊤ の導出**：
-     K = π(π⁻¹(K)) = π(L) = π(⊤) = ⊤
-   全射 π に対して π(⊤) = ⊤ は Ideal.map_top_of_surjective。
 -/
 
 /-- **最大イデアル保存（順方向）**
     I ⊆ J かつ J が最大イデアルなら π(J) も最大イデアル -/
 lemma forward_preserves_maximal (J : Ideal R) (hIJ : I ≤ J) (hJ : J.IsMaximal) :
     (Ideal.map (π I) J).IsMaximal := by
-  constructor
-  · -- map π J ≠ ⊤ を示す
-    intro h_top
-    have hJ_top : J = ⊤ := by
-      have : Ideal.comap (π I) (Ideal.map (π I) J) = Ideal.comap (π I) ⊤ := by
-        rw [h_top]
-      rw [comap_map_eq I J hIJ] at this
-      rw [this]
-      exact Ideal.comap_top (π I)
-    exact hJ.ne_top hJ_top
-  · -- 最大性：map π J ⊆ K かつ K ≠ map π J なら K = ⊤
-    intro K hK hKne
-    -- L := π⁻¹(K)
-    let L := Ideal.comap (π I) K
-    -- Step 1: J ≤ L（comap の単調性と comap_map_eq から）
-    have hJL : J ≤ L := by
-      rw [← comap_map_eq I J hIJ]
-      exact Ideal.comap_mono hK
-    -- Step 2: L ≠ J（もし L = J なら K = map π J となり矛盾）
-    --   K = map π (comap π K) = map π L = map π J
-    have hLne : L ≠ J := by
-      intro heq
-      exact hKne ((map_comap_eq I K).symm.trans (congr_arg (Ideal.map (π I)) heq))
-    -- Step 3: J の最大性より L = ⊤
-    have hL_top : L = ⊤ := hJ.eq_of_le hJL (Ne.symm hLne)
-    -- Step 4: K = π(π⁻¹(K)) = π(L) = π(⊤) = ⊤
-    calc Ideal.map (π I) (Ideal.comap (π I) K)
-          = K := map_comap_eq I K
-      _ = _ := by rw [show Ideal.comap (π I) K = L from rfl] at *
-                  rw [← map_comap_eq I K, hL_top]
-                  exact Ideal.map_top_of_surjective _ (π_surjective I)
+  letI : J.IsMaximal := hJ
+  exact Ideal.IsMaximal.map_of_surjective_of_ker_le (f := π I) (π_surjective I) <| by
+    intro r hr
+    rw [RingHom.mem_ker] at hr
+    exact hIJ (Ideal.Quotient.eq_zero_iff_mem.mp hr)
 
 /-- **最大イデアル保存（逆方向）**
     π(J) が最大イデアルなら J も最大イデアル -/
 lemma backward_preserves_maximal (J : Ideal R) (hIJ : I ≤ J)
     (hK : (Ideal.map (π I) J).IsMaximal) : J.IsMaximal := by
-  rw [comap_map_eq I J hIJ ▸ show J = Ideal.comap (π I) (Ideal.map (π I) J) from
-    (comap_map_eq I J hIJ).symm]
-  exact Ideal.comap_isMaximal_of_surjective (π I) (π_surjective I)
+  letI : (Ideal.map (π I) J).IsMaximal := hK
+  simpa [comap_map_eq I J hIJ] using
+    (Ideal.comap_isMaximal_of_surjective (f := π I) (π_surjective I)
+      (K := Ideal.map (π I) J))
 
 /-- **最大イデアル対応定理**
     I ⊆ J のとき J が最大イデアル ⟺ π(J) が最大イデアル -/
