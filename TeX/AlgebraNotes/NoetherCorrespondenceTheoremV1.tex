@@ -1,0 +1,111 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows, arrows.meta, shapes.geometric, calc}
+\usepackage{tikz-cd}
+
+\newtheorem{definition}{定義}
+\newtheorem{theorem}{定理}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{corollary}[theorem]{系}
+
+\title{Lean 4によるノーターの対応定理（Noether Correspondence Theorem）の形式化}
+\author{su}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、ニコラ・ブルバキの数学原論に基づくZF集合論的な定式化に沿って、可換環における「ノーターの対応定理（Noether Correspondence Theorem）」をLean 4で形式化した内容について解説する。解説は \texttt{src/MyProjects/AlgebraNotes/Noether Correspondence Theorem.lean} に沿って行う。環 $R$ とそのイデアル $I$ が与えられたとき、$I$ を含む $R$ のイデアルの全体と、商環 $R/I$ のイデアルの全体との間に全単射対応が存在し、この対応において素イデアル性および極大イデアル性が完全に保存されることを示す。
+\end{abstract}
+
+\section{序論}
+ノーターの対応定理（イデアルの対応定理、または第四同型定理とも呼ばれる）は、環論における最も基本的かつ重要な定理の一つである。商環 $R/I$ におけるイデアルの構造が、元の環 $R$ における $I$ を含むイデアルの構造と完全に一致することを主張する。本形式化では、Mathlibのイデアルに関するAPI（\texttt{Ideal.map} や \texttt{Ideal.comap} など）を活用し、この対応関係を構成的かつ厳密に構築する。
+
+\section{基本写像の定義と性質}
+
+可換環を $R$、そのイデアルを $I \subseteq R$ とする。
+まず、$I$ を含む $R$ の部分イデアルの集合を部分型 \texttt{IdealOver I} として定義する。
+\[ \text{IdealOver } I := \{ J \text{ : Ideal } R \mid I \le J \} \]
+
+商環への自然な全射（カノニカル・プロジェクション）を $\pi : R \to R/I$ とする。
+対応関係を与える写像として、以下の2方向の写像を定義する：
+\begin{itemize}
+    \item \textbf{順方向写像 (\texttt{forward})}：$I$ を含むイデアル $J$ を、像 $\pi(J)$ （Leanでは \texttt{Ideal.map}）を用いて $R/I$ のイデアルに送る。
+    \item \textbf{逆方向写像 (\texttt{backward})}：$R/I$ のイデアル $\bar{K}$ を、引き戻し $\pi^{-1}(\bar{K})$ （Leanでは \texttt{Ideal.comap}）を用いて $R$ のイデアルに送る。引き戻しは常に $I = \ker(\pi)$ を含むため、結果は \texttt{IdealOver I} の元となる。
+\end{itemize}
+
+これらの対応関係と包含関係を可換図式で表すと以下のようになる。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[row sep=large, column sep=huge]
+\text{IdealOver }(I) \subseteq \text{Ideal}(R) \arrow[r, "\text{forward}: J \mapsto \pi(J)", shift left=1.2ex] & \text{Ideal}(R/I) \arrow[l, "\text{backward}: \bar{K} \mapsto \pi^{-1}(\bar{K})", shift left=1.2ex]
+\end{tikzcd}
+\caption{イデアル間の順方向写像と逆方向写像の対応関係}
+\end{figure}
+
+$\pi$ が全射であること（\texttt{π\_surjective}）から、任意の $J \in \text{IdealOver } I$ と $\bar{K} \in \text{Ideal}(R/I)$ に関して以下の「像と引き戻しの関係」が成り立つ（補題 \texttt{comap\_map\_eq} および \texttt{map\_comap\_eq} に対応）。
+\begin{align*}
+    \pi^{-1}(\pi(J)) &= J \quad (\text{前提 } I \le J \text{ が必要}) \\
+    \pi(\pi^{-1}(\bar{K})) &= \bar{K} \quad (\pi \text{ の全射性より})
+\end{align*}
+
+\section{ノーター対応定理の構築}
+
+前節の諸性質から、写像 \texttt{forward} と \texttt{backward} は互いに逆写像であることが従う。これをまとめたのが以下の全単射（\texttt{Equiv}、記号 $\simeq$）である。
+
+\begin{theorem}[\texttt{noether\_correspondence}]
+$I$ を含む $R$ のイデアルの格子と、$R/I$ のイデアルの格子との間には全単射対応が存在する。
+\[ \text{IdealOver } I \simeq \text{Ideal}(R/I) \]
+\end{theorem}
+この定理は、両側の左逆補題（\texttt{backward\_forward\_id}, \texttt{forward\_backward\_id}）を証明することで示されている。
+
+\section{代数的構造の保存（素イデアルと極大イデアル）}
+
+前述の全単射は、単なる集合としての対応にとどまらず、イデアルの重要な代数的性質（素イデアル性、極大イデアル性）を保存する。
+
+\subsection{素イデアル対応}
+同型定理の非常に有用な帰結として、素イデアルの対応がある。
+\begin{theorem}[\texttt{prime\_correspondence}]
+$I \subseteq J$ を満たすイデアル $J$ について以下は同値である：
+\[ J \text{ が素イデアルである} \iff \pi(J) \text{ が素イデアルである} \]
+\end{theorem}
+この事実は代数幾何学において、商環の素スペクトル $\text{Spec}(R/I)$ が元の環の素スペクトル $\text{Spec}(R)$ における閉集合（$I$ を含む素イデアルの全体 $V(I)$）に同相であることを意味する重要なステップである。
+
+\subsection{極大イデアル対応}
+極大性についても同様の保存則が成り立つ。
+\begin{theorem}[\texttt{maximal\_correspondence}]
+$I \subseteq J$ を満たすイデアル $J$ について以下は同値である：
+\[ J \text{ が極大イデアルである} \iff \pi(J) \text{ が極大イデアルである} \]
+\end{theorem}
+極大イデアルの判定は、商環が体になるかどうか（\texttt{IsMaximal}）を見ることに帰着できるため、この定理により元の環における極大イデアルの探索を小規模な商環における探索へ落とし込むことが可能になる。
+
+\section{完全版の対応定理 (\texttt{noether\_correspondence\_complete})}
+
+形式化の最終定理 \texttt{noether\_correspondence\_complete} では、以上の構成を全て一つのパッケージにまとめている。
+これまでの個別の定理を統合し、全単射 $\phi : \text{IdealOver } I \simeq \text{Ideal}(R/I)$ が存在して、それが
+\begin{enumerate}
+    \item $\phi(J) = \pi(J)$ （像で与えられる）
+    \item $\phi^{-1}(\bar{K}) = \pi^{-1}(\bar{K})$ （引き戻しで与えられる）
+    \item $\phi$ は素イデアル性を保つ
+    \item $\phi$ は極大イデアル性を保つ
+\end{enumerate}
+という4条件を同時に満たすことが、存在定理の形でエレガントに宣言されている。
+
+\section{結語}
+本稿では、Lean 4におけるノーターの対応定理の形式化を通じて、イデアルの全単射対応からその構造保存までを確認した。Mathlibのイデアルに関するAPIを順次適用することで、対応定理が極めて自然かつ簡潔に証明・構成できていることがわかる。
+
+\end{document}
