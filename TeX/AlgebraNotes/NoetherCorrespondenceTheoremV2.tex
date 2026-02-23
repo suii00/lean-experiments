@@ -1,0 +1,129 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usetikzlibrary{positioning, arrows, arrows.meta, shapes.geometric, calc}
+
+\newtheorem{definition}{定義}
+\newtheorem{theorem}{定理}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{corollary}[theorem]{系}
+
+\title{Lean 4によるノーター対応定理の形式化}
+\author{su}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、ニコラ・ブルバキの数学原論に基づくノーター対応定理（イデアルの対応定理）のLean 4を用いた形式化について解説する。解説は \texttt{src/MyProjects/AlgebraNotes/NoetherCorrespondenceV2.lean} と \texttt{src/MyProjects/AlgebraNotes/ForwardMaximal\_alternatives.lean} に沿って展開し、商環 $R/I$ のイデアル格子と、$I$ を含む $R$ のイデアル格子との間の完全な双射対応、ならびに素イデアル・最大イデアルの保存性を明らかにする。また、最大イデアル保存の性質に関する複数の証明手法についても比較検討を行う。
+\end{abstract}
+
+\section{序論}
+環論において、商環 $R/I$ の性質を調べる上で、元の環 $R$ のイデアルとの関係を記述する対応定理は極めて重要である。本形式化では、商環への標準的全射 $\pi : R \to R/I$ を通じた対応写像を明示的に構成し、部分型 \texttt{IdealOver I} を用いて厳密な全単射を定義する。
+
+\section{基本写像の定義}
+可換環 $R$ とそのイデアル $I$ を固定する。商環 $R/I$ への標準的な全射準同型を $\pi : R \to R/I$ とおく。
+
+\begin{definition}[$I$ を含むイデアルの部分型 \texttt{IdealOver}]
+$I$ を含むような $R$ のイデアル全体のなす集合を、Lean 4の部分型を用いて次のように定義する：
+\[ \text{IdealOver}(I) := \{J \in \text{Ideal}(R) \mid I \subseteq J\} \]
+\end{definition}
+
+対応写像は以下のように定義される：
+\begin{itemize}
+    \item \textbf{順方向写像 (\texttt{forward})} : $J \in \text{IdealOver}(I)$ に対し、$R/I$ のイデアル $\pi(J)$ を対応させる。（Lean上の定義は $\texttt{Ideal.map}\ \pi\ J$）
+    \item \textbf{逆方向写像 (\texttt{backward})} : $R/I$ のイデアル $\bar{K}$ に対し、引き戻し $\pi^{-1}(\bar{K})$ を対応させる。（Lean上の定義は $\texttt{Ideal.comap}\ \pi\ \bar{K}$）
+\end{itemize}
+
+これらの対応関係を可換図式で表すと以下のようになる。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[row sep=huge, column sep=huge]
+\text{Ideal}(R) \supseteq \text{IdealOver}(I) \arrow[r, "\text{forward (map)}", shift left=1.5ex] \arrow[d, "\text{包含}"'] & \text{Ideal}(R/I) \arrow[l, "\text{backward (comap)}", shift left=1.5ex] \\
+J \arrow[r, mapsto] & \pi(J)
+\end{tikzcd}
+\caption{イデアルの対応写像と引き戻し}
+\end{figure}
+
+\section{ノーター対応定理}
+
+以上の準備の下で、順方向写像と逆方向写像が互いに逆写像であることが示される。
+特に $I \subseteq J$ のとき、像の引き戻しが元のイデアルに一致すること（\texttt{comap\_map\_eq}）が本質的である。
+
+\begin{theorem}[ノーター対応定理 \texttt{noether\_correspondence}]
+順方向写像 \texttt{forward} と逆方向写像 \texttt{backward} は、全単射を与える。すなわち、以下の同値（全単射）が成り立つ。
+\[ \text{IdealOver}(I) \simeq \text{Ideal}(R/I) \]
+\end{theorem}
+
+また、これはイデアルの包含関係（半順序）を保存するため、単なる集合の全単射に留まらず束の同型を与える。これは以下のようなハッセ図として視覚化できる。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, thick]
+  \node (R) at (0,4) {$R$};
+  \node (J) at (0,2) {$J$};
+  \node (I) at (0,0) {$I$};
+  \draw[-] (R) -- (J) node[midway, left] {};
+  \draw[-] (J) -- (I) node[midway, left] {};
+
+  \node (Rbar) at (4,4) {$R/I$};
+  \node (Jbar) at (4,2) {$\pi(J) \cong J/I$};
+  \node (0bar) at (4,0) {$\{0\}$};
+  \draw[-] (Rbar) -- (Jbar) node[midway, right] {};
+  \draw[-] (Jbar) -- (0bar) node[midway, right] {};
+
+  \draw[<->, dashed, blue] (J) -- (Jbar) node[midway, above] {\small 1対1対応};
+  \draw[<->, dashed, blue] (R) -- (Rbar) node[midway, above] {};
+  \draw[<->, dashed, blue] (I) -- (0bar) node[midway, above] {};
+\end{tikzpicture}
+\caption{環 $R$ のイデアル包含関係と商環 $R/I$ のイデアル包含関係の一致}
+\end{figure}
+
+\section{構造保存と完全な対応定理}
+
+この対応は、素イデアル性と最大イデアル性という代数的に極めて重要な構造も保存する。
+
+\begin{theorem}[素イデアルと最大イデアルの対応 \texttt{prime\_correspondence}, \texttt{maximal\_correspondence}]
+$I \subseteq J$ を満たす $R$ のイデアル $J$ に対して、次が成り立つ：
+\begin{enumerate}
+    \item $J$ が素イデアル $\iff \pi(J)$ が素イデアル
+    \item $J$ が最大イデアル $\iff \pi(J)$ が最大イデアル
+\end{enumerate}
+\end{theorem}
+
+ここで、素イデアルの順方向の保存（\texttt{forward\_preserves\_prime}）の形式化においては、$\pi$ の全射性と $\ker \pi = I \subseteq J$ である事実を利用し、Mathlib の \texttt{Ideal.map\_isPrime\_of\_surjective} へ帰着させている。
+
+以上のすべてを統合したものが、最終的な主定理 \texttt{noether\_correspondence\_complete} であり、同義の性質をすべて満たす全単射 $\varphi$ の存在を主張している。
+
+\section{最大イデアル保存の代替証明案の比較}
+
+最大イデアルの順方向保存（\texttt{forward\_preserves\_maximal}）の証明に関して、\texttt{ForwardMaximal\_alternatives.lean} では3つのアプローチが提示されている。
+
+\subsection*{アプローチ A: 直接的な書き換え}
+この手法は、自力で証明した補題 \texttt{map\_comap\_eq} などを駆使し、部分的なステップを \texttt{rw} などの書き換えによって直接的に閉じるアプローチである。
+
+\subsection*{アプローチ B: MathlibのAPIの直接使用}
+Mathlib に既存の定理 \texttt{Ideal.IsMaximal.map\_of\_surjective\_of\_ker\_le} を直接呼び出す手法である。$\ker \pi \subseteq J$ （すなわち $I \subseteq J$）を \texttt{RingHom.mem\_ker} を介して示すだけで証明が完結するため、コードが非常に簡潔になる。現在の \texttt{NoetherCorrespondenceV2.lean} ではこの手法が採用されている。
+
+\subsection*{アプローチ C: 同型定理経由}
+最大イデアルによる商が体になるという性質（\texttt{Ideal.Quotient.maximal\_of\_isField}）を用い、環の同型
+\[ R/J \cong (R/I)/\pi(J) \]
+を経由して示す方針である。この形式化には Mathlib の第三同型定理に相当するAPIが必要であり、依存度が高くなるが、代数的な直観には最も合致する経路である。
+
+\section{結語}
+本稿では、商環のイデアルに関する基本定理であるノーター対応定理の Lean 4 による形式化の解説を行った。このような形式化を通じて、イデアルの対応から生まれる同値関係や構造保存が、ZF集合論的立場からいかに厳密に保証されるかを確認することができた。
+
+\end{document}
