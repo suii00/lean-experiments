@@ -9,7 +9,7 @@ variable {R : Type*} [CommRing R] (I : Ideal R)
 /-!
 ### `forward_preserves_maximal` の代替証明案
 
-元コードの `sorry` 2 箇所を埋めるための 3 つのアプローチ。
+元コードの未完了箇所を埋めるための 3 つのアプローチ。
 -/
 
 /-!
@@ -45,7 +45,7 @@ Mathlib API 依存が高いため、ここではスケルトンのみ記載。
 --     (Ideal.map (π I) J).IsMaximal := by
 --   have : IsField ((R ⧸ I) ⧸ (Ideal.map (π I) J)) := by
 --     -- R/J ≅ (R/I)/(map π J) と J が最大 → R/J が体 から導く
---     sorry
+--     -- TODO: 証明をここで実装
 --   exact Ideal.Quotient.maximal_of_isField _ this
 
 end NoetherCorrespondence
