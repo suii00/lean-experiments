@@ -1,0 +1,139 @@
+\documentclass[ltjarticle,11pt,a4paper]{ltjsarticle}
+
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+
+\title{Bourbaki-inspired P1.5: 代数学 II (Commutative Algebra)}
+\author{su}
+\date{\today}
+
+\newtheorem{theorem}{定理}[section]
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{remark}[theorem]{注意}
+\newtheorem{example}[theorem]{例}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿は、Lean 4 による形式化プロジェクト「Bourbaki-inspired P1.5: Commutative Algebra」に対応する数学的解説ノートである。
+群論 (P1) と解析学 (P2) の橋渡しとなる可換環論および加群の理論について、Bourbaki『代数学』および『可換環論』に基づく展開を概説する。
+環の準同型、イデアルの操作、商環、局所化、加群、テンソル積、Noether環、UFD/PID、および体の拡大と最小多項式の基礎を扱う。
+\end{abstract}
+
+\tableofcontents
+
+\section{環と準同型 (Anneaux et morphismes)}
+可換環 $R, S$ について、写像 $f \colon R \to S$ が環準同型であるとは、和と積、および単位元を保存することである。
+すなわち、任意の $x, y \in R$ について次が成り立つ：
+\begin{align*}
+f(x + y) &= f(x) + f(y), \\
+f(xy) &= f(x)f(y), \\
+f(1_R) &= 1_S.
+\end{align*}
+
+\section{イデアルと商環 (Idéaux et anneaux quotients)}
+
+\subsection{イデアルの基本操作}
+環 $R$ のイデアル $I, J$ に対して、その和 $I+J$ および積 $I \cdot J$ もまたイデアルとなる。
+積について、常に $I \cdot J \subseteq I \cap J$ が成立する。
+
+イデアル $\mathfrak{p}$ が素イデアルであることの定義的性質は、任意の $a,b \in R$ について「$ab \in \mathfrak{p} \implies a \in \mathfrak{p}$ または $b \in \mathfrak{p}$」が成り立つことである。また、極大イデアルは常に素イデアルである。
+
+\subsection{商環}
+イデアル $I \subset R$ による商環 $R/I$ を考える。自然な射影 $\pi \colon R \to R/I$ は全射な環準同型であり、その核は $\ker(\pi) = I$ となる。
+商環の性質について、以下の重要な同値が成り立つ：
+\begin{itemize}
+    \item $R/I$ が体である $\iff I$ は極大イデアルである
+    \item $R/I$ が整域である $\iff I$ は素イデアルである
+\end{itemize}
+
+\subsection{環の同型定理}
+第1同型定理は、環準同型 $f \colon R \to S$ に対し、以下のような同型を与える：
+\[
+    R/\ker(f) \cong \mathrm{im}(f).
+\]
+また、第3同型定理（対応定理）によれば、$I \supseteq J$ を満たすイデアルについて、
+\[
+    (R/J) / (I/J) \cong R/I
+\]
+という同型が成り立つ。
+
+\begin{figure}[h]
+\centering
+\begin{tikzcd}
+R \arrow[r, "f"] \arrow[d, "\pi"'] & S \\
+R/\ker(f) \arrow[ru, "\sim"', "\bar{f}"] & 
+\end{tikzcd}
+\caption{第1同型定理の可換図式}
+\end{figure}
+
+\section{局所化 (Localisation)}
+部分モノイド (積閉集合) $S \subset R$ による局所化 $S^{-1}R$ を構築する。
+自然な準同型 $\varphi \colon R \to S^{-1}R$ は、$S$ に零因子が含まれない（$S \subseteq R \setminus \{0\}$ で $R$ が整域、あるいはより一般に $S$ の元が正則）ならば単射となる。
+
+局所化写像は以下の普遍性を満たす：任意の環 $Q$ と準同型 $f \colon R \to Q$ について、$f(S)$ の元がすべて $Q$ の可逆元であれば、一意な準同型 $g \colon S^{-1}R \to Q$ が存在し、$f = g \circ \varphi$ となる。
+
+\begin{figure}[h]
+\centering
+\begin{tikzcd}
+R \arrow[r, "\varphi"] \arrow[dr, "f"'] & S^{-1}R \arrow[d, "g", dashed] \\
+& Q
+\end{tikzcd}
+\caption{局所化の普遍性}
+\end{figure}
+
+\section{加群とテンソル積 (Modules et produit tensoriel)}
+
+\subsection{加群の基礎}
+環 $R$ 上の加群 $M, N$ を考える。$R$-線形写像 $f \colon M \to N$ の像は $N$ の部分加群となる。
+加群についても第1同型定理 $M/\ker(f) \cong \mathrm{im}(f)$ が成立する。
+
+\subsection{自由加群と階数}
+有限生成な自由加群について考える。とくに、強階数条件を満たす環 $R$ 上のベクトル空間 $V$（または自由加群）では、基底の濃度が一意に定まり、これを階数（次元）$\dim_R V$（あるいは $\mathrm{rank}_R V$）と呼ぶ。
+
+\subsection{テンソル積}
+$R$-加群 $M, N$ のテンソル積 $M \otimes_R N$ は、次の普遍性により特徴付けられる：
+双線形作用素 $f \colon M \times N \to P$ は、線形写像 $g \colon M \otimes_R N \to P$ を一意に経由する。
+
+\begin{figure}[h]
+\centering
+\begin{tikzcd}
+M \times N \arrow[r, "\otimes"] \arrow[dr, "f"'] & M \otimes_R N \arrow[d, "g", dashed] \\
+& P
+\end{tikzcd}
+\caption{テンソル積の普遍性}
+\end{figure}
+
+テンソル積関手 $- \otimes_R N$ は右完全性を持つ。
+
+\section{Noether環と因数分解 (Anneaux noethériens et factoriels)}
+
+\subsection{Noether環}
+環 $R$ がNoether環であるとは、任意のイデアルが有限生成であることをいう。
+同値な条件として、イデアルの昇鎖条件（ACC; 昇鎖列が必ず停留する）が成り立つという性質がある。
+
+\subsection{UFD と PID}
+単項イデアル整域（PID）は、すべてのイデアルが単項（1つの元で生成される）であるような整域であり、これは自動的にNoether環でもある。
+また、PIDにおいては既約元と素元が一致する。これは素元分解整域（UFD）となるための重要な性質の一つであり、UFDの任意の元は既約元の積として一意に分解される。
+
+\section{体の拡大と最小多項式 (Extensions de corps)}
+体 $F$ の拡大体 $E$ に対して、元 $\alpha \in E$ が $F$ 上代数的である（integralである）とする。
+$\alpha$ の $F$ 上の最小多項式 $\mathrm{minpoly}_F(\alpha)$ はモニックであり、$\alpha$ を根に持つ（すなわち $P(\alpha) = 0$）。
+さらに特徴的な性質として、$\alpha$ を零化する任意の多項式は最小多項式で割り切れるという事実がある。
+
+\end{document}
