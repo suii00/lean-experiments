@@ -1,0 +1,99 @@
+\documentclass[11pt,a4paper,lualatex]{jlreq}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz-cd}
+\usepackage{tcolorbox}
+\usepackage{hyperref}
+
+\title{母なる構造 (Structures Mères) \\ \large ブルバキ『数学原論』の精神とLean 4による形式化}
+\author{su}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:} \\
+Lean ソースコードはAntigravity (Google DeepMind)で骨格を生成し、\\
+Codex (OpenAI) で修正した。\\
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、Nicolas Bourbaki が提唱した数学の全構造を三つの「母なる構造（代数的構造、順序構造、位相的構造）」に還元する思想を概説し、定理証明支援系 Lean 4 による形式化の試み（\texttt{StructuresMeres.lean}）について述べる。数学的構造の輸送原理、公理的定義、異なる構造の交差、さらには誘導構造および積や商における普遍性といった核心的概念を考察する。
+\end{abstract}
+
+\section{はじめに：三つの母なる構造}
+Bourbakiは数学に現れる多様な構造を、根源的な以下の三つの「母なる構造（Structures Mères）」から派生するものと捉えた。
+\begin{itemize}
+    \item \textbf{代数的構造 (Structure algébrique)}：要素間の演算の法則（結合法則など）を定める。
+    \item \textbf{順序構造 (Structure d'ordre)}：要素間の大小関係や順序的関係を定める。
+    \item \textbf{位相的構造 (Structure topologique)}：要素の「近さ」や極限、連続性を定める。
+\end{itemize}
+現代の数学的対象の多くは、これらが単独で、あるいは複数組み合わさって構築されている。
+
+\section{輸送原理 (Transport de structures)}
+数学において同型な対象は「同じ構造を持つ」と見なされる。この本質は、ある集合 $\alpha$ 上の構造が、全単射 $e : \alpha \xrightarrow{\sim} \beta$ を通じて別の集合 $\beta$ に「輸送（transport）」できるという原理に基づいている。
+
+\begin{center}
+\begin{tikzcd}
+    \alpha \arrow[rr, "e", "\sim"'] \arrow[d, "\text{struct}(\alpha)"'] & & \beta \arrow[d, "\text{struct}(\beta) \text{ [誘導される構造]}"] \\
+    \text{Structure on } \alpha \arrow[rr, "\text{transport}"'] & & \text{Structure on } \beta
+\end{tikzcd}
+\end{center}
+
+たとえば、$\alpha$ が群構造を持つとき、$\beta$ 上の群演算 $\star$ を以下のように定義することで、$\beta$ もまた群となる。
+\[
+e(x) \star e(y) := e(x \cdot y)
+\]
+Lean 4の実装でも、\texttt{transportGroupMul} および順序を輸送する \texttt{transportOrder} としてこの基本原理が定式化されている。
+
+\section{母なる構造の公理的定義}
+Bourbakiは各構造の本質を抽出するため、最小限の公理を設定した。形式化においては、既存の豊富な型クラス（\texttt{Group} 等）を用いず、敢えて根源的な構造体として定式化を行っている。
+
+\subsection{代数的母構造 (\texttt{AlgebraicMere})}
+「群の骨格」としての代数構造は、二項演算 $\mathrm{op}$、単位元 $\mathrm{unit}$、逆元 $\mathrm{inv}$ に加え、「結合法則」「左単位元の性質」「左逆元の性質」のみを公理として持つ。
+これらの最小限の要請から、右単位元・右逆元の性質を定理として導出し、標準的な群（\texttt{Group}）のインスタンスを再構成できる。最小公理化は論理的依存関係を明らかにするために重要である。
+
+\subsection{順序母構造 (\texttt{OrderMere}) と 位相的母構造 (\texttt{TopologicalMere})}
+半順序の骨格は反射律・推移律・反対称律からなる \texttt{OrderMere} として、また開集合系の骨格は「全体集合と空集合の開性」「有限交叉での閉性」「任意合併での閉性」からなる \texttt{TopologicalMere} として定義される。
+
+\section{構造の交差 (Croisement des structures)}
+母構造の真価は、それらが\textbf{交差（Croisement）}することによってより豊饒な数学的対象を生み出す点にある。
+
+\begin{center}
+\begin{tikzcd}[row sep=large, column sep=large]
+    & \text{代数的構造} \arrow[dl, dash] \arrow[dr, dash] & \\
+    \text{順序群} \arrow[dr, dash] & & \text{位相群} \arrow[dl, dash] \\
+    & \text{位相順序群} \arrow[d, dash] \arrow[dl, dash] & \\
+    \text{順序構造} & \text{順序位相} \arrow[l, dash] \arrow[r, dash] & \text{位相的構造}
+\end{tikzcd}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{順序群（代数 $\cap$ 順序）}：\texttt{OrderedGroupMere} は、代数構造における左右の平行移動（乗法）が順序を保存するという整合性条件（translation-invariant）を追加する。
+    \item \textbf{位相群（代数 $\cap$ 位相）}：\texttt{TopologicalGroupMere} は、乗法および逆元の操作が連続であることを要請する。
+\end{itemize}
+
+\section{誘導構造と普遍性}
+構造は、部分集合・商集合・積集合に対して「誘導（induite）」される性質を持つ。
+例えば、演算で閉じている部分集合は \texttt{SubAlgebra} として部分代数構造を持ち、積集合 $\alpha \times \beta$ は成分ごとの演算により自然に積の代数構造 (\texttt{productAlgebra}) を備える。
+
+こうした積や商の構造は\textbf{普遍性（Propriétés universelles）}によって特徴付けられる。
+対象 $Y, Z$ の積 $Y \times Z$ は、任意の対象 $X$ と写像 $f: X \to Y, g: X \to Z$ に対し、一意な写像 $h: X \to Y \times Z$ を導くという強力な性質を持つ。
+\begin{center}
+\begin{tikzcd}
+    & X \arrow[dl, "f"'] \arrow[d, "h", dashed] \arrow[dr, "g"] & \\
+    Y & Y \times Z \arrow[l, "\pi_1"] \arrow[r, "\pi_2"'] & Z
+\end{tikzcd}
+\end{center}
+商についても、群準同型の核による商群が第一同型定理を満たす性質として遍在的に現れる。
+
+\section{結び：$\sigma$-代数と三母構造}
+代数・順序・位相の三母構造は、$\sigma$-代数のような対象において一体となる。$\sigma$-代数は、Bool代数としての演算（代数）、包含関係を順序とする完備束（順序）、そしてBorel $\sigma$-代数に見られるような位相からの生成（位相）という、三側面の交差点（結節点）となっている。
+
+本稿で概観したBourbakiの母なる構造の形式化は、現代数学が有する壮大で有機的な体系の骨格を、定理証明支援系という厳密な計算環境上で再構築する試みとして高い意義を持っている。
+
+\end{document}
