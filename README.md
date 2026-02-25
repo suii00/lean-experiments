@@ -1,2 +1,22 @@
 # lean-experiments
-このプロジェクトは Lean 4 / Mathlib4 の学習目的で、Codex/Claude Code/Antigravityなどを用いて構築しました。
+
+**Lean 4 / Mathlib4** の学習目的で、Codex（OpenAI）・Claude Code（Anthropic）・
+Antigravity（Google DeepMind）などの AI ツールを用いて構築している実験リポジトリです。
+
+## StructureTower
+
+AI との対話中に偶然生まれたアイデアを出発点に、同様の環境で意図的に再導出させ、
+定義・公理・反例・Lean 形式化としてこのリポジトリで整備しています。
+
+## ビルド
+```bash
+lake build
+```
+
+## AI エージェントの設定
+
+各ツール向けの作業ルールを以下のファイルで管理しています。
+
+- [AGENTS.md](./AGENTS.md) — 共通ガイド・作業履歴
+- [CLAUDE.md](./CLAUDE.md) — Claude Code 用ローカルルール
+- [GEMINI.md](./GEMINI.md) — Antigravity 用ルール
