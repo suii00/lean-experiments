@@ -1,0 +1,211 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz-cd}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, decorations.pathmorphing, calc, shapes.geometric}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+\usepackage{enumitem}
+\usepackage{alltt}
+
+% --- 定理環境 ---
+\theoremstyle{definition}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{corollary}[theorem]{系}
+\newtheorem{remark}[theorem]{注釈}
+\newtheorem{example}[theorem]{例}
+
+% --- tcolorbox スタイル ---
+\newtcolorbox{leanbox}[1][]{%
+  enhanced, breakable,
+  colback=gray!5, colframe=gray!60!black,
+  fonttitle=\bfseries\ttfamily,
+  title={Lean 4 形式化},
+  #1
+}
+
+\newtcolorbox{keybox}[1][]{%
+  enhanced, unbreakable,
+  colback=blue!3, colframe=blue!50!black,
+  fonttitle=\bfseries,
+  title={核心},
+  #1
+}
+
+\title{%
+  Bourbaki 流「圏論」の形式化\\[4pt]
+  \large --- \texttt{P4\_CategoryTheory} による構造主義の圏論的再解釈 ---
+}
+\author{su}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+\begin{abstract}
+  Bourbaki の構造主義を圏論的に再解釈する \texttt{P4\_CategoryTheory.lean} の内容を解説する。
+  本稿では、圏・関手・自然変換といった基礎概念から出発し、米田の補題による普遍性の統一、極限と随伴関手による Galois 接続の一般化、さらにモナドや Abel 圏のホモロジー代数への接続に至るまで、Mathlib の圏論ライブラリを用いた形式化の軌跡を図式とともに概観する。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ===========================================================
+\section{導入：圏論的構造主義の全体像}
+% ===========================================================
+
+Bourbaki の「数学的構造」は、集合論的枠組みのなかで定義・公理として展開されてきたが、圏論 (Category Theory) はそれらを対象と射からなる「圏」の中で関係性として再解釈する。
+本プロジェクトにおける \texttt{P4\_CategoryTheory.lean} は、順序構造や代数系、位相空間論などを統一的に扱うための圏論的基礎を構築している。
+
+\begin{keybox}
+本ファイルで扱われる主要なトピックは以下の通りである。
+\begin{itemize}[nosep]
+  \item \textbf{圏・関手・自然変換}（数学の辞書）
+  \item \textbf{米田の補題}（対象を射の束として記述する）
+  \item \textbf{極限と余極限}（普遍性の圏論的定式化）
+  \item \textbf{随伴関手}（Galois 接続の究極の一般化）
+  \item \textbf{圏の同値・モナド}
+  \item \textbf{Abel 圏入門}（ホモロジー代数の基盤）
+\end{itemize}
+\end{keybox}
+
+Mathlib は Category Theory について巨大かつ非常に一般性の高いライブラリを有しており、これを利用することで極めて抽象的レベルでの定理証明が容易となる。
+
+% ===========================================================
+\section{圏論の基本：圏，関手，自然変換}
+% ===========================================================
+
+\subsection{圏と関手 (Catégories et Foncteurs)}
+
+数学の構造は「対象」(Objects) とその間の構造を保つ「写像 = 射」(Morphisms) により構成される。\texttt{Mathlib} では、二つの対象の間の射の集合を \verb|X \to Y| に似た特殊な矢印 \verb|X \longrightarrow Y| （コード上では \verb|\hom| または \verb|\o| 経由などで入力される）で表す。関手 (Functor) は一つの圏から別の圏への「構造を保つ写像」である。
+
+\begin{leanbox}
+\begin{alltt}
+/-- 関手は射の合成を保存する。 -/
+theorem functor_map_comp (F : C \(\to\) D) \{X Y Z : C\} (f : X \(\longrightarrow\) Y) (g : Y \(\longrightarrow\) Z) :
+    F.map (f \(\gg\) g) = F.map f \(\gg\) F.map g
+\end{alltt}
+\end{leanbox}
+
+ここで、射の合成は関数合成 \(\circ\) ではなく、Diagrammatic order の \(\gg\) ( \verb|\gg| ) が多用されることにとくに注意が必要である（\(f \gg g\) は「\(f\) を行ってから \(g\) を行う」という意味）。
+
+\subsection{自然変換 (Transformations naturelles)}
+
+二つの関手 \(F, G \colon \mathcal{C} \to \mathcal{D}\) の間を結ぶ「射」が自然変換である。
+自然変換 \(\alpha \colon F \to G\) は、任意の \(X\) における成分 \(\alpha_X \colon F(X) \to G(X)\) の族であり、次の可換図式を満たす。
+
+\begin{center}
+\begin{tikzcd}[column sep=large, row sep=large]
+  F(X) \arrow[r, "F(f)"] \arrow[d, "\alpha_X"'] & F(Y) \arrow[d, "\alpha_Y"] \\
+  G(X) \arrow[r, "G(f)"'] & G(Y)
+\end{tikzcd}
+\end{center}
+
+\begin{leanbox}
+\begin{alltt}
+/-- 自然変換の naturality 条件。 -/
+theorem nat_trans_naturality \{F G : C \(\to\) D\} (\(\alpha\) : F \(\longrightarrow\) G) \{X Y : C\} (f : X \(\longrightarrow\) Y) :
+    F.map f \(\gg\) \(\alpha\).app Y = \(\alpha\).app X \(\gg\) G.map f
+\end{alltt}
+\end{leanbox}
+
+% ===========================================================
+\section{米田の補題と普遍性}
+% ===========================================================
+
+\subsection{米田の補題 (Lemme de Yoneda)}
+
+対象 \(X\) は、それ自体を直接調べる代わりに、「\(X\) への射の全体」 \(\mathrm{Hom}(-, X)\) を調べることで完全に決定される。
+これを数学的に厳密に主張するのが米田の補題である。
+
+集合値の前層 \(F \colon \mathcal{C}^\mathrm{op} \to \mathbf{Set}\) と対象 \(X \in \mathcal{C}\) に対し、表現可能関手 \(h_X = \mathrm{Hom}(-, X)\) から \(F\) への自然変換の全体は \(F(X)\) そのものと自然に同型になる。
+
+\[
+\mathrm{Nat}(h_X, F) \cong F(X)
+\]
+
+\begin{leanbox}
+Lean 4 では \texttt{yonedaEquiv} としてこれが実装されており、さらなる系として米田埋め込み (\texttt{yoneda}) が忠実充満 (fully faithful) であることが導かれる。
+\begin{alltt}
+/-- 米田埋め込みは忠実充満。 -/
+def yoneda_fully_faithful : (yoneda (C := C)).FullyFaithful :=
+  Yoneda.fullyFaithful
+\end{alltt}
+\end{leanbox}
+
+\subsection{極限と余極限 (Limites et colimites)}
+
+直積や等化子 (equalizer)、引き戻し (pullback) といった概念は「極限」という一つの普遍性により統合される。\texttt{Mathlib} では \texttt{CategoryTheory.Limits} に強力なAPI群があり、等化子と直積があれば任意の有限極限が構成可能である事実などが形式化されている。
+
+% ===========================================================
+\section{随伴関手：Galois 接続の統合}
+% ===========================================================
+
+随伴関手 (Adjoints) は、圏論において最も普遍的な構造の一つである。
+関手 \(L \colon \mathcal{C} \to \mathcal{D}\) が 関手 \(R \colon \mathcal{D} \to \mathcal{C}\) の左随伴 (\(L \dashv R\)) であるとは、次の自然同型が成り立つことである：
+\[
+\mathrm{Hom}_{\mathcal{D}}(L(X), Y) \cong \mathrm{Hom}_{\mathcal{C}}(X, R(Y))
+\]
+
+\begin{center}
+\begin{tikzcd}[column sep=huge, row sep=large]
+  \mathcal{C} \arrow[r, "L", bend left=25] & \mathcal{D} \arrow[l, "R", bend left=25]
+\end{tikzcd}
+\end{center}
+
+これは順序集合における Galois 接続（前順序圏における随伴）を真に一般化したものであり、自由加群と忘却関手、テンソル積と Hom 関手 (Hom-Tensor adjunction) をはじめあらゆる構成に現れる。
+
+\begin{leanbox}
+\begin{alltt}
+def adjunction_hom_equiv (L : C \(\to\) D) (R : D \(\to\) C) (adj : L \(\dashv\) R)
+    (X : C) (Y : D) :
+    (L.obj X \(\longrightarrow\) Y) \(\simeq\) (X \(\longrightarrow\) R.obj Y) :=
+  adj.homEquiv X Y
+\end{alltt}
+\end{leanbox}
+
+随伴関手には「左随伴は余極限を保存し、右随伴は極限を保存する」という極めて重要な性質 (RAPL: Right Adjoints Preserve Limits) があり、例えば自由関手が直和を保存することなどの背後にある絶対的な原理となっている。
+
+% ===========================================================
+\section{モナドと高度な構造への接続}
+% ===========================================================
+
+\subsection{圏の同値とモナド (Monades)}
+
+同型 (\(\cong\)) よりも緩やかな圏の同一性の概念として圏の同値 (\(\simeq\)) がある。また、随伴関手のペア \(L \dashv R\) は必ず自己関手 \(T = R \circ L \colon \mathcal{C} \to \mathcal{C}\) を導き、これに自然変換 \(\eta \colon \mathrm{Id} \to T\) (単位) と \(\mu \colon T \circ T \to T\) (乗法) を持たせたものがモナドである。
+
+\begin{leanbox}
+\begin{alltt}
+/-- 随伴からモナドが生まれる。 -/
+def adjunction_gives_monad \{D : Type*\} [Category D]
+    (L : C \(\to\) D) (R : D \(\to\) C) (adj : L \(\dashv\) R) : Monad C :=
+  adj.toMonad
+\end{alltt}
+\end{leanbox}
+
+\subsection{Abel 圏 (Catégories abéliennes)}
+
+加群の圏を抽象化したものが Abel 圏である。すべての射が核 (Kernel) と余核 (Cokernel) を持ち、短完全列やホモロジー群が適切に定義できる。蛇の補題 (Snake Lemma) などの図式追跡 (Diagram chasing) も、Mathlib を用いれば厳密に推論可能となる。
+
+% ===========================================================
+\section{統合と展望}
+% ===========================================================
+
+Bourbaki の初期の巻 (P1) で扱われた「前順序」「Galois 接続」「商」「直積」といった個別の構成は、この圏論の章において「薄い圏」「随伴関手」「余極限」「極限」へと昇華された。
+本ファイルを通した圏論的再解釈は、個別に証明されていた構造的定理の多くが共通の普遍的原理の現れに過ぎないことを明らかにする。
+
+\end{document}

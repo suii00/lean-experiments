@@ -1,0 +1,29 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath, amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable, listings}
+
+\newtcblisting{leanbox}[1][]{%
+  enhanced, breakable,
+  colback=gray!5, colframe=gray!60!black,
+  fonttitle=\bfseries\ttfamily,
+  title={Lean 4 形式化},
+  listing only,
+  listing options={
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    literate={ℝ}{{$\mathbb{R}$}}1 {→}{{$\to$}}1 {≤}{{$\le$}}1 {∈}{{$\in$}}1 {∃}{{$\exists$}}1 {∀}{{$\forall$}}1 {∫}{{$\int$}}1 {∘}{{$\circ$}}1
+  },
+  #1
+}
+
+\begin{document}
+Test:
+\begin{leanbox}
+/-- 零点定理 (Bolzano): f(a) < 0 < f(b) ならば零点が存在。 -/
+theorem bolzano {f : ℝ → ℝ} {a b : ℝ} (hab : a ≤ b)
+    (hf : ContinuousOn f (Icc a b))
+    (ha : f a < 0) (hb : 0 < f b) :
+    ∃ c ∈ Icc a b, f c = 0
+\end{leanbox}
+\end{document}

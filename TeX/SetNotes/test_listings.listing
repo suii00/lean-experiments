@@ -1,0 +1,5 @@
+/-- 零点定理 (Bolzano): f(a) < 0 < f(b) ならば零点が存在。 -/
+theorem bolzano {f : ℝ → ℝ} {a b : ℝ} (hab : a ≤ b)
+    (hf : ContinuousOn f (Icc a b))
+    (ha : f a < 0) (hb : 0 < f b) :
+    ∃ c ∈ Icc a b, f c = 0
