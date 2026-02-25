@@ -59,9 +59,12 @@ Bourbaki_Lean_Guide.mdはClaude sonnet 4.5が以下のプロンプトとのや�
   </requirements>
 </prompt>
 
-GPT-5.3-Codex xhigh
+
 
 ```
+
+GPT-5.3-Codex xhigh
+
 >Bourbaki_Lean_Guide.md
 >母構造の着想を得てください。課題に取り組む必要は必ずしもありません。
 >
@@ -404,5 +407,6 @@ x \in \mathrm{level}(i) \iff r(x)\le i
 
 3. **証明スタイル**  
 タクティクス・同値の扱い（definitional equality vs isomorphism）が違う。
+
 
 要するに、**数学的内容は不変、エンコードと証明技法が変わる**という整理です。
