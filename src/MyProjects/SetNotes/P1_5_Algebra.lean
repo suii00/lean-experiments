@@ -11,11 +11,12 @@
 import Mathlib.RingTheory.Ideal.Basic
 import Mathlib.RingTheory.Ideal.Operations
 import Mathlib.RingTheory.Ideal.Quotient.Basic
+import Mathlib.RingTheory.Ideal.Quotient.Operations
 import Mathlib.RingTheory.PrincipalIdealDomain
 import Mathlib.RingTheory.UniqueFactorizationDomain.Basic
 import Mathlib.RingTheory.Localization.Basic
 import Mathlib.RingTheory.Noetherian.Basic
-import Mathlib.LinearAlgebra.Basic
+import Mathlib.LinearAlgebra.Basis.Basic
 import Mathlib.LinearAlgebra.Quotient.Basic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 import Mathlib.LinearAlgebra.TensorProduct.Basic
@@ -103,16 +104,12 @@ theorem quotient_ker_eq : RingHom.ker (Ideal.Quotient.mk I) = I := by
     Bourbaki, Algèbre Commutative I, §2.1, Proposition 2 -/
 theorem quotient_isField_iff_maximal :
     IsField (R ⧸ I) ↔ I.IsMaximal := by
-  constructor
-  · intro h
-    exact Ideal.Quotient.maximal_of_isField I h
-  · intro h
-    exact Ideal.Quotient.isField_iff_isMaximal.mpr h
+  simpa [iff_comm] using Ideal.Quotient.maximal_ideal_iff_isField_quotient I
 
 /-- 商環が整域 ⟺ イデアルが素。 -/
 theorem quotient_isDomain_iff_prime :
     IsDomain (R ⧸ I) ↔ I.IsPrime := by
-  exact Ideal.Quotient.isDomain_iff_prime
+  exact Ideal.Quotient.isDomain_iff_prime I
 
 end QuotientRings
 
@@ -133,7 +130,7 @@ theorem first_iso_theorem (f : R →+* S) :
 /-- 第三同型定理 (correspondence): I ⊇ J ならば (R/J)/(I/J) ≅ R/I。 -/
 theorem third_iso_theorem (I J : Ideal R) (h : J ≤ I) :
     Nonempty ((R ⧸ J) ⧸ (I.map (Ideal.Quotient.mk J)) ≃+* R ⧸ I) := by
-  exact ⟨Ideal.quotientQuotientEquivQuotient J I h⟩
+  exact ⟨DoubleQuot.quotQuotEquivQuotOfLE (R := R) (I := J) (J := I) h⟩
 
 end IsomorphismTheorems
 
@@ -149,9 +146,9 @@ variable {R : Type*} [CommRing R] (S : Submonoid R)
 /-- 局所化写像は単射 ⟺ S に零因子がない。 -/
 -- 演習課題: この同値を確認する
 theorem localization_map_injective_of_no_zero_divisors
-    [NoZeroDivisors R] [Nontrivial R] :
+    [NoZeroDivisors R] [Nontrivial R] (hS : S ≤ nonZeroDivisors R) :
     Function.Injective (algebraMap R (Localization S)) := by
-  sorry  -- 課題: IsLocalization.injective を使って証明
+  exact IsLocalization.injective (S := Localization S) hS
 
 /-- 局所化の普遍性: S⁻¹R は S の像が可逆になる「最小の」環。 -/
 -- 演習課題
@@ -159,7 +156,12 @@ theorem localization_universal {T : Type*} [CommRing T] [Algebra R T]
     [IsLocalization S T] (Q : Type*) [CommRing Q] (f : R →+* Q)
     (hf : ∀ s : S, IsUnit (f s)) :
     ∃! g : T →+* Q, g.comp (algebraMap R T) = f := by
-  sorry  -- 課題: IsLocalization.lift を使って構成
+  refine ⟨IsLocalization.lift (M := S) (S := T) (g := f) hf, ?_, ?_⟩
+  · exact IsLocalization.lift_comp (M := S) (S := T) (g := f) hf
+  · intro g hg
+    exact
+      (IsLocalization.lift_unique (M := S) (S := T) (g := f) (j := g) hf
+        (fun x => RingHom.congr_fun hg x)).symm
 
 end Localization
 
@@ -198,12 +200,12 @@ end Modules
 
 section FreeModules
 
-variable {R : Type*} [CommRing R] [Nontrivial R]
+variable {R : Type*} [CommRing R]
 
 /-- 有限次元ベクトル空間では、基底の濃度は一意。
     (自由加群の「階数」が well-defined)。 -/
 theorem finrank_eq_of_basis {V : Type*} [AddCommGroup V] [Module R V]
-    {ι : Type*} [Fintype ι] (b : Basis ι R V) [StrongRankCondition R] :
+    {ι : Type*} [Fintype ι] (b : Module.Basis ι R V) [StrongRankCondition R] :
     Module.finrank R V = Fintype.card ι := by
   exact Module.finrank_eq_card_basis b
 
@@ -230,8 +232,8 @@ theorem tensor_universal (f : M →ₗ[R] N →ₗ[R] P) :
       ∀ (m : M) (n : N), g (m ⊗ₜ n) = f m n := by
   exact ⟨TensorProduct.lift f, fun m n => TensorProduct.lift.tmul m n⟩
 
-/-- テンソル積は右完全（右完全性の一部）:
-    演習課題 - テンソル積は右完全関手。 -/
+-- テンソル積は右完全（右完全性の一部）:
+-- 演習課題 - テンソル積は右完全関手。
 -- 完全列 M' → M → M'' → 0 に対して
 -- M' ⊗ N → M ⊗ N → M'' ⊗ N → 0 が完全
 
@@ -257,7 +259,7 @@ theorem ideals_finitely_generated (I : Ideal R) : I.FG := by
 -- 演習課題: ACC を直接確認
 theorem ascending_chain_condition :
     WellFoundedGT (Ideal R) := by
-  sorry  -- 課題: isNoetherian_iff_wellFounded を活用
+  infer_instance
 
 end Noetherian
 
@@ -268,7 +270,7 @@ end Noetherian
 
 section FactorizationDomains
 
-variable {R : Type*} [CommRing R] [IsDomain R]
+variable {R : Type*} [CommRing R]
 
 /-- PID は Noether 環。 -/
 theorem pid_is_noetherian [IsPrincipalIdealRing R] : IsNoetherianRing R := by
@@ -276,11 +278,11 @@ theorem pid_is_noetherian [IsPrincipalIdealRing R] : IsNoetherianRing R := by
 
 /-- PID では既約元と素元が一致。 -/
 -- 演習課題
-theorem irreducible_iff_prime_in_pid [IsPrincipalIdealRing R] {p : R} :
+theorem irreducible_iff_prime_in_pid [IsDomain R] [IsPrincipalIdealRing R] {p : R} :
     Irreducible p ↔ Prime p := by
-  sorry  -- 課題: PrincipalIdealRing.irreducible_iff_prime を確認
+  simpa using (irreducible_iff_prime (a := p))
 
-/-- UFD のすべての元は既約元の積に分解される（一意性付き）。 -/
+-- UFD のすべての元は既約元の積に分解される（一意性付き）。
 -- 演習課題: UniqueFactorizationMonoid の性質を確認
 -- 参考: Mathlib の UniqueFactorizationMonoid
 
@@ -303,13 +305,15 @@ theorem minpoly_monic {α : E} (h : IsIntegral F α) :
 /-- 最小多項式は α を零化する。 -/
 theorem minpoly_aeval_eq_zero {α : E} (h : IsIntegral F α) :
     Polynomial.aeval α (minpoly F α) = 0 := by
+  let _ := h
   exact minpoly.aeval F α
 
 /-- 演習課題: α を零化する多項式はすべて最小多項式で割り切れる。 -/
 theorem minpoly_dvd_of_aeval_zero {α : E} (h : IsIntegral F α)
-    {p : F[X]} (hp : Polynomial.aeval α p = 0) :
+    {p : Polynomial F} (hp : Polynomial.aeval α p = 0) :
     minpoly F α ∣ p := by
-  sorry  -- 課題: minpoly.dvd を使って証明
+  let _ := h
+  exact minpoly.dvd F α hp
 
 end FieldExtensions
 
