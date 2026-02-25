@@ -67,11 +67,15 @@ Lean ソースコードは Codex (OpenAI) で生成した。
 \end{definition}
 
 Lean 4 では、この概念は次のような `structure` として定式化されている。
+\begin{center}
+\begin{minipage}{0.95\textwidth}
 \begin{lstlisting}
 structure StructureTower ($\iota$ $\alpha$ : Type*) [Preorder $\iota$] : Type _ where
   level : $\iota$ $\to$ Set $\alpha$
   monotone_level : $\forall$ {i j : $\iota$}, i $\le$ j $\to$ level i $\subseteq$ level j
 \end{lstlisting}
+\end{minipage}
+\end{center}
 
 すなわち、添字が進むにつれて許容される元の集合が大きくなるような増大列である。この性質により、あるレベル $i$ において $x \in L_T(i)$ であれば、任意の $j \ge i$ に対しても $x \in L_T(j)$ が成り立つ（\texttt{mem\_of\_le}）。
 また、塔のすべてのレベルの和集合 $U_T = \bigcup_{i \in I} L_T(i)$ を定義することができ、各元がいずれかのレベルに属するならば、この和集合は全体集合となる（\texttt{union\_eq\_univ\_of\_forall\_mem}）。
