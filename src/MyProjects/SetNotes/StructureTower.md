@@ -59,9 +59,12 @@ Bourbaki_Lean_Guide.mdはClaude sonnet 4.5が以下のプロンプトとのや�
   </requirements>
 </prompt>
 
-GPT-5.3-Codex xhigh
+
 
 ```
+
+GPT-5.3-Codex xhigh
+
 >Bourbaki_Lean_Guide.md
 >母構造の着想を得てください。課題に取り組む必要は必ずしもありません。
 >
@@ -105,6 +108,7 @@ GPT-5.3-Codex xhigh
 - Lean/Mathlib での英語 CamelCase 命名とも整合し、後で `towerOfClosure` や `towerOfGalois` を付けやすいです。
 
 設計としては、外側を `namespace StructuresMeres`、内側の中核構造を `StructureTower` にするのが一番自然です。
+
 
 >この構造の最小公理系は何か？
 
@@ -198,9 +202,9 @@ GPT-5.3-Codex xhigh
 
 良い問いです。あなたの `StructureTower` では、まず各点の「到達可能インデックス集合」を
 
-\[
+$$
 I_x := \{\, i \mid x \in \mathrm{level}(i)\,\}
-\]
+$$
 
 と置くのが整理しやすいです。
 
@@ -222,9 +226,9 @@ I_x := \{\, i \mid x \in \mathrm{level}(i)\,\}
 
 補足: もし強い公理
 
-\[
+$$
 x \in \mathrm{level}(i) \iff r(x)\le i
-\]
+$$
 
 を課すなら、`r` は（前順序では同値類まで、半順序なら完全に）一意になります。  
 この公理が「ランクの一意性」を決める分水嶺です。
@@ -405,4 +409,6 @@ x \in \mathrm{level}(i) \iff r(x)\le i
 3. **証明スタイル**  
 タクティクス・同値の扱い（definitional equality vs isomorphism）が違う。
 
+
 要するに、**数学的内容は不変、エンコードと証明技法が変わる**という整理です。
+
