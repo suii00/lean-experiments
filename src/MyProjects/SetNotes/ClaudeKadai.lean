@@ -48,7 +48,7 @@ def relInverse {α : Type*} (R : Relation α) : Relation α :=
   fun x y => R y x
 
 /-- Composition of relations. -/
-def relComp {α : Type*} (R S : Relation α) : Relation α :=
+def relComp {α β γ : Type*} (R : α → β → Prop) (S : β → γ → Prop) : α → γ → Prop :=
   fun x z => ∃ y, R x y ∧ S y z
 
 -- ============================================================
@@ -178,6 +178,42 @@ def IsMinimum {α : Type*} (O : PartialOrder' α) (S : Set α) (m : α) : Prop :
 /-- Well-ordered set in the Bourbaki sense. -/
 def IsWellOrdered {α : Type*} (O : TotalOrder' α) : Prop :=
   ∀ S : Set α, S.Nonempty → ∃ m ∈ S, ∀ x ∈ S, O.le m x
+
+/-- Strict relation induced by a Bourbaki-style total order. -/
+def TotalOrder'.lt {α : Type*} (O : TotalOrder' α) : α → α → Prop :=
+  fun x y => O.le x y ∧ x ≠ y
+
+lemma TotalOrder'.not_lt_of_le {α : Type*} (O : TotalOrder' α) {x y : α}
+    (hyx : O.le y x) : ¬ O.lt x y := by
+  intro hxy
+  exact hxy.2 (O.antisymm x y hxy.1 hyx)
+
+lemma TotalOrder'.le_of_not_lt {α : Type*} (O : TotalOrder' α) {x y : α}
+    (h : ¬ O.lt x y) : O.le y x := by
+  rcases O.total x y with hxy | hyx
+  · by_cases hEq : x = y
+    · simpa [hEq] using O.refl y
+    · exact (h ⟨hxy, hEq⟩).elim
+  · exact hyx
+
+/-- Bridge lemma from Bourbaki's minimum-based well-ordering to well-foundedness. -/
+lemma isWellOrdered_iff_wellFounded {α : Type*} (O : TotalOrder' α) :
+    IsWellOrdered O ↔ WellFounded (O.lt) := by
+  constructor
+  · intro hWO
+    rw [WellFounded.wellFounded_iff_has_min]
+    intro S hS
+    rcases hWO S hS with ⟨m, hmS, hmMin⟩
+    refine ⟨m, hmS, ?_⟩
+    intro x hxS
+    exact O.not_lt_of_le (hmMin x hxS)
+  · intro hWF
+    rw [WellFounded.wellFounded_iff_has_min] at hWF
+    intro S hS
+    rcases hWF S hS with ⟨m, hmS, hmMin⟩
+    refine ⟨m, hmS, ?_⟩
+    intro x hxS
+    exact O.le_of_not_lt (hmMin x hxS)
 
 -- ============================================================
 -- §6. Equipotence and cardinals

@@ -39,3 +39,4 @@
 - 使わなくなったルールは削除し、ファイルを短く保つ。
 - `Subgroup` の lattice を使うときは `Mathlib.Algebra.Group.Subgroup.Lattice` を import する（`Mathlib.GroupTheory.Subgroup.Lattice` は存在しない）。
 - 新規 `.lean` 追加時は、`lake build` の前に `lake env lean <対象ファイル>` で単体確認する。
+- 「最小元存在」と「WellFounded」を往復する証明では `WellFounded.wellFounded_iff_has_min` を優先利用する。
