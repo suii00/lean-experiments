@@ -1,0 +1,139 @@
+\documentclass[11pt,a4paper]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+
+% listingsの設定 (Lean 4風)
+\lstdefinelanguage{lean}{
+    keywords=[1]{structure, where, forall, Type, Set},
+    keywordstyle=[1]\color{blue}\bfseries,
+    keywords=[2]{StructureTower, level, monotone_level},
+    keywordstyle=[2]\color{teal},
+    sensitive=true,
+    morecomment=[l]{--},
+    morecomment=[s]{/-}{-/},
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red},
+    mathescape=true,
+    literate={∀}{{$\forall$}}1 {→}{{$\to$}}1 {≤}{{$\le$}}1 {⊆}{{$\subseteq$}}1 {⦃}{{\{}}1 {⦄}{{\}}}1 {α}{{$\alpha$}}1 {ι}{{$\iota$}}1
+}
+\lstset{
+    language=lean,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+    xleftmargin=1em,
+    xrightmargin=1em
+}
+
+\newtheorem{theorem}{定理}[section]
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{remark}[theorem]{注意}
+
+\title{Bourbaki的アプローチに基づく構造の塔とLean 4による形式化}
+\author{su}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Codex (OpenAI) で生成した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、数学の諸分野に現れる階層的な構造を統一的に扱うための「構造の塔（Structure Tower）」の概念を説明し、それを定理証明支援系 Lean 4 上でどのように形式化するかを概説する。また、包含関係の単調性や構造の輸送、塔の射のほか、順序論における閉包作用素やガロア接続との関連についても触れる。
+\end{abstract}
+
+\section{序論}
+ブルバキ（Bourbaki）の『数学原論』において提唱された「母構造（Structures M\`{e}res）」の精神は、一般的な抽象構造を定義し、そこから具体的な数学的対象を導出するというものである。Lean 4 のコード \texttt{Bourbaki\_Lean\_Guide.lean} では、この精神に則り、集合の包含関係のタワー（増大列）として構造を記録するフレームワークを提供する。これは順序論、代数学、位相空間論等における「層化された構造（stratified structure）」を単一のインターフェースでキャプチャする試みである。
+
+\section{構造の塔（Structure Tower）の定義}
+\begin{definition}[Structure Tower]
+事前順序集合（preorder） $I$ と任意の型 $\alpha$ が与えられたとき、$I$ を添字集合とする$\alpha$上の\textbf{構造の塔}（\emph{StructureTower}） $T$ とは、レベルを指定する写像 $L_T \colon I \to \mathcal{P}(\alpha)$ であり、以下の単調性を満たすものである。
+\begin{equation}
+\forall i, j \in I, \quad i \le j \implies L_T(i) \subseteq L_T(j)
+\end{equation}
+\end{definition}
+
+Lean 4 では、この概念は次のような `structure` として定式化されている。
+\begin{center}
+\begin{minipage}{0.95\textwidth}
+\begin{lstlisting}
+structure StructureTower ($\iota$ $\alpha$ : Type*) [Preorder $\iota$] : Type _ where
+  level : $\iota$ $\to$ Set $\alpha$
+  monotone_level : $\forall$ {i j : $\iota$}, i $\le$ j $\to$ level i $\subseteq$ level j
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+すなわち、添字が進むにつれて許容される元の集合が大きくなるような増大列である。この性質により、あるレベル $i$ において $x \in L_T(i)$ であれば、任意の $j \ge i$ に対しても $x \in L_T(j)$ が成り立つ（\texttt{mem\_of\_le}）。
+また、塔のすべてのレベルの和集合 $U_T = \bigcup_{i \in I} L_T(i)$ を定義することができ、各元がいずれかのレベルに属するならば、この和集合は全体集合となる（\texttt{union\_eq\_univ\_of\_forall\_mem}）。
+
+\section{塔の輸送（Transport）と誘導}
+写像 $f \colon \alpha \to \beta$ が与えられたとき、塔の構造を別の型へと引き戻したり、押し出したりすることができる。
+
+\subsection{逆像と順像}
+$\beta$ 上の塔 $S$ に対し、$f$ に沿った\textbf{引き戻し（comap）} $f^{-1}S$ は次のようにレベルが定義される：
+\[ L_{f^{-1}S}(i) = f^{-1}(L_S(i)) \]
+これは再び単調性を持つため、$\alpha$ 上の塔となる。
+
+同様に、$\alpha$ 上の塔 $T$ に対し、$f$ に沿った\textbf{押し出し（map）} $f_*T$ は次のように定義される：
+\[ L_{f_*T}(i) = f(L_T(i)) \]
+
+\subsection{ブルバキの輸送原理（Transport Principle）}
+特に $f \colon \alpha \xrightarrow{\sim} \beta$ が全単射（equivalence）である場合、塔はこの全単射に沿って同型な構造として輸送される。この輸送は順像 $f_*T$ によって実現される。
+
+\section{塔の射（Morphisms of towers）}
+同じ添字集合 $I$ を持つ2つの塔 $T_1$（$\alpha$ 上）と $T_2$（$\beta$ 上）の間の\textbf{射（Hom）}とは、写像 $f \colon \alpha \to \beta$ であって、各レベル $i \in I$ を保つものを指す。
+
+\begin{definition}[Hom]
+$f \in \mathrm{Hom}(T_1, T_2)$ とは、写像 $f \colon \alpha \to \beta$ であり、任意の $i \in I$ 行対して以下を満たすことである。
+\begin{equation}
+f(L_{T_1}(i)) \subseteq L_{T_2}(i)
+\end{equation}
+\end{definition}
+
+これは次のような図式で表現できる。各レベルの包含関数を $\iota$ とすると、写像 $f$ は各レベルに適切に制限される。
+\[
+\begin{tikzcd}
+L_{T_1}(i) \arrow[r, "f|_{i}"] \arrow[d, hook, "\iota_{1}"'] & L_{T_2}(i) \arrow[d, hook, "\iota_{2}"] \\
+\alpha \arrow[r, "f"'] & \beta
+\end{tikzcd}
+\]
+この定義により、恒等射（\texttt{Hom.id}）や射の合成（\texttt{Hom.comp}）が自然に定義され、構造の塔全体が圏をなすことがわかる。
+
+\section{順序・ガロア接続への応用}
+最後に、この塔の概念が順序論においてどのように自然に現れるかを見る。
+
+\subsection{閉包作用素が定める塔}
+順序集合 $\alpha$ と、その上の閉包作用素 $c \colon \alpha \to \alpha$ を考える。このとき、要素 $x \in \alpha$ 自身を添字として、主イデアル（閉包以下の元の集合）による塔を構成できる。
+\[ L(x) = \{ y \in \alpha \mid y \le c(x) \} \]
+$c$ は単調（$x \le y \implies c(x) \le c(y)$）であるため、このレベル分けも単調であり、塔の公理を満たす（\texttt{towerOfClosure}）。
+
+\subsection{ガロア接続（Galois Connection）}
+順序集合 $\alpha, \beta$ と写像 $l \colon \alpha \to \beta$, $u \colon \beta \to \alpha$ の組が\textbf{ガロア接続}をなすとは、以下を満たすことである。
+\[ l(x) \le y \iff x \le u(y) \]
+ガロア接続は次のような随伴の図式を形成する。
+\[
+\begin{tikzcd}
+\alpha \arrow[r, "l", shift left] & \beta \arrow[l, "u", shift left]
+\end{tikzcd}
+\]
+ガロア接続が与えられると、合成演算 $u \circ l \colon \alpha \to \alpha$ は自然に閉包作用素となる。したがって、前項の議論から、ガロア接続は自動的に型 $\alpha$ 上の塔の構造（\texttt{towerOfGalois}）を誘導することになる。
+
+\[ y \in L(x) \iff y \le u(l(x)) \]
+
+このように、Bourbaki的な塔の抽象化は、閉包やガロア接続のような基礎的な順序論の概念を、より一般的な枠組みの中で再解釈する強力な手段となる。
+
+\end{document}
