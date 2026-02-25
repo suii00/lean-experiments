@@ -1,0 +1,92 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+
+\theoremstyle{definition}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{remark}[theorem]{注釈}
+
+\title{Bourbaki P1 Extended: ガロア接続、商群、位相空間の基礎}
+\author{su}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、Lean 4による形式化コード\texttt{P1\_Extended.lean}で定義および証明されている数学的諸概念について解説する。順序理論におけるガロア接続と閉包作用素、群論における商群と第一同型定理、位相空間における同相写像による性質の保存とウリゾンの補題、そして完備空間と普遍性について、それらの構造と関連を明らかにする。必要に応じて図式を交えることで、代数的および位相的な概念の可視化を図る。
+\end{abstract}
+
+\section{ガロア接続と順序理論}
+順序集合 $\alpha, \beta$ の間の写像 $l \colon \alpha \to \beta$ と $u \colon \beta \to \alpha$ の組について、任意の $x \in \alpha, y \in \beta$ に対して
+\begin{equation}
+l(x) \le y \iff x \le u(y)
+\end{equation}
+が成り立つとき、組 $(l, u)$ を\textbf{ガロア接続} (Galois connection) と呼び、$l$ を左随伴 (left adjoint)、$u$ を右随伴 (right adjoint) という。
+ガロア接続が存在するとき、$l$ と $u$ はともに単調写像 (Monotone) となることが示されている（\texttt{galois\_monotone\_left}, \texttt{galois\_monotone\_right}）。
+
+\section{ガロア接続が誘導する閉包作用素}
+ガロア接続 $(l, u)$ は $\alpha$ 上の\textbf{閉包作用素} (Closure operator) $c = u \circ l$ を誘導する（\texttt{gcClosure}）。
+閉包作用素 $c \colon \alpha \to \alpha$ は次の3つの性質を満たす写像として特徴づけられる。
+\begin{enumerate}
+    \item \textbf{拡大性} (\texttt{le\_gcClosure}): 任意の $x \in \alpha$ に対して $x \le c(x)$。
+    \item \textbf{単調性} (\texttt{gcClosure\_monotone}): $x \le y \implies c(x) \le c(y)$。
+    \item \textbf{冪等性} (\texttt{gcClosure\_idempotent}): 任意の $x \in \alpha$ に対して $c(c(x)) = c(x)$。
+\end{enumerate}
+
+\section{商群と正規部分群}
+群 $G$ の正規部分群 $N$ による商群 $G/N$ について、自然な射影 $\pi \colon G \to G/N$ は全射であり（\texttt{quotient\_mk\_surjective}）、その核はまさに $N$ に一致する。すなわち $\pi(x) = 1 \iff x \in N$ である（\texttt{quotient\_eq\_one\_iff\_mem}）。
+
+また、任意の群準同型写像 $f \colon G \to H$ に対して、その核 $\ker(f)$ は $G$ の正規部分群となり（\texttt{ker\_is\_normal}）、第一同型定理により $G/\ker(f)$ は像 $\operatorname{Im}(f)$ と同型になる（\texttt{first\_iso\_nonempty}）。この関係は以下の可換図式で表される。
+\begin{equation*}
+\begin{tikzcd}
+G \arrow[rr, "f"] \arrow[dr, twoheadrightarrow, "\pi"'] & & H \\
+& G/\ker(f) \arrow[ur, hook, "\tilde{f}"', "\cong"] &
+\end{tikzcd}
+\end{equation*}
+
+\section{位相的性質と同相写像}
+位相空間 $X, Y$ 間の同相写像 (Homeomorphism) $e \colon X \xrightarrow{\sim} Y$ は、様々な位相的性質を保存する。\texttt{P1\_Extended.lean} では以下の2つの保存性が示されている。
+\begin{itemize}
+    \item \textbf{コンパクト性の保存} (\texttt{homeomorph\_preserves\_compact}): 定義域の部分集合 $K \subseteq X$ がコンパクトであることと、その像 $e(K) \subseteq Y$ がコンパクトであることは同値である。
+    \item \textbf{連結性の保存} (\texttt{homeomorph\_preserves\_connected}): 部分集合 $S \subseteq X$ が連結であることと、像 $e(S) \subseteq Y$ が連結であることは同値である。
+\end{itemize}
+連結空間 (Connected space) そのものについては、全空間 $X$ (すなわち $\operatorname{univ}$) が連結になる（\texttt{connected\_univ\_of\_connectedSpace}）。
+
+\section{正規空間とウリゾンの補題}
+正規空間 (Normal space) においては、交わらない2つの閉集合を実数値連続関数によって分離できる。これが\textbf{ウリゾンの補題} (Urysohn's lemma) であり、定理 \texttt{urysohn\_separation} として定式化されている。
+すなわち、正規空間 $X$ 内の閉集合 $s, t$ が $s \cap t = \emptyset$ を満たすとき、連続関数 $f \colon X \to \mathbb{R}$ が存在して、以下を満たす：
+\begin{enumerate}
+    \item すべての $x \in s$ について $f(x) = 0$。
+    \item すべての $x \in t$ について $f(x) = 1$。
+    \item すべての $x \in X$ について $0 \le f(x) \le 1$。
+\end{enumerate}
+
+\section{完備空間と普遍性}
+一様空間 $\alpha$ が完備 (Complete) であるとは、任意のコーシー列が収束することを意味する。定理 \texttt{cauchySeq\_has\_limit\_of\_complete} では、完備空間内のコーシー列 $u$ がある極限点 $x$ を持つことが示されている。
+
+また、直積集合 $Y \times Z$ は普遍性 (Universal property) によって特徴づけられる。写像 $f \colon X \to Y$ と $g \colon X \to Z$ が与えられたとき、それらを統合する写像 $h \colon X \to Y \times Z$ であって、射影 $\pi_Y, \pi_Z$ との合成がそれぞれ $f, g$ に一致するものが\textbf{一意に}存在する（\texttt{prodLift\_unique}）。
+\begin{equation*}
+\begin{tikzcd}
+& X \arrow[dl, "f"'] \arrow[dr, "g"] \arrow[d, dashrightarrow, "\exists! h"] & \\
+Y & Y \times Z \arrow[l, "\pi_Y"] \arrow[r, "\pi_Z"'] & Z
+\end{tikzcd}
+\end{equation*}
+ここで定義される $h$ は $h(x) = (f(x), g(x))$ であり（\texttt{prodLift}）、これは直積の普遍性を具体的に構成するものである。
+
+\end{document}
