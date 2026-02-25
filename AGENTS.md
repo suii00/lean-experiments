@@ -38,3 +38,4 @@
 - 3 回以上繰り返した手順は、`3. 作業の基本手順` または `4. 検証コマンド` に昇格する。
 - 使わなくなったルールは削除し、ファイルを短く保つ。
 - `Subgroup` の lattice を使うときは `Mathlib.Algebra.Group.Subgroup.Lattice` を import する（`Mathlib.GroupTheory.Subgroup.Lattice` は存在しない）。
+- 新規 `.lean` 追加時は、`lake build` の前に `lake env lean <対象ファイル>` で単体確認する。
