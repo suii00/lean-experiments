@@ -14,11 +14,12 @@ import Mathlib.CategoryTheory.Iso
 import Mathlib.CategoryTheory.Yoneda
 import Mathlib.CategoryTheory.Limits.Shapes.Products
 import Mathlib.CategoryTheory.Limits.Shapes.Equalizers
-import Mathlib.CategoryTheory.Limits.Shapes.Pullbacks
+import Mathlib.CategoryTheory.Limits.Shapes.Pullback.Cospan
 import Mathlib.CategoryTheory.Limits.HasLimits
-import Mathlib.CategoryTheory.Adjunctions.Basic
+import Mathlib.CategoryTheory.Adjunction.Basic
 import Mathlib.CategoryTheory.Abelian.Basic
 import Mathlib.CategoryTheory.Monad.Basic
+import Mathlib.CategoryTheory.Monad.Adjunction
 import Mathlib.CategoryTheory.Equivalence
 
 open CategoryTheory
@@ -47,11 +48,11 @@ theorem comp_id {X Y : C} (f : X ⟶ Y) : f ≫ 𝟙 Y = f := by
   exact Category.comp_id f
 
 /-- 同型の対称性。 -/
-theorem iso_symm {X Y : C} (e : X ≅ Y) : Y ≅ X := by
+def iso_symm {X Y : C} (e : X ≅ Y) : Y ≅ X := by
   exact e.symm
 
 /-- 同型の推移性。 -/
-theorem iso_trans {X Y Z : C} (e₁ : X ≅ Y) (e₂ : Y ≅ Z) : X ≅ Z := by
+def iso_trans {X Y Z : C} (e₁ : X ≅ Y) (e₂ : Y ≅ Z) : X ≅ Z := by
   exact e₁.trans e₂
 
 end CategoryBasics
@@ -80,7 +81,7 @@ theorem functor_comp_map (F : C ⥤ D) (G : D ⥤ E) {X Y : C} (f : X ⟶ Y) :
   rfl
 
 /-- 関手は同型を保存する。 -/
-theorem functor_preserves_iso (F : C ⥤ D) {X Y : C} (e : X ≅ Y) :
+def functor_preserves_iso (F : C ⥤ D) {X Y : C} (e : X ≅ Y) :
     F.obj X ≅ F.obj Y := by
   exact F.mapIso e
 
@@ -97,10 +98,10 @@ variable {C D : Type*} [Category C] [Category D]
 /-- 自然変換の naturality 条件。 -/
 theorem nat_trans_naturality {F G : C ⥤ D} (α : F ⟶ G) {X Y : C} (f : X ⟶ Y) :
     F.map f ≫ α.app Y = α.app X ≫ G.map f := by
-  exact (α.naturality f).symm
+  exact α.naturality f
 
 /-- 自然同型は各成分が同型。 -/
-theorem nat_iso_component_iso {F G : C ⥤ D} (e : F ≅ G) (X : C) :
+def nat_iso_component_iso {F G : C ⥤ D} (e : F ≅ G) (X : C) :
     F.obj X ≅ G.obj X := by
   exact e.app X
 
@@ -117,11 +118,12 @@ variable {C : Type*} [Category C]
 
 /-- 米田埋め込みは忠実充満。 -/
 -- 演習課題
-theorem yoneda_fully_faithful :
+def yoneda_fully_faithful :
     (yoneda (C := C)).FullyFaithful := by
-  sorry  -- 課題: Yoneda.fullyFaithful を確認
+  exact Yoneda.fullyFaithful
 
-/-- 米田の補題:
+/-
+米田の補題:
     Hom(h_X, F) ≅ F(X) (自然同型)。 -/
 -- この深い定理は Mathlib の yonedaEquiv として実装されている
 
@@ -138,17 +140,18 @@ section LimitsColimits
 
 variable {C : Type*} [Category C]
 
-/-- 積の普遍性（P1_Extended §6 の圏論的一般化）。
+/-
+積の普遍性（P1_Extended §6 の圏論的一般化）。
     P1_Extended の prodLift を圏論的に再解釈。 -/
 
 -- 演習: 等化子 (equalizer) の普遍性を確認
 -- 参考: Limits.Shapes.Equalizers
 
-/-- 演習: 引き戻し (pullback) の普遍性。 -/
+/- 演習: 引き戻し (pullback) の普遍性。 -/
 -- pullback は等化子と積から構成できることを確認
 -- 参考: Limits.Shapes.Pullbacks
 
-/-- 極限の存在 → 完備圏。 -/
+/- 極限の存在 → 完備圏。 -/
 -- 演習課題
 -- 有限極限を持つ圏の性質を調べる
 
@@ -163,21 +166,22 @@ section Adjunctions
 
 variable {C D : Type*} [Category C] [Category D]
 
-/-- 随伴は Galois 接続の一般化:
+/-
+随伴は Galois 接続の一般化:
     P1_Extended §1 の GaloisConnection は Preorder 圏の随伴。 -/
 
 /-- 随伴の定義的性質: Hom(Lc, d) ≅ Hom(c, Rd)。 -/
 -- 演習課題
-theorem adjunction_hom_equiv (L : C ⥤ D) (R : D ⥤ C) (adj : L ⊣ R)
+def adjunction_hom_equiv (L : C ⥤ D) (R : D ⥤ C) (adj : L ⊣ R)
     (X : C) (Y : D) :
     (L.obj X ⟶ Y) ≃ (X ⟶ R.obj Y) := by
-  sorry  -- 課題: adj.homEquiv を使う
+  exact adj.homEquiv X Y
 
-/-- 左随伴は余極限を保存する。 -/
+/- 左随伴は余極限を保存する。 -/
 -- 演習課題 (高度)
 -- 参考: Adjunction.leftAdjoint_preservesColimits
 
-/-- 右随伴は極限を保存する。 -/
+/- 右随伴は極限を保存する。 -/
 -- 演習課題 (高度)
 -- 参考: Adjunction.rightAdjoint_preservesLimits
 
@@ -192,15 +196,16 @@ section Equivalences
 variable {C D : Type*} [Category C] [Category D]
 
 /-- 圏の同値は関手の同型ペア。 -/
-theorem equivalence_inv_fun_id (e : C ≌ D) :
+def equivalence_inv_fun_id (e : C ≌ D) :
     e.inverse ⋙ e.functor ≅ 𝟭 D := by
   exact e.counitIso
 
-theorem equivalence_fun_inv_id (e : C ≌ D) :
+def equivalence_fun_inv_id (e : C ≌ D) :
     e.functor ⋙ e.inverse ≅ 𝟭 C := by
   exact e.unitIso.symm
 
-/-- 同値な圏は「同じ」圏論的性質を持つ。
+/-
+同値な圏は「同じ」圏論的性質を持つ。
     演習: 同値が極限の存在を保存することを確認。 -/
 
 end Equivalences
@@ -216,12 +221,13 @@ variable {C : Type*} [Category C]
 
 /-- 随伴からモナドが生まれる。 -/
 -- 演習課題
-theorem adjunction_gives_monad {D : Type*} [Category D]
+def adjunction_gives_monad {D : Type*} [Category D]
     (L : C ⥤ D) (R : D ⥤ C) (adj : L ⊣ R) :
     Monad C := by
-  sorry  -- 課題: adj.toMonad を使う
+  exact adj.toMonad
 
-/-- モナドの単位 (η) と乗法 (μ) の性質。
+/-
+モナドの単位 (η) と乗法 (μ) の性質。
     μ ∘ ηT = id, μ ∘ Tη = id, μ ∘ μT = μ ∘ Tμ -/
 -- 演習: Monad.left_unit, Monad.right_unit, Monad.assoc を確認
 
@@ -252,7 +258,8 @@ end AbelianCategories
 
 section Integration
 
-/-- P1 → P4 の対応表:
+/-
+P1 → P4 の対応表:
 
   P1 の概念           圏論的対応
   ─────────────────────────────────
