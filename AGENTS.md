@@ -41,3 +41,4 @@
 - 新規 `.lean` 追加時は、`lake build` の前に `lake env lean <対象ファイル>` で単体確認する。
 - 「最小元存在」と「WellFounded」を往復する証明では `WellFounded.wellFounded_iff_has_min` を優先利用する。
 - `MonoidHom` を使うときは `Mathlib.Algebra.Group.Hom.Basic` を import し、像は必要に応じて `Set.range f` で扱う。
+- `Homeomorph` の補題を使うときは `Mathlib.Topology.Homeomorph.Lemmas` を import する（`Mathlib.Topology.Homeomorph` 単体はない）。
