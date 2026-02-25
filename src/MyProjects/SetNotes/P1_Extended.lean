@@ -60,6 +60,52 @@ theorem gcClosure_idempotent {α β : Type*} [PartialOrder α] [Preorder β]
   exact (gcClosure hgc).idempotent' x
 
 -- ============================================================
+-- §2b. Bourbaki-style mother structure
+-- ============================================================
+
+/-- A Bourbaki-style mother structure:
+order data + a Galois connection + its induced closure behavior. -/
+structure OrderClosureMother (α β : Type*) [PartialOrder α] [Preorder β] where
+  l : α → β
+  u : β → α
+  gc : GaloisConnection l u
+
+namespace OrderClosureMother
+
+variable {α β : Type*} [PartialOrder α] [Preorder β]
+
+def closure (M : OrderClosureMother α β) : ClosureOperator α :=
+  M.gc.closureOperator
+
+@[simp] theorem closure_apply (M : OrderClosureMother α β) (x : α) :
+    M.closure x = M.u (M.l x) := rfl
+
+theorem monotone_l (M : OrderClosureMother α β) : Monotone M.l := by
+  exact M.gc.monotone_l
+
+theorem monotone_u (M : OrderClosureMother α β) : Monotone M.u := by
+  exact M.gc.monotone_u
+
+theorem le_closure (M : OrderClosureMother α β) (x : α) : x ≤ M.closure x := by
+  exact M.closure.le_closure x
+
+theorem closure_idempotent (M : OrderClosureMother α β) (x : α) :
+    M.closure (M.closure x) = M.closure x := by
+  exact M.closure.idempotent' x
+
+/-- Closed elements determine a canonical Galois insertion. -/
+def giToCloseds (M : OrderClosureMother α β) :
+    GaloisInsertion M.closure.toCloseds Subtype.val :=
+  M.closure.gi
+
+/-- Reconstructing closure from closed elements gives the same operator. -/
+@[simp] theorem closure_from_giToCloseds (M : OrderClosureMother α β) :
+    M.giToCloseds.gc.closureOperator = M.closure := by
+  exact closureOperator_gi_self M.closure
+
+end OrderClosureMother
+
+-- ============================================================
 -- §3. Quotient groups and normal subgroups
 -- ============================================================
 

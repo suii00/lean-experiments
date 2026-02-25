@@ -1,0 +1,478 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz-cd}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, decorations.pathmorphing, calc, shapes.geometric}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+\usepackage{enumitem}
+
+% --- 定理環境 ---
+\theoremstyle{definition}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{corollary}[theorem]{系}
+\newtheorem{remark}[theorem]{注釈}
+\newtheorem{example}[theorem]{例}
+
+% --- tcolorbox スタイル ---
+\newtcolorbox{leanbox}[1][]{%
+  enhanced, breakable,
+  colback=gray!5, colframe=gray!60!black,
+  fonttitle=\bfseries\ttfamily,
+  title={Lean 4 形式化},
+  #1
+}
+
+\newtcolorbox{keybox}[1][]{%
+  enhanced, breakable,
+  colback=blue!3, colframe=blue!50!black,
+  fonttitle=\bfseries,
+  title={核心},
+  #1
+}
+
+\title{%
+  Bourbaki 流「母構造」の形式化\\[4pt]
+  \large --- \texttt{OrderClosureMother} による\\ガロア接続・閉包作用素の統合 ---
+}
+\author{su}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+\begin{abstract}
+  Bourbaki は数学の種々の構造を「母構造 (structure mère)」
+  --- 順序構造・代数構造・位相構造 ---
+  に分類し、これらの組合せから数学全体を体系的に構築する方針を打ち出した。
+  本稿では、Lean~4 / Mathlib による形式化コード
+  \texttt{P1\_Extended.lean} の §2b に定義された
+  \texttt{OrderClosureMother} 構造体に焦点を当て、
+  順序論的母構造が
+  ガロア接続 (Galois connection)、
+  閉包作用素 (closure operator)、
+  ガロア挿入 (Galois insertion) の三者をいかに統合するかを
+  図式を交えて詳解する。
+\end{abstract}
+
+\tableofcontents
+
+% ===========================================================
+\section{導入：Bourbaki の母構造とは}
+% ===========================================================
+
+1939 年以降 Bourbaki グループが推進した``構造主義''の核心は、
+数学的対象を\textbf{集合}と\textbf{構造}の組として定式化し、
+すべての構造を3つの原型---\textbf{母構造 (structures mères)}---に帰着させるという方法論にある。
+
+\begin{definition}[母構造の三分類]
+Bourbaki による母構造は次の3種である。
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{順序構造 (structures d'ordre)}：半順序、束、全順序など。
+  \item \textbf{代数構造 (structures algébriques)}：群、環、体など。
+  \item \textbf{位相構造 (structures topologiques)}：位相空間、一様空間など。
+\end{enumerate}
+\end{definition}
+
+本稿で扱う \texttt{OrderClosureMother} は (i)~順序構造を土台とし、
+次のデータを\emph{束ねた}パッケージとして機能する。
+
+\begin{keybox}
+\texttt{OrderClosureMother} は、
+\begin{itemize}[nosep]
+  \item 半順序集合 $(\alpha, \le)$ と前順序集合 $(\beta, \le)$，
+  \item それらの間のガロア接続 $(l, u)$，
+  \item そこから誘導される閉包作用素 $c = u \circ l$
+\end{itemize}
+を単一の構造体に統合する。これは「順序データの母構造」の一つの具現化である。
+\end{keybox}
+
+% ===========================================================
+\section{前提：ガロア接続と閉包作用素}
+% ===========================================================
+
+\subsection{ガロア接続}
+
+\begin{definition}[ガロア接続]
+前順序集合 $(\alpha, \le)$ と $(\beta, \le)$ の間の写像の組
+$(l \colon \alpha \to \beta,\; u \colon \beta \to \alpha)$
+が\textbf{ガロア接続 (Galois connection)} であるとは、
+任意の $x \in \alpha,\; y \in \beta$ に対して
+\[
+  l(x) \le y \iff x \le u(y)
+\]
+が成り立つことをいう。$l$ を\textbf{左随伴}、$u$ を\textbf{右随伴}と呼ぶ。
+\end{definition}
+
+この随伴条件から、直ちに次の基本性質が従う。
+
+\begin{proposition}[単調性]\label{prop:gc-monotone}
+ガロア接続 $(l, u)$ において、$l$ と $u$ はともに単調写像である。
+\end{proposition}
+
+\begin{leanbox}
+\begin{verbatim}
+theorem galois_monotone_left  ... : Monotone l := hgc.monotone_l
+theorem galois_monotone_right ... : Monotone u := hgc.monotone_u
+\end{verbatim}
+\end{leanbox}
+
+ガロア接続の幾何学的イメージを以下に示す。
+
+\begin{center}
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\small},
+  set/.style={
+    draw, ellipse, minimum width=2.8cm, minimum height=4cm,
+    fill opacity=0.08, text opacity=1
+  }
+]
+  % α 側
+  \node[set, fill=blue] (A) at (0,0) {};
+  \node[above] at (A.north) {$\alpha$ (半順序)};
+  \node (x) at (-0.2, 0.4) {$\bullet$};
+  \node[left] at (x) {$x$};
+  \node (uy) at (-0.2, -0.8) {$\bullet$};
+  \node[left] at (uy) {$u(y)$};
+
+  % β 側
+  \node[set, fill=red] (B) at (5.5,0) {};
+  \node[above] at (B.north) {$\beta$ (前順序)};
+  \node (lx) at (5.7, 0.8) {$\bullet$};
+  \node[right] at (lx) {$l(x)$};
+  \node (y) at (5.7, -0.4) {$\bullet$};
+  \node[right] at (y) {$y$};
+
+  % 矢印
+  \draw[->, thick, blue!70!black, bend left=18]
+    (0.8, 0.6) to node[above]{$l$} (4.6, 0.9);
+  \draw[->, thick, red!70!black, bend left=18]
+    (4.6, -0.6) to node[below]{$u$} (0.8, -0.9);
+
+  % 順序の矢印
+  \draw[->, dotted, thick] (x) -- node[left, font=\footnotesize]{$\le$} (uy);
+  \draw[->, dotted, thick] (lx) -- node[right, font=\footnotesize]{$\le$} (y);
+
+  % 同値の注釈
+  \node at (2.75, -2.5) {$l(x) \le y \;\Longleftrightarrow\; x \le u(y)$};
+\end{tikzpicture}
+\end{center}
+
+\subsection{閉包作用素}
+
+\begin{definition}[閉包作用素]
+半順序集合 $(\alpha, \le)$ 上の写像
+$c \colon \alpha \to \alpha$ が\textbf{閉包作用素 (closure operator)} であるとは、
+次の 3 条件を満たすことをいう。
+\begin{enumerate}[label=(C\arabic*)]
+  \item \textbf{拡大性 (extensive)}：$x \le c(x)$\quad ($\forall x$)。
+  \item \textbf{単調性 (monotone)}：$x \le y \implies c(x) \le c(y)$。
+  \item \textbf{冪等性 (idempotent)}：$c(c(x)) = c(x)$\quad ($\forall x$)。
+\end{enumerate}
+\end{definition}
+
+\begin{proposition}[ガロア接続が誘導する閉包作用素]
+ガロア接続 $(l, u)$ から合成 $c = u \circ l$ を構成すると、
+$c$ は $\alpha$ 上の閉包作用素となる。
+\end{proposition}
+
+\begin{leanbox}
+\begin{verbatim}
+def gcClosure ... : ClosureOperator α := hgc.closureOperator
+
+theorem le_gcClosure ...         : x ≤ gcClosure hgc x
+theorem gcClosure_monotone ...   : Monotone (gcClosure hgc)
+theorem gcClosure_idempotent ... : gcClosure hgc (gcClosure hgc x) = gcClosure hgc x
+\end{verbatim}
+\end{leanbox}
+
+この事実を図式的にまとめると次のようになる。
+
+\begin{center}
+\begin{tikzcd}[column sep=large, row sep=large]
+  \alpha
+    \arrow[r, bend left=25, "l"]
+    \arrow[loop left, distance=3em, "c = u \circ l"']
+  & \beta
+    \arrow[l, bend left=25, "u"]
+\end{tikzcd}
+\end{center}
+
+% ===========================================================
+\section{母構造 \texttt{OrderClosureMother}}
+\label{sec:mother}
+% ===========================================================
+
+\subsection{定義}
+
+\begin{definition}[\texttt{OrderClosureMother}]
+半順序集合 $(\alpha, \le)$ と前順序集合 $(\beta, \le)$ に対して、
+\textbf{順序閉包母構造} $M = (\alpha, \beta, l, u, \mathrm{gc})$ を次のデータの組として定義する。
+\begin{itemize}[nosep]
+  \item $l \colon \alpha \to \beta$\quad（左随伴）
+  \item $u \colon \beta \to \alpha$\quad（右随伴）
+  \item $\mathrm{gc}$：$(l, u)$ がガロア接続であることの証拠
+\end{itemize}
+\end{definition}
+
+\begin{leanbox}
+\begin{verbatim}
+structure OrderClosureMother (α β : Type*) [PartialOrder α] [Preorder β] where
+  l  : α → β
+  u  : β → α
+  gc : GaloisConnection l u
+\end{verbatim}
+\end{leanbox}
+
+この構造体はガロア接続のデータを保持するだけでなく、
+そこから導出される\emph{すべての}関連構造への統一的なアクセスを提供する。
+
+\subsection{導出される構造の全体像}
+
+母構造 $M$ からは以下の構造と性質が導出される。
+これを「導出の樹」として可視化する。
+
+\begin{center}
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\small, align=center},
+  box/.style={
+    draw, rounded corners=4pt, fill=blue!8,
+    minimum width=3.2cm, minimum height=0.8cm,
+    font=\small\ttfamily
+  },
+  prop/.style={
+    draw, rounded corners=2pt, fill=green!8,
+    minimum width=2.4cm, minimum height=0.6cm,
+    font=\small
+  },
+  arrow/.style={->, thick, >=Stealth}
+]
+  % root
+  \node[box, fill=orange!15, minimum width=5cm, minimum height=1cm]
+    (M) at (0, 0) {OrderClosureMother\\$M = (l, u, \mathrm{gc})$};
+
+  % level 1
+  \node[box] (cl) at (-4, -2) {M.closure\\$c = u \circ l$};
+  \node[box] (ml) at (0, -2) {M.monotone\_l\\$l$ は単調};
+  \node[box] (mu) at (4, -2) {M.monotone\_u\\$u$ は単調};
+
+  % level 2 from closure
+  \node[prop] (ext) at (-6.5, -4) {拡大性\\$x \le c(x)$};
+  \node[prop] (ide) at (-4, -4) {冪等性\\$c(c(x)) = c(x)$};
+  \node[prop] (gi)  at (-1.2, -4) {ガロア挿入\\への昇格};
+
+  % level 3 from gi
+  \node[prop, fill=yellow!15] (closed) at (-1.2, -6) {閉元への標準圏\\$\alpha^c \hookrightarrow \alpha$};
+
+  % arrows
+  \draw[arrow] (M) -- (cl);
+  \draw[arrow] (M) -- (ml);
+  \draw[arrow] (M) -- (mu);
+  \draw[arrow] (cl) -- (ext);
+  \draw[arrow] (cl) -- (ide);
+  \draw[arrow] (cl) -- (gi);
+  \draw[arrow] (gi) -- (closed);
+\end{tikzpicture}
+\end{center}
+
+\subsection{閉包作用素の導出}
+
+\begin{definition}
+母構造 $M$ の\textbf{閉包作用素}を $M.\mathrm{closure} := u \circ l$ で定める。
+\end{definition}
+
+\begin{leanbox}
+\begin{verbatim}
+def closure (M : OrderClosureMother α β) : ClosureOperator α :=
+  M.gc.closureOperator
+
+@[simp] theorem closure_apply (M : OrderClosureMother α β) (x : α) :
+    M.closure x = M.u (M.l x) := rfl
+\end{verbatim}
+\end{leanbox}
+
+\texttt{closure\_apply} は計算規則として \texttt{@[simp]} で登録されている。
+これにより、$M.\mathrm{closure}(x)$ は常に $M.u(M.l(x))$ に簡約される。
+
+\begin{proposition}[閉包の基本性質]
+母構造 $M$ に対して、以下が成り立つ。
+\begin{enumerate}[label=(\arabic*)]
+  \item $M.l$ は単調：$x \le y \implies M.l(x) \le M.l(y)$。
+  \item $M.u$ は単調：$x \le y \implies M.u(x) \le M.u(y)$。
+  \item 拡大性：$x \le M.\mathrm{closure}(x)$。
+  \item 冪等性：$M.\mathrm{closure}(M.\mathrm{closure}(x)) = M.\mathrm{closure}(x)$。
+\end{enumerate}
+\end{proposition}
+
+\begin{leanbox}
+\begin{verbatim}
+theorem monotone_l        (M : ...) : Monotone M.l
+theorem monotone_u        (M : ...) : Monotone M.u
+theorem le_closure        (M : ...) : x ≤ M.closure x
+theorem closure_idempotent(M : ...) : M.closure (M.closure x) = M.closure x
+\end{verbatim}
+\end{leanbox}
+
+% ===========================================================
+\section{ガロア挿入と閉元}
+% ===========================================================
+
+\subsection{閉元の概念}
+
+閉包作用素 $c$ に対して、$c(x) = x$ を満たす元 $x$ を\textbf{閉元 (closed element)} という。
+閉元全体の集合 $\alpha^c := \{x \in \alpha \mid c(x) = x\}$ は
+$\alpha$ 上の半順序の制限により再び半順序集合をなす。
+
+\subsection{閉元へのガロア挿入}
+
+母構造 $M$ から、閉元の集合 $\alpha^c$ への
+\textbf{ガロア挿入 (Galois insertion)} が標準的に構成される。
+ガロア挿入はガロア接続の強化版であり、
+左随伴が右逆写像（セクション）を持つ場合に相当する。
+
+\begin{definition}[ガロア挿入]
+ガロア接続 $(l, u)$ において、さらに
+$l \circ u = \mathrm{id}$（または同値な条件として $l$ が全射かつ $u$ が単射）
+が成り立つとき、$(l, u)$ を\textbf{ガロア挿入}という。
+\end{definition}
+
+\begin{leanbox}
+\begin{verbatim}
+def giToCloseds (M : OrderClosureMother α β) :
+    GaloisInsertion M.closure.toCloseds Subtype.val :=
+  M.closure.gi
+\end{verbatim}
+\end{leanbox}
+
+この構成を可換図式で表すと、以下のようになる。
+
+\begin{center}
+\begin{tikzcd}[column sep=huge, row sep=large]
+  \alpha
+    \arrow[r, bend left=20, "\mathrm{toCloseds} \circ c"{name=F}]
+    \arrow[loop left, distance=3em, "c = u \circ l"']
+  & \alpha^c
+    \arrow[l, bend left=20, hook, "\iota\; (\text{包含})"{name=G}]
+  \arrow[from=F, to=G, phantom, "\dashv" rotate=-90]
+\end{tikzcd}
+\end{center}
+
+ここで $\iota \colon \alpha^c \hookrightarrow \alpha$ は閉元の包含写像
+（\texttt{Subtype.val}）であり、
+$\mathrm{toCloseds} \circ c$ は元を閉包で送ってから閉元の部分型に射影する写像である。
+
+\subsection{閉包の再構成定理}
+
+ガロア挿入から逆にガロア接続を取り出し、
+そのガロア接続が誘導する閉包作用素を構成すると、
+元の閉包作用素 $M.\mathrm{closure}$ に戻る。
+これは「母構造の自己整合性 (self-consistency)」を示す重要な性質である。
+
+\begin{theorem}[閉包の再構成]
+\[
+  M.\mathrm{giToCloseds}.\mathrm{gc}.\mathrm{closureOperator}
+  = M.\mathrm{closure}
+\]
+\end{theorem}
+
+\begin{leanbox}
+\begin{verbatim}
+@[simp] theorem closure_from_giToCloseds (M : OrderClosureMother α β) :
+    M.giToCloseds.gc.closureOperator = M.closure :=
+  closureOperator_gi_self M.closure
+\end{verbatim}
+\end{leanbox}
+
+この定理は、母構造のデータが冗長性なく整合していること---
+すなわちガロア接続、閉包作用素、ガロア挿入の三者の間に
+\emph{完全な循環的復元関係}が成立することを保証する。
+
+% ===========================================================
+\section{全体の構造図}
+\label{sec:overview}
+% ===========================================================
+
+本稿で述べた概念間の関係を、一枚の図式にまとめる。
+
+\begin{center}
+\begin{tikzpicture}[
+  >=Stealth,
+  every node/.style={font=\small, align=center},
+  bigbox/.style={
+    draw, rounded corners=6pt,
+    minimum width=4cm, minimum height=1.2cm,
+    font=\normalsize
+  },
+  arrow/.style={->, thick, >=Stealth},
+  darrow/.style={<->, thick, >=Stealth, dashed}
+]
+  % Nodes
+  \node[bigbox, fill=orange!12] (gc) at (0, 0)
+    {\textbf{ガロア接続}\\$(l, u) : \alpha \rightleftarrows \beta$};
+
+  \node[bigbox, fill=blue!10] (cl) at (-5, -3)
+    {\textbf{閉包作用素}\\$c = u \circ l : \alpha \to \alpha$};
+
+  \node[bigbox, fill=red!10] (gi) at (5, -3)
+    {\textbf{ガロア挿入}\\$\alpha^c \rightleftarrows \alpha$};
+
+  \node[bigbox, fill=yellow!15, minimum width=5.5cm] (mother) at (0, 3.5)
+    {\textbf{母構造 \texttt{OrderClosureMother}}\\$M = (l, u, \mathrm{gc})$};
+
+  % Arrows
+  \draw[arrow] (mother) -- node[right, font=\footnotesize]{保持} (gc);
+  \draw[arrow] (gc) -- node[above left, font=\footnotesize]{$u \circ l$} (cl);
+  \draw[arrow] (cl) -- node[below, font=\footnotesize]{閉元 $\alpha^c$ の構成} (gi);
+  \draw[arrow, dashed] (gi) to[bend left=15]
+    node[above right, font=\footnotesize]{gc から\\閉包の再構成} (gc);
+
+  % 循環の注記
+  \node[font=\footnotesize\itshape, text=gray] at (0, -4.5)
+    {三者の循環的復元：$\mathrm{gc} \to c \to \alpha^c \to \mathrm{gc'} \to c' = c$};
+\end{tikzpicture}
+\end{center}
+
+% ===========================================================
+\section{まとめと展望}
+% ===========================================================
+
+\texttt{OrderClosureMother} は、
+順序理論の中核概念であるガロア接続と閉包作用素を
+Bourbaki 流の「母構造」のアイデアに基づいて
+一つのパッケージに糾合した構造体である。
+この構造体のもとでは：
+
+\begin{enumerate}[label=(\arabic*)]
+  \item ガロア接続の随伴対 $(l, u)$ により\textbf{双方向の単調写像}が保証され、
+  \item 合成 $c = u \circ l$ が自動的に\textbf{閉包作用素}を誘導し、
+  \item 閉元全体 $\alpha^c$ への\textbf{ガロア挿入}が標準的に構成され、
+  \item そこから再び閉包作用素を復元すると元と一致する（\textbf{自己整合性}）。
+\end{enumerate}
+
+今後の展望として、以下の方向が考えられる。
+\begin{itemize}
+  \item \textbf{代数構造への拡張}：群・環の部分構造（正規部分群、イデアル）に対応する
+    母構造 \texttt{AlgClosureMother} の構築。
+  \item \textbf{位相構造との融合}：Kuratowski 閉包公理との統合により、
+    位相空間を順序的母構造の特殊例として捉える枠組み。
+  \item \textbf{圏論的普遍性}：母構造からの導出を函手として定式化し、
+    随伴関手定理との関係を明らかにすること。
+\end{itemize}
+
+\end{document}
