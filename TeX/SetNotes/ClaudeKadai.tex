@@ -1,0 +1,132 @@
+\documentclass[11pt,a4paper]{ltjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{remark}[theorem]{注釈}
+
+\title{Bourbakiスタイルの集合論と形式化}
+\author{su}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、Lean 4によって形式化されたBourbakiスタイルの集合論の基本的な定義および定理について数学的な解説を行う。ヒルベルトの$\varepsilon$記号に相当する$\tau$作用素の導入から始まり、関係、関数、同値関係による商集合の構成、順序関係、そして選択公理と整列定理に至るまでの一連の基礎付けを概観する。
+\end{abstract}
+
+\section{$\tau$作用素と論理の基礎}
+Bourbakiの集合論において特徴的なのは、ヒルベルトの$\varepsilon$（イプシロン）記号に相当する$\tau$（タウ）作用素の存在である。Lean 4の形式化では、これを \texttt{Classical.epsilon} を用いて定義している。
+
+\begin{definition}[$\tau$作用素]
+集合$\alpha$上の述語$P(x)$に対して、$\tau P$ は「$P(x)$ を満たす何らかの要素」を選択する作用素である。
+形式的には、もし $\exists x, P(x)$ が真であれば、$P(\tau P)$ も真となる。
+\end{definition}
+
+これにより、選択の過程を明示的な関数として扱うことが可能となる。また、古典論理における排中律（Excluded Middle） $P \lor \neg P$ もこの公理的基盤の上に成立する。
+
+\section{関係 (Relations)}
+任意の型$\alpha$上の二項関係は、$\alpha \times \alpha \to \mathrm{Prop}$（命題）として定義される。
+
+\begin{definition}[関係の定義]
+関係 $R$ において、その定義域と値域は次のように定まる：
+\begin{itemize}
+    \item 定義域 (Domain): $\{ x \mid \exists y, R(x, y) \}$
+    \item 値域 (Range): $\{ y \mid \exists x, R(x, y) \}$
+\end{itemize}
+また、逆関係 (Inverse) は $R^{-1}(x, y) \iff R(y, x)$ と定義される。
+\end{definition}
+
+関係の合成については、$R \subseteq \alpha \times \beta$, $S \subseteq \beta \times \gamma$ としたとき、$S \circ R$（コード上では \texttt{relComp}）は次のように可換な図式で理解できる。
+\begin{equation*}
+\begin{tikzcd}
+\alpha \arrow[r, "R"] \arrow[rr, "S \circ R"', bend right=30] & \beta \arrow[r, "S"] & \gamma
+\end{tikzcd}
+\end{equation*}
+すなわち、$z \in (S \circ R)(x) \iff \exists y \in \beta, R(x,y) \land S(y,z)$ である。
+
+\section{関数 (Functions)}
+関数は特殊な関係として定義される。
+
+\begin{definition}[関数的関係]
+関係 $R$ が「関数的 (Functional)」であるとは、任意の $x$ に対して $y$ が高々1つしか存在しないこと、すなわち $R(x, y) \land R(x, z) \implies y = z$ を満たすことである。全域的（Total）であるとは、任意の $x$ に対して必ず $y$ が存在することを指す。
+\end{definition}
+
+関数 $f \colon \alpha \to \beta$ について、全射 (Surjection) と単射 (Injection) は標準的な定義に従う。
+全単射 (Bijection) は全射かつ単射な関数であり、全単射からは逆関数を構成できる（同型 \texttt{Equiv} の構築）。逆関数の構成には要素を一つ選び出すために$\tau$作用素（実質的には選択定理）が用いられている。
+\begin{equation*}
+\begin{tikzcd}
+\alpha \arrow[r, "f", shift left=1ex] & \beta \arrow[l, "f^{-1}", shift left=1ex]
+\end{tikzcd}
+\end{equation*}
+
+\section{同値関係と商集合}
+同値関係は、反射律・対称律・推移律を満たす関係である。
+
+\begin{definition}[同値類と商集合]
+同値関係 $R$ における要素 $x$ の同値類は $[x]_R = \{ y \mid R(x, y) \}$ と定義される。商集合 $\alpha / R$ はこれら同値類の集まりである：
+\[ \alpha / R = \{ C \mid \exists x, C = [x]_R \} \]
+\end{definition}
+
+コード上では、以下の重要な補題が証明されている：
+\begin{itemize}
+    \item \textbf{同値類の素集合性}：任意の $x, y$ に対して、$[x]_R \cap [y]_R = \emptyset$ または $[x]_R = [y]_R$のいずれかが成り立つ。
+    \item \textbf{分割の性質}：任意の要素 $x \in \alpha$ は、必ずいずれかの同値類に属する。
+\end{itemize}
+自然な射影 $\pi \colon \alpha \to \alpha/R$ は次のような全射を与える。
+\begin{equation*}
+\begin{tikzcd}
+\alpha \arrow[r, "\pi"] & \alpha / R \\
+x \arrow[r, |->] & {[x]_R}
+\end{tikzcd}
+\end{equation*}
+
+\section{順序関係 (Order Relations)}
+順序関係はBourbakiにおいて「前順序 (Preorder)」「半順序 (Partial Order)」「全順序 (Total Order)」の構造として階層的に定義される。
+
+\begin{itemize}
+    \item \textbf{前順序}：反射律と推移律を満たす関係 $\le$。
+    \item \textbf{半順序}：前順序に加えて、反対称律 ($x \le y \land y \le x \implies x = y$) を満たす。
+    \item \textbf{全順序}：半順序に加えて、全順序律 ($x \le y \lor y \le x$) を満たす。
+\end{itemize}
+
+さらに、\textbf{整列集合 (Well-ordered set)} は、任意の空でない部分集合が最小元（第一元）を持つような全順序集合として定義される。形式化においては、Bourbaki的な定義（部分集合の最小元の存在）と、Lean 4標準の整礎性 (\texttt{WellFounded}) の定義が同値であることが証明されている(\texttt{isWellOrdered\_iff\_wellFounded})。
+
+\section{濃度と等勢 (Equipotence and Cardinals)}
+集合の「大きさ」の概念は、全単射の存在によって定式化される。
+
+\begin{definition}[等勢 (Equipotent)]
+集合 $\alpha$ と $\beta$ が「等勢」であるとは、$\alpha$ から $\beta$ への全単射が存在することである（\texttt{Nonempty ($\alpha \simeq \beta$)}）。
+\end{definition}
+
+等勢は同値関係の性質（反射律、対称律、推移律）を満たす。また、カントール・ベルンシュタインの定理 (Cantor-Bernstein Theorem) により、単射 $f \colon \alpha \hookrightarrow \beta$ と $g \colon \beta \hookrightarrow \alpha$ が存在すれば、$\alpha$ と $\beta$ は等勢となる。
+濃度の大小関係 $CardLE(\alpha, \beta)$ は単射の存在によって定義され、任意の2つの濃度は比較可能であることが示される。
+
+\section{選択公理と整列原則}
+最後に、$\tau$作用素を基礎とする体系により、以下の強力な定理が導かれる。
+
+\begin{theorem}[選択公理 (Axiom of Choice)]
+空でない集合の族 $\{A_i\}_{i \in \iota}$ が与えられたとき、各添字 $i$ に対して $f(i) \in A_i$ を満たすような選択関数 $f$ が存在する。
+\end{theorem}
+
+\begin{theorem}[整列原則 (Well-ordering Principle)]
+任意の集合 $\alpha$ に対して、その上の整列順序 $R$ が存在する（ツェルメロの定理）。
+\end{theorem}
+
+これらは数学の多くの基礎的証明において不可欠な役割を果たす。Bourbaki体系の形式化全体が、これらの原則の上に強固に構築されていることが確認できる。
+
+\end{document}
