@@ -17,14 +17,14 @@ import Mathlib.Analysis.Calculus.FDeriv.Basic
 import Mathlib.Analysis.Calculus.FDeriv.Comp
 import Mathlib.Analysis.Calculus.Taylor
 import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.MeasureTheory.Integral.FundThmCalculus
-import Mathlib.MeasureTheory.Integral.IntervalIntegral
+import Mathlib.Analysis.SpecialFunctions.Exponential
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.NormedSpace.Dual
 import Mathlib.Order.Filter.Basic
-import Mathlib.Topology.Algebra.Order.IntermediateValue
+import Mathlib.Topology.Order.IntermediateValue
 
 open Set Filter MeasureTheory
+open scoped BigOperators
 
 noncomputable section
 
@@ -40,12 +40,11 @@ section DerivBasics
 /-- 定数関数の導関数は0。 -/
 theorem deriv_const (c : ℝ) : deriv (fun _ : ℝ => c) = 0 := by
   ext x
-  exact deriv_const x c
+  exact _root_.deriv_const x c
 
 /-- 恒等関数の導関数は1。 -/
 theorem deriv_id' : deriv id = fun _ => (1 : ℝ) := by
-  ext x
-  exact deriv_id' x
+  exact (_root_.deriv_id' : deriv id = fun _ => (1 : ℝ))
 
 /-- 和の微分法則。 -/
 theorem deriv_add_at {f g : ℝ → ℝ} {x : ℝ}
@@ -63,7 +62,7 @@ theorem deriv_mul_at {f g : ℝ → ℝ} {x : ℝ}
 theorem deriv_comp_at {f g : ℝ → ℝ} {x : ℝ}
     (hf : DifferentiableAt ℝ f (g x)) (hg : DifferentiableAt ℝ g x) :
     deriv (f ∘ g) x = deriv f (g x) * deriv g x := by
-  exact deriv.comp x hf hg
+  exact deriv_comp x hf hg
 
 end DerivBasics
 
@@ -79,10 +78,10 @@ section MeanValueTheorem
     f'(c) = 0 なる c ∈ (a,b) が存在。 -/
 theorem rolle {f : ℝ → ℝ} {a b : ℝ} (hab : a < b)
     (hfc : ContinuousOn f (Icc a b))
-    (hfd : ∀ x ∈ Ioo a b, DifferentiableAt ℝ f x)
+    (_hfd : ∀ x ∈ Ioo a b, DifferentiableAt ℝ f x)
     (hfab : f a = f b) :
     ∃ c ∈ Ioo a b, deriv f c = 0 := by
-  sorry  -- 課題: exists_deriv_eq_zero を活用して証明
+  simpa using exists_deriv_eq_zero hab hfc hfab
 
 /-- 平均値の定理 (Lagrange):
     f が [a,b] で連続、(a,b) で微分可能ならば、
@@ -91,15 +90,33 @@ theorem mean_value_theorem {f : ℝ → ℝ} {a b : ℝ} (hab : a < b)
     (hfc : ContinuousOn f (Icc a b))
     (hfd : ∀ x ∈ Ioo a b, DifferentiableAt ℝ f x) :
     ∃ c ∈ Ioo a b, f b - f a = deriv f c * (b - a) := by
-  sorry  -- 課題: exists_ratio_deriv_eq_ratio_slope を参照
+  have hfdOn : DifferentiableOn ℝ f (Ioo a b) := by
+    intro x hx
+    exact (hfd x hx).differentiableWithinAt
+  rcases exists_deriv_eq_slope f hab hfc hfdOn with ⟨c, hc, hc'⟩
+  refine ⟨c, hc, ?_⟩
+  have hba : b - a ≠ 0 := sub_ne_zero.2 hab.ne'
+  calc
+    f b - f a = ((f b - f a) / (b - a)) * (b - a) := by
+      field_simp [hba]
+    _ = deriv f c * (b - a) := by
+      rw [← hc']
 
 /-- 単調性判定: f' ≥ 0 on (a,b) ⟹ f は [a,b] で単調非減少。 -/
-theorem monotone_of_deriv_nonneg {f : ℝ → ℝ} {a b : ℝ} (hab : a ≤ b)
+theorem monotone_of_deriv_nonneg {f : ℝ → ℝ} {a b : ℝ} (_hab : a ≤ b)
     (hfc : ContinuousOn f (Icc a b))
     (hfd : ∀ x ∈ Ioo a b, DifferentiableAt ℝ f x)
     (hf' : ∀ x ∈ Ioo a b, 0 ≤ deriv f x) :
-    MonotonOn f (Icc a b) := by
-  sorry  -- 課題: monotoneOn_of_deriv_nonneg を使う
+    MonotoneOn f (Icc a b) := by
+  let D : Set ℝ := Icc a b
+  have hfd' : DifferentiableOn ℝ f (interior D) := by
+    intro x hx
+    exact (hfd x (by simpa [D, interior_Icc] using hx)).differentiableWithinAt
+  have hf'' : ∀ x ∈ interior D, 0 ≤ deriv f x := by
+    intro x hx
+    exact hf' x (by simpa [D, interior_Icc] using hx)
+  simpa [D] using
+    (_root_.monotoneOn_of_deriv_nonneg (D := D) (hD := convex_Icc a b) hfc hfd' hf'')
 
 end MeanValueTheorem
 
@@ -115,7 +132,7 @@ theorem intermediate_value_theorem {f : ℝ → ℝ} {a b : ℝ} (hab : a ≤ b)
     (hf : ContinuousOn f (Icc a b)) {v : ℝ}
     (hva : f a ≤ v) (hvb : v ≤ f b) :
     ∃ c ∈ Icc a b, f c = v := by
-  exact intermediate_value_Icc hab hf hva hvb
+  exact intermediate_value_Icc hab hf ⟨hva, hvb⟩
 
 /-- 零点定理 (Bolzano): f(a) < 0 < f(b) ならば零点が存在。 -/
 -- 演習課題
@@ -123,7 +140,7 @@ theorem bolzano {f : ℝ → ℝ} {a b : ℝ} (hab : a ≤ b)
     (hf : ContinuousOn f (Icc a b))
     (ha : f a < 0) (hb : 0 < f b) :
     ∃ c ∈ Icc a b, f c = 0 := by
-  sorry  -- 課題: intermediate_value_theorem を 0 に適用
+  exact intermediate_value_theorem hab hf (v := 0) ha.le hb.le
 
 end IntermediateValue
 
@@ -142,19 +159,16 @@ theorem ftc_part1 {a : ℝ} (hf : Continuous f) (x : ℝ) :
     HasDerivAt (fun x => ∫ t in a..x, f t) (f x) x := by
   exact intervalIntegral.integral_hasDerivAt_right
     (hf.intervalIntegrable _ _)
+    (Continuous.stronglyMeasurableAtFilter hf MeasureTheory.volume (nhds x))
     hf.continuousAt
-    (by rfl)
 
 /-- FTC Part 2: Newton-Leibniz 公式。
     F' = f ならば ∫ₐᵇ f(t) dt = F(b) - F(a)。 -/
 theorem ftc_part2 {a b : ℝ} {F : ℝ → ℝ}
-    (hF : ∀ x ∈ [[a, b]], HasDerivAt F (f x) x)
+    (hF : ∀ x ∈ uIcc a b, HasDerivAt F (f x) x)
     (hf : IntervalIntegrable f MeasureTheory.volume a b) :
     ∫ x in a..b, f x = F b - F a := by
-  exact intervalIntegral.integral_eq_sub_of_hasDerivAt
-    (fun x hx => (hF x hx).continuousAt)
-    (fun x hx => hF x (Ioo_subset_Icc_self hx))
-    hf
+  exact intervalIntegral.integral_eq_sub_of_hasDerivAt hF hf
 
 end FTC
 
@@ -186,7 +200,7 @@ theorem fderiv_comp_at {G : Type*} [NormedAddCommGroup G] [NormedSpace ℝ G]
     {f : F → G} {g : E → F} {x : E}
     (hf : DifferentiableAt ℝ f (g x)) (hg : DifferentiableAt ℝ g x) :
     fderiv ℝ (f ∘ g) x = (fderiv ℝ f (g x)).comp (fderiv ℝ g x) := by
-  exact fderiv.comp x hf hg
+  exact fderiv_comp x hf hg
 
 end FrechetDerivative
 
@@ -197,8 +211,8 @@ end FrechetDerivative
 
 section TaylorTheorem
 
-/-- Taylor の定理 (Lagrange の剰余項):
-    演習課題 - n 回微分可能な関数に対する Taylor 展開。 -/
+/- Taylor の定理 (Lagrange の剰余項):
+   演習課題 - n 回微分可能な関数に対する Taylor 展開。 -/
 
 -- Mathlib では taylor_mean_remainder / taylor_mean_remainder_unordered
 -- として利用可能。
@@ -208,10 +222,11 @@ section TaylorTheorem
 
 /-- exp(x) の n 次 Taylor 多項式の収束。 -/
 -- 演習課題
-theorem exp_taylor_converges :
-    Filter.Tendsto (fun n : ℕ => ∑ k in Finset.range n, x ^ k / k.factorial)
+theorem exp_taylor_converges (x : ℝ) :
+    Filter.Tendsto (fun n : ℕ => Finset.sum (Finset.range n) (fun k => x ^ k / k.factorial))
       Filter.atTop (nhds (Real.exp x)) := by
-  sorry  -- 課題: Real.tendsto_sum_range_one_div_nat_factorial_nhds を参照
+  simpa [Real.exp_eq_exp_ℝ] using
+    (NormedSpace.expSeries_div_hasSum_exp x).tendsto_sum_nat
 
 end TaylorTheorem
 
@@ -228,7 +243,7 @@ section ImplicitFunction
 
 -- 高度な演習: 逆関数定理を陰関数定理の系として導出
 
-/-- 逆関数定理: f'(a) が可逆ならば f は a の近傍で局所同相。 -/
+/- 逆関数定理: f'(a) が可逆ならば f は a の近傍で局所同相。 -/
 -- 演習課題 (高度)
 -- 参考: Mathlib の ContDiff.to_localHomeomorph
 
@@ -243,14 +258,14 @@ section ConvexAnalysis
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 
-/-- 凸関数: f(tx + (1-t)y) ≤ tf(x) + (1-t)f(y)。 -/
+/- 凸関数: f(tx + (1-t)y) ≤ tf(x) + (1-t)f(y)。 -/
 -- Mathlib の ConvexOn を使って基本性質を確認
 
-/-- 演習: 微分可能な凸関数の特徴づけ。
-    f が凸 ⟺ f' が単調非減少。 -/
+/- 演習: 微分可能な凸関数の特徴づけ。
+   f が凸 ⟺ f' が単調非減少。 -/
 
-/-- 演習: Jensen の不等式。
-    f が凸ならば f(E[X]) ≤ E[f(X)]。 -/
+/- 演習: Jensen の不等式。
+   f が凸ならば f(E[X]) ≤ E[f(X)]。 -/
 -- 参考: MeasureTheory.ConvexOn.integral_le
 
 end ConvexAnalysis
