@@ -1,0 +1,75 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+
+\theoremstyle{definition}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{remark}[theorem]{注釈}
+
+\title{Bourbaki P1: 順序、束、群と位相}
+\author{su}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+\begin{abstract}
+本稿では、Lean 4による形式化コード\texttt{P1.lean}で定義および証明されている基礎的な数学定理について解説する。前順序・半順序集合から始まり、分配束、群の準同型写像、およびHausdorff空間におけるコンパクト集合の基本的性質に至るまでを概観し、必要に応じて図式を交えて構造を明らかにする。
+\end{abstract}
+
+\section{順序集合の基礎}
+前順序集合 (preorder) とは、反射律および推移律を満たす二項関係 $\le$ が備わった集合である。\texttt{P1.lean}で示されている\texttt{preorder\_trans}定理は、この推移律の直接的な反映である。ここに関係の反対称律 $a \le b \land b \le a \implies a = b$ を追加すると、半順序集合 (partial order) となる。
+
+半順序集合において、ある部分集合 $S$ に最小上界（上限、LUB: Least Upper Bound）が存在すれば、反対称律によりその上限は一意に定まる。これを \texttt{lub\_unique} として定式化している。
+
+\section{分配束と演算}
+束 (lattice) は、任意の2要素について上限 (sup, $\sqcup$) と下限 (inf, $\sqcap$) が常に存在する半順序集合である。分配束 (distributive lattice) とは、これらの演算が互いに対して分配法則を満たすものを指す。すなわち任意の要素 $a, b, c$ について、次の関係が成り立つ：
+\begin{align*}
+a \sqcap (b \sqcup c) &= (a \sqcap b) \sqcup (a \sqcap c), \\
+(a \sqcap b) \sqcup c &= (a \sqcup c) \sqcap (b \sqcup c).
+\end{align*}
+これらはそれぞれ、定理 \texttt{inf\_sup\_distrib\_left} および \texttt{sup\_inf\_distrib\_right} として証明されている。
+
+\section{群の準同型と同型定理}
+群 $G, H$ の間の準同型写像 $f \colon G \to H$ は、群の代数構造である演算を保存する。すなわち、任意の $x, y \in G$ について成り立たなければならない $f(xy) = f(x)f(y)$ という性質である（\texttt{map\_mul\_eq}）。
+
+さらに、その像 $\operatorname{Im}(f)$ は終域 $H$ の部分群をなす。任意の $y \in H$ が $\operatorname{Im}(f)$ に属するための必要十分条件は、ある $x \in G$ が存在して $f(x) = y$ となることである（\texttt{mem\_range\_iff\_exists}）。
+
+このような群の準同型写像については、第一同型定理に基づく次のような可換図式がよく知られている：
+\begin{equation*}
+\begin{tikzcd}
+G \arrow[rr, "f"] \arrow[dr, twoheadrightarrow, "\pi"'] & & H \\
+& G/\ker(f) \arrow[ur, hook, "\tilde{f}"'] &
+\end{tikzcd}
+\end{equation*}
+ここで $\pi$ は商群への自然な全射、$\tilde{f}$ は同型定理によって与えられる単射である。
+
+\section{Hausdorff空間とコンパクト集合の積}
+位相空間論において、Hausdorff空間 ($T_2$空間) は「任意の異なる2点が互いに交わらない開近傍をそれぞれ持つ」という強い分離公理を満たす空間である。この性質により、Hausdorff空間内のコンパクト集合は必ず閉集合となることが導かれる（\texttt{compact\_isClosed}）。
+
+さらに、コンパクト空間の積空間に関する古典的な定理 (Tychonoffの定理の有限版) として、コンパクト空間同士の積はまたコンパクトであることが証明されている。
+有限個のコンパクト空間の直積空間（\texttt{compact\_prod}、\texttt{finite\_compact\_pi}）もすべてコンパクト性を受け継ぐ。
+これを直積空間 $X \times Y$ への自然な射影 $\pi_X, \pi_Y$ を通じて図式化すると、次のような普遍性が成立する。
+\begin{equation*}
+\begin{tikzcd}
+& Z \arrow[dl, "f_X"'] \arrow[dr, "f_Y"] \arrow[d, dashrightarrow, "\exists! h"] & \\
+X & X \times Y \arrow[l, "\pi_X"] \arrow[r, "\pi_Y"'] & Y
+\end{tikzcd}
+\end{equation*}
+任意のコンパクト空間からの連続な写像 $f_X, f_Y$ が与えられたとき、それらを統合する一意の写像 $h$ の行き先もまたコンパクト性を保持する。
+
+\end{document}
