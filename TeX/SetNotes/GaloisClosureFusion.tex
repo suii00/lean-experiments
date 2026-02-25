@@ -1,0 +1,282 @@
+\documentclass[11pt,a4paper]{ltjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{corollary}[theorem]{系}
+\newtheorem{remark}[theorem]{注釈}
+\newtheorem{example}[theorem]{例}
+
+\title{母なる構造の融合\\
+{\large ガロア接続 $\times$ 順序理論 $\times$ 閉包作用素}}
+\author{su}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードおよび \TeX 文書は
+Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+Nicolas Bourbaki が提唱した三つの母なる構造（structures m\`eres）
+——代数的構造・順序構造・位相的構造——に共通する
+\textbf{閉包系}（syst\`eme de fermeture）を統一原理として抽出し、
+ガロア接続がこれら母構造間の「橋」として閉包を誘導する構図を
+Lean 4 / Mathlib 上で形式化した結果を解説する。
+特に、$\sigma$-代数への応用を通じて、
+三母構造が一点に会する「結節点」の存在を示す。
+\end{abstract}
+
+\tableofcontents
+
+%% ================================================================
+\section{序：母なる構造の精神}
+%% ================================================================
+
+Bourbaki は数学の全構造を三つの\textbf{母なる構造}に還元した：
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+母構造 & 本質 & 閉包の例 \\
+\hline
+代数的構造 & 演算の法則 & 部分群生成, イデアル生成 \\
+順序構造   & 順序の法則 & 順序完備化, フィルター生成 \\
+位相的構造 & 近さの法則 & 位相的閉包 \\
+\hline
+\end{tabular}
+\end{center}
+
+本稿の核心的な洞察は、この三者に共通するパターンの存在である：
+\textbf{すべての母構造は閉包系を持ち、
+ガロア接続がそれら母構造間で閉包を受け渡す橋として機能する}。
+
+\begin{equation*}
+\begin{tikzcd}[column sep=large, row sep=large]
+\text{代数的} \arrow[rd, "\text{部分代数の束}"'] &
+& \text{位相的} \arrow[ld, "\text{閉集合系}"] \\
+& \text{閉包系} \arrow[u, "\text{ガロア接続}", bend left, dashed]
+  \arrow[ul, "\text{ガロア接続}"', bend right, dashed]
+  \arrow[d, "\text{統一原理}"] & \\
+& \text{順序的} \arrow[u, "\text{完備化}"'] &
+\end{tikzcd}
+\end{equation*}
+
+%% ================================================================
+\section{閉包系 — 母なる構造の共通骨格}
+%% ================================================================
+
+\begin{definition}[閉包系]
+集合 $\alpha$ 上の\textbf{閉包系}（closure system）とは、
+$\alpha$ の冪集合 $\mathcal{P}(\alpha)$ の部分集合
+$\mathcal{C} \subseteq \mathcal{P}(\alpha)$ であって、
+以下の公理を満たすものである：
+\begin{enumerate}
+\item \textbf{全体は閉}：$\alpha \in \mathcal{C}$。
+\item \textbf{交叉で閉}：$\mathcal{S} \subseteq \mathcal{C}$ が
+空でないならば $\bigcap \mathcal{S} \in \mathcal{C}$。
+\end{enumerate}
+\end{definition}
+
+\begin{proposition}[閉包作用素の導出]
+閉包系 $\mathcal{C}$ から、閉包作用素
+$\mathrm{cl} \colon \mathcal{P}(\alpha) \to \mathcal{P}(\alpha)$ が
+\[
+\mathrm{cl}(S) = \bigcap \{ T \in \mathcal{C} \mid S \subseteq T \}
+\]
+として導出される。この $\mathrm{cl}$ は以下を満たす：
+\begin{itemize}
+\item \textbf{膨張性}：$S \subseteq \mathrm{cl}(S)$
+\item \textbf{単調性}：$S \subseteq T \implies \mathrm{cl}(S) \subseteq \mathrm{cl}(T)$
+\item \textbf{冪等性}：$\mathrm{cl}(\mathrm{cl}(S)) = \mathrm{cl}(S)$
+\end{itemize}
+\end{proposition}
+
+\begin{proposition}[閉 $\Leftrightarrow$ 不動点]
+$S \in \mathcal{C} \iff \mathrm{cl}(S) = S$.
+\end{proposition}
+
+これらの性質は Lean ファイルの \texttt{ClosureSystem} 名前空間で形式的に証明されている。
+
+%% ================================================================
+\section{ガロア接続 — 母構造間の橋}
+%% ================================================================
+
+\begin{definition}[ガロア接続]
+半順序集合 $(A, \le_A)$ と $(B, \le_B)$ の間の
+\textbf{ガロア接続}（Galois connection）とは、
+単調写像の対 $l \colon A \to B$, $u \colon B \to A$ であって、
+\[
+l(a) \le_B b \iff a \le_A u(b) \quad (\forall a \in A, b \in B)
+\]
+を満たすものである。$l$ を\textbf{下側随伴}（左随伴）、
+$u$ を\textbf{上側随伴}（右随伴）と呼ぶ。
+\end{definition}
+
+\begin{definition}[GaloisClosureSystem]
+ガロア接続 $(l, u)$ から以下が導出される：
+\begin{itemize}
+\item \textbf{閉包作用素}：$\mathrm{cl} := u \circ l \colon A \to A$
+  （膨張的・単調・冪等）
+\item \textbf{核作用素}：$\mathrm{ker} := l \circ u \colon B \to B$
+  （縮小的・単調・冪等）
+\end{itemize}
+\end{definition}
+
+これらが自動的に導出される構図を図式で示す：
+
+\begin{equation*}
+\begin{tikzcd}
+A \arrow[r, "l", shift left] \arrow[loop left, "u \circ l = \mathrm{cl}"]
+& B \arrow[l, "u", shift left] \arrow[loop right, "l \circ u = \mathrm{ker}"]
+\end{tikzcd}
+\end{equation*}
+
+\subsection{随伴恒等式}
+
+ガロア接続の最も重要な性質は、以下の随伴恒等式である：
+
+\begin{theorem}[随伴恒等式]
+\begin{align}
+l \circ u \circ l &= l \\
+u \circ l \circ u &= u
+\end{align}
+\end{theorem}
+
+\begin{proof}
+(1) $l(u(l(x))) \le l(x)$ は $u(l(x)) \le u(l(x))$ から従い、
+$l(x) \le l(u(l(x)))$ は $l$ の単調性と $x \le u(l(x))$ から従う。
+(2) も同様に、$u$ の単調性と $l(u(y)) \le y$ から得られる。
+\end{proof}
+
+%% ================================================================
+\section{不動点理論 — 閉元と余閉元}
+%% ================================================================
+
+\begin{definition}[閉元と余閉元]
+ガロア接続 $(l, u)$ に対して：
+\begin{itemize}
+\item \textbf{閉元}：$\{ x \in A \mid u(l(x)) = x \}$
+  （閉包作用素の不動点）
+\item \textbf{余閉元}：$\{ y \in B \mid l(u(y)) = y \}$
+  （核作用素の不動点）
+\end{itemize}
+\end{definition}
+
+\begin{theorem}[閉元と像の一致]
+\begin{align}
+\text{閉元の集合} &= \mathrm{Im}(u) \\
+\text{余閉元の集合} &= \mathrm{Im}(l)
+\end{align}
+\end{theorem}
+
+\begin{proof}
+随伴恒等式 $u \circ l \circ u = u$ より、
+$u(y)$ は任意の $y \in B$ に対して閉元である。
+逆に $x$ が閉元ならば $x = u(l(x)) \in \mathrm{Im}(u)$。
+余閉元についても同様。
+\end{proof}
+
+この定理は、$l$ が閉元から余閉元への全射を、
+$u$ が余閉元から閉元への全射を与えることを意味する。
+すなわち、$l$ の制限と $u$ の制限は互いに逆写像の関係にあり、
+閉元と余閉元の間の\textbf{順序同型}を誘導する。
+
+\begin{equation*}
+\begin{tikzcd}
+\text{閉元} \arrow[r, "l|", shift left] &
+\text{余閉元} \arrow[l, "u|", shift left]
+\end{tikzcd}
+\quad \cong
+\end{equation*}
+
+%% ================================================================
+\section{具体例：$\sigma$-代数 — 三母構造の結節点}
+%% ================================================================
+
+$\sigma$-代数は三つの母構造が一点に会する\textbf{結節点}（n\oe ud）である：
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+母構造 & $\sigma$-代数との関係 \\
+\hline
+代数的 & Bool代数としての構造（$\cap, \cup, {}^c$ の演算）\\
+順序的 & 包含関係で完備束（$\sigma$-代数の束）\\
+位相的 & Borel $\sigma$-代数＝位相から生成 \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{example}[$\sigma$-代数のガロア接続]
+集合 $\alpha$ に対して、以下のガロア接続が構成される：
+\begin{align*}
+l &\colon \mathcal{P}(\mathcal{P}(\alpha)) \to \mathrm{MeasurableSpace}(\alpha) \\
+  &\quad S \mapsto \sigma(S) \quad (\text{$S$ から生成される $\sigma$-代数}) \\
+u &\colon \mathrm{MeasurableSpace}(\alpha) \to \mathcal{P}(\mathcal{P}(\alpha)) \\
+  &\quad m \mapsto \{ s \mid s \text{ は $m$-可測} \}
+\end{align*}
+これは Mathlib の \texttt{MeasurableSpace.giGenerateFrom} である。
+\end{example}
+
+このガロア接続における閉包作用素 $u \circ l$ は、
+集合族 $S$ を $\sigma(S)$ の可測集合族に送る操作そのものである：
+\[
+(u \circ l)(S) = \{ t \mid t \text{ は } \sigma(S)\text{-可測} \}
+\]
+
+\begin{corollary}[$\sigma$-代数の閉包性質]
+\leavevmode
+\begin{enumerate}
+\item \textbf{膨張性}：$S \subseteq (u \circ l)(S)$
+  （元の集合族は生成された $\sigma$-代数に含まれる）
+\item \textbf{冪等性}：$(u \circ l)^2 = u \circ l$
+  （$\sigma$-代数の $\sigma$-代数は元の $\sigma$-代数）
+\end{enumerate}
+\end{corollary}
+
+%% ================================================================
+\section{統一定理 — ガロア接続から閉包系へ}
+%% ================================================================
+
+\begin{theorem}[統一定理]
+$\mathrm{Set}(\alpha)$ 上のガロア接続 $(l, u)$ が与えられたとき、
+その閉元の集合
+$\{ s \in \mathcal{P}(\alpha) \mid u(l(s)) = s \}$
+は $\alpha$ 上の閉包系を成す。
+\end{theorem}
+
+\begin{proof}
+閉包系の2つの公理を検証する：
+\begin{enumerate}
+\item $\alpha \in \mathcal{C}$：
+  膨張性より $\alpha \subseteq u(l(\alpha))$。
+  一方 $u(l(\alpha)) \subseteq \alpha$ は自明。
+  よって $u(l(\alpha)) = \alpha$。
+
+\item $\mathcal{S} \subseteq \mathcal{C}$ ならば
+  $\bigcap \mathcal{S} \in \mathcal{C}$：
+  膨張性より $\bigcap \mathcal{S} \subseteq u(l(\bigcap \mathcal{S}))$。
+  逆に、各 $t \in \mathcal{S}$ に対して
+  $\bigcap \mathcal{S} \subseteq t$ かつ $t = u(l(t))$（$t$ は閉元）なので、
+  $u(l(\bigcap \mathcal{S})) \subseteq u(l(t)) = t$。
+  よって $u(l(\bigcap \mathcal{S})) \subseteq \bigcap \mathcal{S}$。
+\end{enumerate}
+\end{proof}
+
+この定理は、\textbf{どの母構造間のガロア接続も、
+閉包系という共通の骨格を生む}ことを保証する。
+これこそが Bourbaki の精神を宿す統一原理である。
+
+\end{document}
