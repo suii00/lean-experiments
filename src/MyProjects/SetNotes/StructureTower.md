@@ -109,6 +109,7 @@ GPT-5.3-Codex xhigh
 
 設計としては、外側を `namespace StructuresMeres`、内側の中核構造を `StructureTower` にするのが一番自然です。
 
+
 >この構造の最小公理系は何か？
 
 この `StructureTower`（あなたの `Bourbaki_Lean_Guide.lean` の定義）に限れば、最小公理系は次の2つです。
@@ -201,9 +202,9 @@ GPT-5.3-Codex xhigh
 
 良い問いです。あなたの `StructureTower` では、まず各点の「到達可能インデックス集合」を
 
-\[
+$$
 I_x := \{\, i \mid x \in \mathrm{level}(i)\,\}
-\]
+$$
 
 と置くのが整理しやすいです。
 
@@ -225,9 +226,9 @@ I_x := \{\, i \mid x \in \mathrm{level}(i)\,\}
 
 補足: もし強い公理
 
-\[
+$$
 x \in \mathrm{level}(i) \iff r(x)\le i
-\]
+$$
 
 を課すなら、`r` は（前順序では同値類まで、半順序なら完全に）一意になります。  
 この公理が「ランクの一意性」を決める分水嶺です。
@@ -410,3 +411,4 @@ x \in \mathrm{level}(i) \iff r(x)\le i
 
 
 要するに、**数学的内容は不変、エンコードと証明技法が変わる**という整理です。
+
