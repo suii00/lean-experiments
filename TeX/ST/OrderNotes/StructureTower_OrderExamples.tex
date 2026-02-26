@@ -711,29 +711,33 @@ theorem icc_level_subset_iic_level (a x : (*$\alpha$*)) :
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=2.8cm]
-  \node[draw, rounded corners=3pt, fill=blue!10] (T1) {$T_1$};
-  \node[draw, rounded corners=3pt, fill=green!10, right of=T1] (T2) {$T_2$};
-
-  \node[draw, rounded corners=3pt, fill=purple!10, below left of=T2,
-    yshift=-0.3cm, xshift=0.7cm] (inter) {\texttt{inter}};
-  \node[draw, rounded corners=3pt, fill=orange!10, below right of=T1,
-    yshift=-0.3cm, xshift=-0.7cm] (sup) {\texttt{sup}};
-  \node[draw, rounded corners=3pt, fill=gray!10, above right of=T1,
-    xshift=0.4cm] (prod) {\texttt{prod}};
-
-  \draw[->] (T1) -- (inter);
-  \draw[->] (T2) -- (inter);
-  \draw[->] (T1) -- (sup);
-  \draw[->] (T2) -- (sup);
-  \draw[->] (T1) -- (prod);
-  \draw[->] (T2) -- (prod);
-
-  \node[below=0.3cm of inter, draw=none] {\small $T_1(i) \cap T_2(i)$};
-  \node[below=0.3cm of sup, draw=none] {\small $T_1(i) \cup T_2(i)$};
-  \node[above=0.3cm of prod, draw=none] {\small $T_1(i) \times T_2(i)$};
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=4pt, minimum height=1.8em,
+              inner xsep=10pt, font=\small}]
+  % 入力塔：横並び
+  \node[box, fill=blue!12]   (T1) at (0,  0)  {$T_1$};
+  \node[box, fill=green!12]  (T2) at (5,  0)  {$T_2$};
+  % 出力演算：prod（上中央）、inter（左下）、sup（右下）
+  \node[box, fill=gray!15]   (prod)  at (2.5,  2.2) {\texttt{prod}};
+  \node[box, fill=purple!12] (inter) at (0,   -2.2) {\texttt{inter}};
+  \node[box, fill=orange!12] (sup)   at (5,   -2.2) {\texttt{sup}};
+  % 矢印
+  \draw[-{Stealth}] (T1) -- (prod);
+  \draw[-{Stealth}] (T2) -- (prod);
+  \draw[-{Stealth}] (T1) -- (inter);
+  \draw[-{Stealth}] (T2) -- (inter);
+  \draw[-{Stealth}] (T1) -- (sup);
+  \draw[-{Stealth}] (T2) -- (sup);
+  % ラベル
+  \node[above=0.2cm of prod,  draw=none, fill=none, font=\small]
+      {$T_1(i) \times T_2(i)$};
+  \node[below=0.2cm of inter, draw=none, fill=none, font=\small]
+      {$T_1(i) \cap T_2(i)$};
+  \node[below=0.2cm of sup,   draw=none, fill=none, font=\small]
+      {$T_1(i) \cup T_2(i)$};
 \end{tikzpicture}
-\caption{塔のレベルごとの演算．各レベル $i$ で集合演算を行い，単調性はレベルごとに引き継ぐ．}
+\caption{塔のレベルごとの演算．各レベル $i$ で集合演算を行い，単調性はレベルごとに引き継ぐ．
+  \texttt{prod} は積（$\alpha\times\beta$），\texttt{inter} は交叉，\texttt{sup} は合併．}
 \label{fig:levelwise}
 \end{figure}
 
