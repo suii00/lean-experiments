@@ -7,6 +7,14 @@ Antigravity（Google DeepMind）などの AI ツールを用いて構築して�
 
 AI が生成したアイデアを出発点に、定義・公理・反例・Lean 形式化としてこのリポジトリで整備しています。
 
+
+### 構造の階層を意識する
+```
+Set → Preorder → PartialOrder → Lattice → DistribLattice
+   ↘ Magma → Semigroup → Monoid → Group → CommGroup
+      ↘ TopologicalSpace → HausdorffSpace → NormalSpace
+```
+
 ## ビルド
 ```bash
 lake build
