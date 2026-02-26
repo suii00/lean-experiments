@@ -27,6 +27,7 @@ namespace BourbakiGuide
 -- Core definition (same as Bourbaki_Lean_Guide.lean §1)
 -- ────────────────────────────────────────────────────
 
+@[ext]
 structure StructureTower (ι α : Type*) [Preorder ι] : Type _ where
   level : ι → Set α
   monotone_level : ∀ ⦃i j : ι⦄, i ≤ j → level i ⊆ level j
@@ -45,7 +46,7 @@ def union (T : StructureTower ι α) : Set α := ⋃ i, T.level i
     no information is encoded in the stratification. -/
 def const (ι : Type*) [Preorder ι] (S : Set α) : StructureTower ι α where
   level _ := S
-  monotone_level := fun _ => Subset.rfl
+  monotone_level := fun _i _j _hij => Subset.refl _
 
 @[simp] theorem const_level (S : Set α) (i : ι) :
     (const ι S).level i = S := rfl
@@ -63,16 +64,17 @@ theorem const_union (S : Set α) [Nonempty ι] :
     Every other Iic-flavored tower factors through this one. -/
 def iic (α : Type*) [Preorder α] : StructureTower α α where
   level x := Set.Iic x
-  monotone_level := fun hij _ hy => le_trans hy hij
+  monotone_level := fun _i _j hij _x hx => le_trans hx hij
 
 @[simp] theorem mem_iic_level {α : Type*} [Preorder α] (x y : α) :
-    y ∈ (iic α).level x ↔ y ≤ x := Iff.rfl
+    y ∈ (iic α).level x ↔ y ≤ x := Set.mem_Iic
 
 theorem iic_union_eq_univ (α : Type*) [Preorder α] :
     (iic α).union = Set.univ := by
-  ext x
-  simp [union, Set.mem_iUnion]
-  exact ⟨fun _ => trivial, fun _ => ⟨x, le_refl x⟩⟩
+  apply Set.eq_univ_of_forall
+  intro x
+  simp only [union, Set.mem_iUnion, iic, Set.mem_Iic]
+  exact ⟨x, le_refl x⟩
 
 /-- Dual: principal upset tower `level x = {y | x ≤ y}`,
     indexed by `αᵒᵈ` so that it becomes increasing. -/
@@ -94,22 +96,23 @@ def ici (α : Type*) [Preorder α] : StructureTower αᵒᵈ α where
 def ofMonotoneSeq {α : Type*} [Preorder α] (c : ℕ → α) (hc : Monotone c) :
     StructureTower ℕ α where
   level n := Set.Iic (c n)
-  monotone_level := fun hij _ hy => le_trans hy (hc hij)
+  monotone_level := fun _i _j hij _x hx => le_trans hx (hc hij)
 
 @[simp] theorem mem_ofMonotoneSeq_level {α : Type*} [Preorder α]
     (c : ℕ → α) (hc : Monotone c) (n : ℕ) (y : α) :
-    y ∈ (ofMonotoneSeq c hc).level n ↔ y ≤ c n := Iff.rfl
+    y ∈ (ofMonotoneSeq c hc).level n ↔ y ≤ c n := Set.mem_Iic
 
 /-- Standard ℕ-filtration: level n = {m | m ≤ n}. -/
 def natFiltration : StructureTower ℕ ℕ := ofMonotoneSeq id monotone_id
 
 @[simp] theorem mem_natFiltration_level (n m : ℕ) :
-    m ∈ natFiltration.level n ↔ m ≤ n := Iff.rfl
+    m ∈ natFiltration.level n ↔ m ≤ n := Set.mem_Iic
 
 theorem natFiltration_union_eq_univ : natFiltration.union = Set.univ := by
-  ext x
-  simp [union, Set.mem_iUnion]
-  exact ⟨fun _ => trivial, fun _ => ⟨x, le_refl x⟩⟩
+  apply Set.eq_univ_of_forall
+  intro x
+  simp only [union, natFiltration, ofMonotoneSeq, Set.mem_iUnion, Set.mem_Iic, id]
+  exact ⟨x, le_refl x⟩
 
 -- ============================================================
 -- §5d. Reindex（添字変換）
@@ -120,7 +123,7 @@ theorem natFiltration_union_eq_univ : natFiltration.union = Set.univ := by
 def reindex {κ : Type*} [Preorder κ]
     (f : ι → κ) (hf : Monotone f) (T : StructureTower κ α) : StructureTower ι α where
   level i := T.level (f i)
-  monotone_level := fun hij => T.monotone_level (hf hij)
+  monotone_level := fun _i _j hij => T.monotone_level (hf hij)
 
 @[simp] theorem reindex_level {κ : Type*} [Preorder κ]
     (f : ι → κ) (hf : Monotone f) (T : StructureTower κ α) (i : ι) :
@@ -166,7 +169,7 @@ private theorem iterate_subset_succ (f : Set α → Set α) (hf : Monotone f)
   induction n with
   | zero => exact hS
   | succ k ih =>
-    show f (f^[k] S) ⊆ f (f^[k + 1] S)
+    simp only [Function.iterate_succ', Function.comp] at ih ⊢
     exact hf ih
 
 /-- Given monotone `f : Set α → Set α` with `S ⊆ f S`,
@@ -202,7 +205,7 @@ theorem seed_subset_union_ofIterate (f : Set α → Set α) (hf : Monotone f)
     A "truncated" version of the Iic tower, restricting to elements above `a`. -/
 def icc {α : Type*} [Preorder α] (a : α) : StructureTower α α where
   level x := Set.Icc a x
-  monotone_level := fun hij _ hy => ⟨hy.1, le_trans hy.2 hij⟩
+  monotone_level := fun _i _j hij _y hy => ⟨hy.1, le_trans hy.2 hij⟩
 
 @[simp] theorem mem_icc_level {α : Type*} [Preorder α] (a x y : α) :
     y ∈ (icc a).level x ↔ a ≤ y ∧ y ≤ x := Iff.rfl
@@ -219,7 +222,7 @@ theorem icc_level_subset_iic_level {α : Type*} [Preorder α] (a x : α) :
 def prod (T₁ : StructureTower ι α) (T₂ : StructureTower ι β) :
     StructureTower ι (α × β) where
   level i := T₁.level i ×ˢ T₂.level i
-  monotone_level := fun hij _ hp =>
+  monotone_level := fun _i _j hij _p hp =>
     ⟨T₁.monotone_level hij hp.1, T₂.monotone_level hij hp.2⟩
 
 @[simp] theorem mem_prod_level (T₁ : StructureTower ι α) (T₂ : StructureTower ι β)
@@ -230,7 +233,7 @@ def prod (T₁ : StructureTower ι α) (T₂ : StructureTower ι β) :
 /-- Levelwise intersection. -/
 def inter (T₁ T₂ : StructureTower ι α) : StructureTower ι α where
   level i := T₁.level i ∩ T₂.level i
-  monotone_level := fun hij _ hx =>
+  monotone_level := fun _i _j hij _x hx =>
     ⟨T₁.monotone_level hij hx.1, T₂.monotone_level hij hx.2⟩
 
 @[simp] theorem mem_inter_level (T₁ T₂ : StructureTower ι α) (i : ι) (x : α) :
@@ -239,7 +242,7 @@ def inter (T₁ T₂ : StructureTower ι α) : StructureTower ι α where
 /-- Levelwise union. -/
 def sup (T₁ T₂ : StructureTower ι α) : StructureTower ι α where
   level i := T₁.level i ∪ T₂.level i
-  monotone_level := fun hij _ hx => by
+  monotone_level := fun _i _j hij _x hx => by
     rcases hx with h | h
     · exact Or.inl (T₁.monotone_level hij h)
     · exact Or.inr (T₂.monotone_level hij h)
@@ -261,7 +264,6 @@ theorem icc_eq_inter_const_iic {α : Type*} [Preorder α] (a : α) :
     icc a = inter (const α (Set.Ici a)) (iic α) := by
   ext x y
   simp [icc, inter, const, iic, Set.Ici, Set.Iic, Set.Icc]
-  exact Iff.rfl
 
 end Relations
 
