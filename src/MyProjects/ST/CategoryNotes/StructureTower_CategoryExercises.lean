@@ -7,7 +7,7 @@
 
   目標:
     StructureTower の射（Hom）が圏をなすことを確認し、
-    基本的な関手的性質を sorry を埋めることで体得する。
+    基本的な関手的性質を空欄補完で体得する。
 
   前提知識:
     - Lean 4 の基本タクティク（intro, exact, simp, ext, funext）
@@ -21,7 +21,7 @@
     §C4. 忘却写像             — Hom → (α → β) の整合性
     §C5. reindex の関手性     — 添字変換と射の整合
 
-  各 sorry を埋めてください。
+  各空欄を埋めてください。
   ヒントはコメントで段階的に与えています。
     Hint-1: 大まかな方針
     Hint-2: 使うべき補題やタクティク
@@ -40,6 +40,7 @@ namespace BourbakiGuide
 -- §0. Core definitions（自己完結のため再掲）
 -- ════════════════════════════════════════════════════════════
 
+@[ext]
 structure StructureTower (ι α : Type*) [Preorder ι] : Type _ where
   level : ι → Set α
   monotone_level : ∀ ⦃i j : ι⦄, i ≤ j → level i ⊆ level j
@@ -56,7 +57,7 @@ def union (T : StructureTower ι α) : Set α := ⋃ i, T.level i
 /-- 逆像による引き戻し -/
 def comap (f : α → β) (T : StructureTower ι β) : StructureTower ι α where
   level i := f ⁻¹' T.level i
-  monotone_level := fun _i _j hij x hx => T.monotone_level hij hx
+  monotone_level := fun _i _j hij _x hx => T.monotone_level hij hx
 
 /-- 順像による押し出し -/
 def map (f : α → β) (T : StructureTower ι α) : StructureTower ι β where
@@ -114,10 +115,12 @@ def Hom.comp {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     Hint-1: Hom の2つのフィールドのうち preserves は Prop 型。
     Hint-2: cases で構造を分解し、congr で toFun の一致に帰着。
     Hint-3: `cases f; cases g; simp` の後に congr か subst を使う。 -/
-@[ext]
 theorem Hom.ext {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     {f g : Hom T₁ T₂} (h : f.toFun = g.toFun) : f = g := by
-  sorry
+  cases f
+  cases g
+  cases h
+  simp
 
 /-- 🟢 Exercise C1b: toFun が点ごとに等しければ Hom は等しい。
 
@@ -126,7 +129,11 @@ theorem Hom.ext {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     Hint-3: `Hom.ext (funext h)` -/
 theorem Hom.ext_iff {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     {f g : Hom T₁ T₂} : f = g ↔ ∀ x, f.toFun x = g.toFun x := by
-  sorry
+  constructor
+  · intro h x
+    simp [h]
+  · intro h
+    exact Hom.ext (funext h)
 
 -- ════════════════════════════════════════════════════════════
 -- §C2. 圏の公理  🟢
@@ -150,7 +157,7 @@ theorem Hom.ext_iff {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
 theorem Hom.id_comp {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f : Hom T₁ T₂) :
     Hom.comp (Hom.id T₂) f = f := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🟢 Exercise C2b: 右恒等律
     恒等射を右から合成しても射は変わらない。
@@ -161,7 +168,7 @@ theorem Hom.id_comp {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
 theorem Hom.comp_id {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f : Hom T₁ T₂) :
     Hom.comp f (Hom.id T₁) = f := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🟢 Exercise C2c: 結合律
     射の合成は結合的である。
@@ -174,7 +181,7 @@ theorem Hom.comp_assoc
     {T₃ : StructureTower ι γ} {T₄ : StructureTower ι δ}
     (h : Hom T₃ T₄) (g : Hom T₂ T₃) (f : Hom T₁ T₂) :
     Hom.comp (Hom.comp h g) f = Hom.comp h (Hom.comp g f) := by
-  sorry
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §C3. map / comap の関手性  🟢🟡
@@ -197,7 +204,8 @@ theorem Hom.comp_assoc
     Hint-3: `ext i x; simp [comap]` -/
 theorem comap_id (T : StructureTower ι α) :
     comap _root_.id T = T := by
-  sorry
+  ext i x
+  simp [comap]
 
 /-- 🟢 Exercise C3b: comap は合成を（逆順で）保つ。
 
@@ -206,7 +214,8 @@ theorem comap_id (T : StructureTower ι α) :
     Hint-3: `ext i x; simp [comap, Set.preimage_comp]` -/
 theorem comap_comp (f : α → β) (g : β → γ) (T : StructureTower ι γ) :
     comap f (comap g T) = comap (g ∘ f) T := by
-  sorry
+  ext i x
+  simp [comap, Set.preimage_comp]
 
 /-- 🟡 Exercise C3c: map は恒等を保つ。
 
@@ -215,7 +224,8 @@ theorem comap_comp (f : α → β) (g : β → γ) (T : StructureTower ι γ) :
     Hint-3: `ext i x; simp [map]` -/
 theorem map_id (T : StructureTower ι α) :
     map _root_.id T = T := by
-  sorry
+  ext i x
+  simp [map]
 
 /-- 🟡 Exercise C3d: map は合成を保つ。
 
@@ -224,7 +234,8 @@ theorem map_id (T : StructureTower ι α) :
     Hint-3: `ext i x; simp [map, Set.image_comp]` -/
 theorem map_comp (f : α → β) (g : β → γ) (T : StructureTower ι α) :
     map g (map f T) = map (g ∘ f) T := by
-  sorry
+  ext i x
+  simp [map]
 
 -- ════════════════════════════════════════════════════════════
 -- §C4. 忘却写像の整合性  🟢🟡
@@ -245,7 +256,8 @@ theorem Hom.mapsTo_union {T₁ : StructureTower ι α} {T₂ : StructureTower ι
     (f : Hom T₁ T₂) : MapsTo f.toFun T₁.union T₂.union := by
   intro x hx
   simp only [union, Set.mem_iUnion] at hx ⊢
-  sorry
+  rcases hx with ⟨i, hi⟩
+  exact ⟨i, f.preserves i hi⟩
   -- skeleton: rcases hx with ⟨i, hi⟩; exact ⟨i, ?_⟩
 
 /-- 🟡 Exercise C4b: 恒等射は union 上で恒等写像。
@@ -255,7 +267,7 @@ theorem Hom.mapsTo_union {T₁ : StructureTower ι α} {T₂ : StructureTower ι
     Hint-3: `intro x hx; exact hx` -/
 theorem Hom.id_mapsTo_union (T : StructureTower ι α) :
     MapsTo (Hom.id T).toFun T.union T.union := by
-  sorry
+  exact (Hom.id T).mapsTo_union
 
 /-- 🟡 Exercise C4c: 射の合成は union 上でも合成。
 
@@ -266,7 +278,7 @@ theorem Hom.comp_mapsTo_union
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β} {T₃ : StructureTower ι γ}
     (g : Hom T₂ T₃) (f : Hom T₁ T₂) :
     MapsTo (Hom.comp g f).toFun T₁.union T₃.union := by
-  sorry
+  simpa [Hom.comp] using g.mapsTo_union.comp f.mapsTo_union
 
 -- ════════════════════════════════════════════════════════════
 -- §C5. reindex の関手性と射との整合  🟡
@@ -291,7 +303,8 @@ def Hom.reindex {κ : Type*} [Preorder κ]
     Hom (StructureTower.reindex φ hφ T₁) (StructureTower.reindex φ hφ T₂) where
   toFun := f.toFun
   preserves := by
-    sorry
+    intro k x hx
+    exact f.preserves (φ k) hx
     -- skeleton: intro k x hx; exact f.preserves (φ k) hx
 
 /-- 🟡 Exercise C5b: reindex は恒等射を恒等射に送る。
@@ -302,7 +315,7 @@ def Hom.reindex {κ : Type*} [Preorder κ]
 theorem Hom.reindex_id {κ : Type*} [Preorder κ]
     (T : StructureTower ι α) (φ : κ → ι) (hφ : Monotone φ) :
     (Hom.id T).reindex φ hφ = Hom.id (StructureTower.reindex φ hφ T) := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🟡 Exercise C5c: reindex は合成を保つ。
 
@@ -313,7 +326,7 @@ theorem Hom.reindex_comp {κ : Type*} [Preorder κ]
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β} {T₃ : StructureTower ι γ}
     (g : Hom T₂ T₃) (f : Hom T₁ T₂) (φ : κ → ι) (hφ : Monotone φ) :
     (Hom.comp g f).reindex φ hφ = Hom.comp (g.reindex φ hφ) (f.reindex φ hφ) := by
-  sorry
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §C6. 発展問題: map が Hom を誘導する  🟡
@@ -334,7 +347,8 @@ def Hom.ofMap (f : α → β) (T : StructureTower ι α) :
     Hom T (map f T) where
   toFun := f
   preserves := by
-    sorry
+    intro i x hx
+    exact ⟨x, hx, rfl⟩
 
 /-- 🟡 Exercise C6b: ofMap は合成と整合する。
 
@@ -346,7 +360,7 @@ def Hom.ofMap (f : α → β) (T : StructureTower ι α) :
 -- 以下は型の整合を確認する簡易版:
 theorem Hom.ofMap_toFun_comp (f : α → β) (g : β → γ) (T : StructureTower ι α) :
     (Hom.ofMap (g ∘ f) T).toFun = (Hom.ofMap g (map f T)).toFun ∘ (Hom.ofMap f T).toFun := by
-  sorry
+  rfl
   -- Hint-3: `rfl`
 
 -- ════════════════════════════════════════════════════════════
