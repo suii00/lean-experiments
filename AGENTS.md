@@ -45,9 +45,13 @@
 - `ContractingWith` の存在定理は `ContractingWith.exists_fixedPoint`（`existsFixedPoint` ではない）を使う。
 - 区間積分の基本定理を使うときは `Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus` を import する（旧 `Mathlib.MeasureTheory.Integral.FundThmCalculus` は存在しない）。
 - `GaloisConnection` と `ClosureOperator` を往復するときは `gc.closureOperator` と `closureOperator_gi_self` を優先利用する。
+- `ClosureOperator` の冪等性は `c.idempotent` を使う（`closure_idem` は現行 API にない）。
 - ` /-- ... -/ ` の doc コメントは必ず直後に宣言を置く（説明だけ残す場合は `/- ... -/` にする）。
 - CI の `sorry` 検出はコメントやコメントアウト行の文字列にも反応するため、`.lean` 内に `sorry` という語を残さない。
 - `Nat.find` / `Nat.find_spec` / `Nat.find_min'` を使うときは `Mathlib.Data.Nat.Find` を import し、必要に応じて `classical` で `DecidablePred` を供給する。
+- ゴールが `let T := ...; ...` の形なら `intro` 前に `dsimp` で `let` を展開し、変数取り違えを防ぐ。
+- `CovariantClass` や `add_le_add` を使うときは `Mathlib.Algebra.Order.Monoid.Unbundled.Basic` を import する。
+- `interior` や `mem_interior_iff_mem_nhds` を使うときは `Mathlib.Topology.Neighborhoods` を import する。
 - `@[ext]` を付けた定理は `<定理名>_iff` が自動生成されるため、同名の手書き定理を定義しない（必要なら属性を外すか別名にする）。
 - `liftCl_mapId` は常に `Hom (liftCl cl T₁) (liftCl cl T₂)` を返すので、モナド法則で使うときは `T₁`,`T₂` を先に固定して型を確認する。
 - `ClosureOperator` の具体例（`topClosure` など）で固定点等式を扱うときは `simp [def]` の過展開を避け、`change` で `closure ... = ...` などに明示的に落としてから証明する。
