@@ -1,0 +1,130 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+\usepackage{luatexja}
+
+\title{StructureTower上の自己関手とモナド（レベル3）}
+\author{su}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、順序集合を添字付けにもつ部分集合の族である \texttt{StructureTower} 上に、閉包作用素 \texttt{ClosureOperator} が誘導するモナド構造について数学的な解説を行う。閉包公理（拡大性、単調性、冪等性）が圏論的なモナド公理（単位律、乗法、関手性）と正確に対応することを確かめ、その Kleisli 圏および Eilenberg-Moore 代数の意味を考察する。
+\end{abstract}
+
+\section{序論}
+\texttt{StructureTower} の「非自明化」の核心は、自己関手を通じたモナド的な見方にある。ある型 $\alpha$ 上の部分集合系 $\operatorname{Set}(\alpha)$ に対して閉包作用素 $\operatorname{cl}$ が与えられているとする。この $\operatorname{cl}$ を塔の各レベルに適用すると、塔の圏からそれ自身への自己関手が得られる。驚くべきことに、閉包作用素が満たす初等的な公理群が、モナドの圏論的公理へと昇華される。これは「なぜこの枠組みでなければいけないのか」を物語る典型例である。
+
+\section{Levelwise 自己関手 (M1)}
+閉包作用素 $\operatorname{cl}: \operatorname{Set}(\alpha) \to \operatorname{Set}(\alpha)$ は以下の性質を満たす。
+\begin{enumerate}
+    \item \textbf{拡大性 (extensive)}: $A \subseteq \operatorname{cl}(A)$
+    \item \textbf{単調性 (monotone)}: $A \subseteq B \implies \operatorname{cl}(A) \subseteq \operatorname{cl}(B)$
+    \item \textbf{冪等性 (idempotent)}: $\operatorname{cl}(\operatorname{cl}(A)) = \operatorname{cl}(A)$
+\end{enumerate}
+
+塔 $T$ に対して、新しい塔 $\operatorname{liftCl}(T)$ を
+\[
+(\operatorname{liftCl}(\operatorname{cl}, T)).\operatorname{level}(i) := \operatorname{cl}(T.\operatorname{level}(i))
+\]
+として定義する。元の塔 $T$ の単調性 $i \le j \implies T_i \subseteq T_j$ と、閉包作用素の単調性により、$\operatorname{cl}(T_i) \subseteq \operatorname{cl}(T_j)$ が導かれ、$\operatorname{liftCl}(T)$ もまた正当な塔となる。
+
+包含写像 $f: T_1 \to T_2$ （すなわち各レベルで $(T_1)_i \subseteq (T_2)_i$）があるとき、単調性から包含写像 $\operatorname{cl}(T_1) \to \operatorname{cl}(T_2)$ が自然に定まるため、$\operatorname{liftCl}$ は共変関手としてはたらく。
+
+\section{Unit 自然変換 $\eta$ (M2)}
+閉包作用素の\textbf{拡大性} $A \subseteq \operatorname{cl}(A)$ より、各塔 $T$ について各レベルで $T_i \subseteq \operatorname{cl}(T_i)$ が成り立つ。この自然な包含は、塔としての射
+\[
+\eta_T: T \to \operatorname{liftCl}(\operatorname{cl}, T)
+\]
+を与える。これがモナドの単位 (Unit) となる。
+
+包含写像 $i: T_1 \to T_2$ が存在するとき、$\operatorname{liftCl}$ の関手性と合わせて、以下の図式が可換となる。
+\[
+\begin{tikzcd}
+T_1 \arrow[r, "\eta_{T_1}"] \arrow[d, "i"'] & \operatorname{cl}(T_1) \arrow[d, "\operatorname{cl}(i)"] \\
+T_2 \arrow[r, "\eta_{T_2}"] & \operatorname{cl}(T_2)
+\end{tikzcd}
+\]
+
+\section{Join 自然変換 $\mu$ (M3)}
+閉包作用素の\textbf{冪等性} $\operatorname{cl}(\operatorname{cl}(A)) = \operatorname{cl}(A)$ により、二重に閉包を取った塔から一重の塔への包含射が得られる。すなわち、包含関係 $\operatorname{cl}(\operatorname{cl}(T_i)) \subseteq \operatorname{cl}(T_i)$ により、射
+\[
+\mu_T: \operatorname{liftCl}(\operatorname{cl}, \operatorname{liftCl}(\operatorname{cl}, T)) \to \operatorname{liftCl}(\operatorname{cl}, T)
+\]
+が構成される。これがモナドの乗法 (Join / Multiplication) に対応する。
+拡大性より逆向きの包含 $\operatorname{cl}(T_i) \subseteq \operatorname{cl}(\operatorname{cl}(T_i))$ も成り立つため、$\mu_T$ は同型射となるのが特徴である（冪等モナド）。
+
+\section{モナド法則 (M4)}
+構成した $(\operatorname{liftCl}(\operatorname{cl}), \eta, \mu)$ は、モナドの 3 つの法則（左単位律、右単位律、結合律）を満たす。
+\begin{itemize}
+    \item \textbf{左単位律}: $\mu_T \circ \eta_{\operatorname{cl}(T)} = \mathrm{id}_{\operatorname{cl}(T)}$
+    \item \textbf{右単位律}: $\mu_T \circ \operatorname{cl}(\eta_T) = \mathrm{id}_{\operatorname{cl}(T)}$
+    \item \textbf{結合律}: $\mu_T \circ \operatorname{cl}(\mu_T) = \mu_T \circ \mu_{\operatorname{cl}(T)}$
+\end{itemize}
+
+これらの法則を可換図式で表すと次のようになる。
+
+\textbf{単位律の図式：}
+\[
+\begin{tikzcd}
+\operatorname{cl}(T) \arrow[r, "\eta_{\operatorname{cl}(T)}"] \arrow[dr, "\mathrm{id}"'] & \operatorname{cl}(\operatorname{cl}(T)) \arrow[d, "\mu_T"] & \operatorname{cl}(T) \arrow[l, "\operatorname{cl}(\eta_T)"'] \arrow[dl, "\mathrm{id}"] \\
+& \operatorname{cl}(T) &
+\end{tikzcd}
+\]
+
+\textbf{結合律の図式：}
+\[
+\begin{tikzcd}
+\operatorname{cl}(\operatorname{cl}(\operatorname{cl}(T))) \arrow[r, "\operatorname{cl}(\mu_T)"] \arrow[d, "\mu_{\operatorname{cl}(T)}"'] & \operatorname{cl}(\operatorname{cl}(T)) \arrow[d, "\mu_T"] \\
+\operatorname{cl}(\operatorname{cl}(T)) \arrow[r, "\mu_T"'] & \operatorname{cl}(T)
+\end{tikzcd}
+\]
+
+本質的な洞察として、この圏の射はすべて台集合の恒等写像 $\mathrm{id}$ によって裏打ちされた包含関係にすぎないため、射の合成は常に $\mathrm{id} \circ \mathrm{id} = \mathrm{id}$ となる。したがって、始域と終域の型（どの塔に含まれるか）さえ整合していれば、法則の等式自体は Lean の \texttt{Hom.ext rfl} によって自明に証明される。
+
+\section{Kleisli 圏と Eilenberg-Moore 代数 (M5, M6)}
+
+モナドを考えることで、新しい二つの圏「Kleisli 圏」と「Eilenberg-Moore (EM) 圏」が得られる。
+
+\subsection{Kleisli 射}
+Kleisli 圏の射 $T_1 \to_{\mathrm{Kl}} T_2$ は、元の圏での射 $T_1 \to \operatorname{cl}(T_2)$ と定義される。
+直観的には、$f$ が $T_1$ の各レベルを $T_2$ の各レベルの「閉包の中に」送る写像であることを意味する。これは、「厳密に $T_2$ の枠内に収まる」という条件を緩め、近似的な保存を許容する概念として解釈できる。
+
+\subsection{Eilenberg-Moore 代数}
+一方、EM代数は対象 $T$ と構造射 $a: \operatorname{cl}(T) \to T$ の組であって、$a \circ \eta_T = \mathrm{id}_T$ などの条件を満たすものである。
+今回の設定においては、射 $a$ の存在は包含 $\operatorname{cl}(T_i) \subseteq T_i$ が全てのレベル $i$ で成り立つことに他ならない。拡大性 $T_i \subseteq \operatorname{cl}(T_i)$ と合わせると、これは $\operatorname{cl}(T_i) = T_i$ を意味する。
+すなわち、このモナドの EM 代数とは、まさに\textbf{「すべてのレベルが $\operatorname{cl}$ について閉集合である塔」}（閉元の塔）のことである。
+
+さらに、閉元の塔においては、その大局的な交叉 $\operatorname{global}(T) = \bigcap_i T_i$ についても閉性 $\operatorname{cl}(\operatorname{global}(T)) \subseteq \operatorname{global}(T)$ が保たれることが確認でき、構造全体の一貫性が示される。
+
+\section{結論}
+閉包作用素の性質とモナドの公理は以下のように完璧に対応している。
+
+\begin{center}
+\begin{tabular}{c c}
+\hline
+\textbf{閉包公理} & \textbf{モナド公理} \\
+\hline
+拡大性: $A \subseteq \operatorname{cl}(A)$ & 単位律 (Unit): $\eta_T: T \to \operatorname{cl}(T)$ \\
+冪等性: $\operatorname{cl}(\operatorname{cl}(A)) = \operatorname{cl}(A)$ & 乗法 (Join): $\mu_T: \operatorname{cl}(\operatorname{cl}(T)) \to \operatorname{cl}(T)$ \\
+単調性: $A \subseteq B \implies \operatorname{cl}(A) \subseteq \operatorname{cl}(B)$ & 関手性 (Functoriality) \\
+\hline
+\end{tabular}
+\end{center}
+非自明な構造がこのように型理論的・圏論的な法則へと帰着される事実は、Bourbaki 的アプローチを現代の定理証明系上で再構築する上での強力な指針となる。
+
+\end{document}

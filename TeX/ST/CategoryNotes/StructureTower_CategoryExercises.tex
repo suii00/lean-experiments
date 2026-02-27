@@ -1,0 +1,101 @@
+\documentclass[11pt,a4paper,lualatex,ja=standard]{bxjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz-cd}
+\usepackage[unicode,colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\title{StructureTower の圏論的性質\\(StructureTower Category Exercises)}
+\author{su}
+\date{\today}
+
+\newtheorem{theorem}{定理}[section]
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{remark}[theorem]{注意}
+\newtheorem{example}[theorem]{例}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、順序集合を添字集合とする部分集合の族からなる構造「StructureTower」について、その圏論的な性質を解説する。添字と包含関係を保つ写像を射として定義することで、StructureTowerの成すクラスが圏をなすことを示す。また、順像、逆像、添字変換のもたらす関手的（functorial）な性質や忘却関手に相当する性質について、可換図式を交えて考察する。
+\end{abstract}
+
+\section{はじめに}
+集合 $\alpha, \beta$ と前順序集合 $\iota, \kappa$ を所与とする。
+前順序集合 $\iota$ を添字集合とする、$\alpha$ の単調な部分集合の族を \textbf{StructureTower} と呼び、$\mathrm{ST}(\iota, \alpha)$ などと表す。
+すなわち、各 $i \in \iota$ に対し部分集合 $T(i) \subseteq \alpha$ が定まり、$i \le j \implies T(i) \subseteq T(j)$ を満たすものである。
+
+本稿の目的は、これらの集合族とその間に定まる写像の族が「圏」をなし、さらに写像や添字の変換が「関手」として機能することを、Lean 4による形式化に沿って明らかにすることである。
+
+\section{StructureTowerとその射の圏論的構成}
+
+\subsection{対象と射 (Objects and Morphisms)}
+対象は $\mathrm{ST}(\iota, \alpha)$ の元 $T_1, T_2, \dots$ である。
+同じ添字集合 $\iota$ を持つ2つの塔 $T_1 \in \mathrm{ST}(\iota, \alpha)$、 $T_2 \in \mathrm{ST}(\iota, \beta)$ の間の \textbf{射 (Hom)} は、以下の条件を満たす写像 $f \colon \alpha \to \beta$ として定義される：
+\begin{equation}
+\forall i \in \iota, \quad f(T_1(i)) \subseteq T_2(i)
+\end{equation}
+すなわち、各レベル $i$ ごとに $T_1$ の要素を $T_2$ の要素へ写す構造保存写像である。これを $\mathrm{Hom}(T_1, T_2)$ と表記する。
+
+この射の同値性は、その基底となる写像 $f$ 自体が等しいかどうかによって完全に決定される（射の外延性、\texttt{Hom.ext}）。
+
+\subsection{圏の公理の確認}
+StructureTower を対象、Hom を射とするとき、これらが圏をなすことを容易に確認できる。
+
+\begin{itemize}
+    \item \textbf{恒等射}： 与えられた塔 $T \in \mathrm{ST}(\iota, \alpha)$ に対し恒等写像 $\mathrm{id} \colon \alpha \to \alpha$ は明らかに各レベルを保存するため、$\mathrm{id}_T \in \mathrm{Hom}(T, T)$ となる。
+    \item \textbf{合成}： $f \in \mathrm{Hom}(T_1, T_2)$、 $g \in \mathrm{Hom}(T_2, T_3)$ が与えられたとき、各 $i$ で $f(T_1(i)) \subseteq T_2(i)$ かつ $g(T_2(i)) \subseteq T_3(i)$ が成り立つので、$g \circ f(T_1(i)) \subseteq T_3(i)$ となる。ゆえに $g \circ f \in \mathrm{Hom}(T_1, T_3)$ である。
+    \item \textbf{結合律と恒等律}： 写像の合成は本質的に結合的であり、恒等写像の自明な性質から、左恒等律・右恒等律および結合律を満たす（\texttt{Hom.id\_comp}, \texttt{Hom.comp\_id}, \texttt{Hom.comp\_assoc}）。
+\end{itemize}
+
+\section{各種操作の関手性と整合性}
+
+\subsection{関手としての順像 (map) と逆像 (comap)}
+関数 $f \colon \alpha \to \beta$ は、順像と逆像を通して StructureTower 間に構造を誘導する。
+\begin{enumerate}
+    \item \textbf{逆像 $\mathrm{comap}$} は、塔 $T \in \mathrm{ST}(\iota, \beta)$ を $T' \in \mathrm{ST}(\iota, \alpha)$ へ引き戻す。ここで $T'(i) = f^{-1}(T(i))$ である。
+    これは関手的な性質を持つ。すなわち $\mathrm{id}$ の引き戻しは $\mathrm{id}$ であり、合成の引き戻しは逆順となる：$\mathrm{comap}(g \circ f) = \mathrm{comap}(f) \circ \mathrm{comap}(g)$。これは反変関手的な挙動である。
+    \item \textbf{順像 $\mathrm{map}$} は、塔 $T \in \mathrm{ST}(\iota, \alpha)$ を $T' \in \mathrm{ST}(\iota, \beta)$ へ押し出す。ここで $T'(i) = f(T(i))$ である。
+    順像の関手性より $\mathrm{map}(g \circ f) = \mathrm{map}(g) \circ \mathrm{map}(f)$ が成り立つ。これは共変関手的な挙動である。
+\end{enumerate}
+
+\begin{center}
+\begin{tikzcd}[row sep=large, column sep=huge]
+\mathrm{ST}(\iota, \alpha) \arrow[r, "\mathrm{map}(f)", shift left=1.5ex] & \mathrm{ST}(\iota, \beta) \arrow[l, "\mathrm{comap}(f)", shift left=1.5ex]
+\end{tikzcd}
+\end{center}
+さらに、任意の写像 $f \colon \alpha \to \beta$ は自然に射 $T \to \mathrm{map}(f, T)$ を誘導する（\texttt{Hom.ofMap}）。これは写像の「持ち上げ（lifting）」に相当する。
+
+\subsection{忘却関手と和集合 (union)}
+StructureTower の操作として、すべてのレベルの和集合をとる写像がある：
+\[
+\mathrm{union}(T) = \bigcup_{i \in \iota} T(i) \subseteq \alpha
+\]
+この操作は「忘却関手」として機能し、射 $f \in \mathrm{Hom}(T_1, T_2)$ は和集合の間の写像 $f \colon \mathrm{union}(T_1) \to \mathrm{union}(T_2)$ へ一意に制限される。これは恒等射および射の合成のもとで整合的に振る舞う（\texttt{Hom.comp\_mapsTo\_union}）。
+
+\subsection{添字変換 (reindex)}
+前順序集合の間の単調写像 $\phi \colon \kappa \to \iota$ は、添字を変換することで関手 $\mathrm{reindex}(\phi) \colon \mathrm{ST}(\iota, \alpha) \to \mathrm{ST}(\kappa, \alpha)$ を誘導する。
+$T \in \mathrm{ST}(\iota, \alpha)$ は $T' \in \mathrm{ST}(\kappa, \alpha)$、ただし $T'(k) = T(\phi(k))$ へ写される。
+さらに、元の塔の射 $f \in \mathrm{Hom}(T_1, T_2)$ は、再添字付けされた塔の間の射としても自然に振る舞う（\texttt{Hom.reindex}）。
+
+\begin{center}
+\begin{tikzcd}[row sep=large, column sep=huge]
+T_1 \arrow[r, "f"] \arrow[d, "\mathrm{reindex}(\phi)"'] & T_2 \arrow[d, "\mathrm{reindex}(\phi)"] \\
+\mathrm{reindex}(\phi)(T_1) \arrow[r, "f"'] & \mathrm{reindex}(\phi)(T_2)
+\end{tikzcd}
+\end{center}
+ここで、同じ基底写像 $f$ がどちらのレベル構造も保存することが保証されている。さらに、この再添字付けの操作は射の合成および恒等射を保存する。
+
+\section{まとめ}
+本稿では Lean 4 により検証された StructureTower の定義をもとに、その「射（Hom）」がどのように構成され、$\mathrm{map}$ や $\mathrm{comap}$、$\mathrm{reindex}$ がそれぞれ関手的な役割を果たすかを概観した。塔の構造は、対象の持つ包含関係の階層が射や関手の操作の下で一貫性を保つ、極めて自然な圏論的対象であることが示された。
+\end{document}
