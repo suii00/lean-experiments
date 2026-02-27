@@ -49,3 +49,4 @@
 - CI の `sorry` 検出はコメントやコメントアウト行の文字列にも反応するため、`.lean` 内に `sorry` という語を残さない。
 - `Nat.find` / `Nat.find_spec` / `Nat.find_min'` を使うときは `Mathlib.Data.Nat.Find` を import し、必要に応じて `classical` で `DecidablePred` を供給する。
 - `@[ext]` を付けた定理は `<定理名>_iff` が自動生成されるため、同名の手書き定理を定義しない（必要なら属性を外すか別名にする）。
+- `liftCl_mapId` は常に `Hom (liftCl cl T₁) (liftCl cl T₂)` を返すので、モナド法則で使うときは `T₁`,`T₂` を先に固定して型を確認する。

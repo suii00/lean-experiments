@@ -114,7 +114,8 @@ variable (cl : ClosureOperator (Set α))
 def liftCl (T : StructureTower ι α) : StructureTower ι α where
   level i := cl (T.level i)
   monotone_level := by
-    sorry
+    intro i j hij x hx
+    exact cl.monotone (T.monotone_level hij) hx
 
 @[simp] theorem liftCl_level (T : StructureTower ι α) (i : ι) :
     (liftCl cl T).level i = cl (T.level i) := rfl
@@ -135,7 +136,8 @@ def liftCl_mapId (T₁ T₂ : StructureTower ι α)
     Hom (liftCl cl T₁) (liftCl cl T₂) where
   toFun := _root_.id
   preserves := by
-    sorry
+    intro i x hx
+    exact cl.monotone (h i) hx
 
 /-- 🟡 Exercise M1c: liftCl は恒等包含を保つ。
     T ⊆ T （各レベルで）のとき、liftCl_mapId は恒等射。
@@ -145,7 +147,7 @@ def liftCl_mapId (T₁ T₂ : StructureTower ι α)
     Hint-3: `Hom.ext rfl` -/
 theorem liftCl_mapId_refl (T : StructureTower ι α) :
     liftCl_mapId cl T T (fun _i => Subset.rfl) = Hom.id (liftCl cl T) := by
-  sorry
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §M2. Unit 自然変換（η : T → cl(T)）  🟢🟡
@@ -169,7 +171,8 @@ def unit (T : StructureTower ι α) :
     Hom T (liftCl cl T) where
   toFun := _root_.id
   preserves := by
-    sorry
+    intro i x hx
+    exact cl.le_closure (T.level i) hx
 
 /-- 🟡 Exercise M2b: Unit の自然性。
     T₁.level i ⊆ T₂.level i を仮定したとき、以下が可換:
@@ -190,7 +193,7 @@ theorem unit_natural (T₁ T₂ : StructureTower ι α)
     (h : ∀ i, T₁.level i ⊆ T₂.level i) :
     Hom.comp (liftCl_mapId cl T₁ T₂ h) (unit cl T₁) =
     Hom.comp (unit cl T₂) ⟨_root_.id, fun i => h i⟩ := by
-  sorry
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §M3. Join（μ : cl(cl(T)) → cl(T)）  🟡
@@ -218,7 +221,8 @@ def join (T : StructureTower ι α) :
     Hom (liftCl cl (liftCl cl T)) (liftCl cl T) where
   toFun := _root_.id
   preserves := by
-    sorry
+    intro i x hx
+    simpa [cl.idempotent] using hx
 
 /-- 🟡 Exercise M3b: Join の逆方向（unit の持ち上げ）。
     拡大性より cl(A) ⊆ cl(cl(A)) も成り立つ。
@@ -230,7 +234,8 @@ def join_inv (T : StructureTower ι α) :
     Hom (liftCl cl T) (liftCl cl (liftCl cl T)) where
   toFun := _root_.id
   preserves := by
-    sorry
+    intro i x hx
+    exact cl.le_closure (cl (T.level i)) hx
 
 /-- 🟡 Exercise M3c: join と join_inv は互いに逆。
     cl(cl(A)) = cl(A) の両方向。
@@ -240,11 +245,11 @@ def join_inv (T : StructureTower ι α) :
     Hint-3: そのまま。 -/
 theorem join_join_inv (T : StructureTower ι α) :
     Hom.comp (join cl T) (join_inv cl T) = Hom.id (liftCl cl T) := by
-  sorry
+  exact Hom.ext rfl
 
 theorem join_inv_join (T : StructureTower ι α) :
     Hom.comp (join_inv cl T) (join cl T) = Hom.id (liftCl cl (liftCl cl T)) := by
-  sorry
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §M4. モナド法則  🟡🔴
@@ -272,7 +277,7 @@ theorem join_inv_join (T : StructureTower ι α) :
     Hint-3: そのまま。 -/
 theorem monad_left_unit (T : StructureTower ι α) :
     Hom.comp (join cl T) (unit cl (liftCl cl T)) = Hom.id (liftCl cl T) := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🟡 Exercise M4b: 右単位律。
     join ∘ liftCl_mapId(unit) = id_{liftCl T}。
@@ -286,10 +291,10 @@ theorem monad_left_unit (T : StructureTower ι α) :
     Hint-3: `Hom.ext rfl` -/
 theorem monad_right_unit (T : StructureTower ι α) :
     Hom.comp (join cl T)
-      (liftCl_mapId cl (liftCl cl T) (liftCl cl (liftCl cl T))
-        (fun i => cl.le_closure (cl (T.level i)))) =
+      (liftCl_mapId cl T (liftCl cl T)
+        (fun i => cl.le_closure (T.level i))) =
     Hom.id (liftCl cl T) := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🔴 Exercise M4c: 結合律。
     join ∘ join_{liftCl T} = join ∘ liftCl_mapId(join)。
@@ -303,9 +308,10 @@ theorem monad_right_unit (T : StructureTower ι α) :
 theorem monad_assoc (T : StructureTower ι α) :
     Hom.comp (join cl T) (join cl (liftCl cl T)) =
     Hom.comp (join cl T)
-      (liftCl_mapId cl (liftCl cl (liftCl cl T)) (liftCl cl (liftCl cl T))
-        (fun i => (cl.idempotent (cl (T.level i))).symm ▸ le_refl _)) := by
-  sorry
+      (liftCl_mapId cl (liftCl cl (liftCl cl T)) (liftCl cl T)
+        (fun i x hx => by
+          simpa [cl.idempotent] using hx)) := by
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §M5. Kleisli 射  🟡🔴
@@ -335,7 +341,7 @@ abbrev KlHom (T₁ T₂ : StructureTower ι α) :=
     Hint-3: 定義。 -/
 def KlHom.id (T : StructureTower ι α) :
     KlHom cl T T :=
-  sorry
+  unit cl T
 
 /-- 🔴 Exercise M5b: Kleisli 合成。
     f : T₁ →_Kl T₂  と  g : T₂ →_Kl T₃  から
@@ -372,7 +378,14 @@ def KlHom.compId
     KlHom cl T₁ T₃ where
   toFun := _root_.id
   preserves := by
-    sorry
+    intro i x hx
+    have h1 : x ∈ cl (T₂.level i) := by
+      simpa [hf] using f.preserves i hx
+    have hsubset : T₂.level i ⊆ cl (T₃.level i) := by
+      intro y hy
+      simpa [hg] using g.preserves i hy
+    have h2 : x ∈ cl (cl (T₃.level i)) := cl.monotone hsubset h1
+    simpa [cl.idempotent] using h2
     /- skeleton:
        intro i x hx
        have h1 : x ∈ cl (T₂.level i) := by rw [hf] at f; exact f.preserves i hx
@@ -419,7 +432,8 @@ variable {cl : ClosureOperator (Set α)}
     Hint-3: `ext i x; simp [liftCl, T.level_closed i]` -/
 theorem liftCl_eq_self (T : ClosedTower cl ι) :
     liftCl cl T.toStructureTower = T.toStructureTower := by
-  sorry
+  ext i x
+  simp [liftCl, T.level_closed i]
 
 /-- 🟢 Exercise M6b: liftCl の不動点は閉元の塔を与える。
 
@@ -430,8 +444,8 @@ def ofFixed (T : StructureTower ι α)
     (h : liftCl cl T = T) : ClosedTower cl ι where
   toStructureTower := T
   level_closed := by
-    sorry
-    -- skeleton: intro i; exact congr_fun (congr_arg StructureTower.level h) i
+    intro i
+    exact congr_fun (congr_arg StructureTower.level h) i
 
 /-- 🟡 Exercise M6c: unit の逆射が存在する（EM 代数の構造射）。
     閉元の塔 T では cl(T.level i) = T.level i なので、
@@ -445,7 +459,8 @@ def algebra (T : ClosedTower cl ι) :
     Hom (liftCl cl T.toStructureTower) T.toStructureTower where
   toFun := _root_.id
   preserves := by
-    sorry
+    intro i x hx
+    simpa [liftCl, T.level_closed i] using hx
 
 /-- 🟡 Exercise M6d: EM 代数の公理 (1): algebra ∘ unit = id。
 
@@ -455,7 +470,7 @@ def algebra (T : ClosedTower cl ι) :
 theorem algebra_unit (T : ClosedTower cl ι) :
     Hom.comp (algebra T) (unit cl T.toStructureTower) =
     Hom.id T.toStructureTower := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🔴 Exercise M6e: 逆方向: EM 代数の構造射を持つ塔は閉元の塔。
 
@@ -469,20 +484,17 @@ theorem algebra_unit (T : ClosedTower cl ι) :
 def ofAlgebra (T : StructureTower ι α)
     (a : Hom (liftCl cl T) T)
     (ha_id : a.toFun = _root_.id)
-    (ha_unit : Hom.comp a (unit cl T) = Hom.id T) :
+    (_ha_unit : Hom.comp a (unit cl T) = Hom.id T) :
     ClosedTower cl ι where
   toStructureTower := T
   level_closed := by
-    sorry
-    /- skeleton:
-       intro i
-       apply Set.Subset.antisymm
-       · -- cl(T.level i) ⊆ T.level i
-         intro x hx
-         have := a.preserves i hx
-         rwa [ha_id] at this
-       · -- T.level i ⊆ cl(T.level i)
-         exact cl.le_closure (T.level i) -/
+    intro i
+    apply Set.Subset.antisymm
+    · intro x hx
+      have hx' := a.preserves i hx
+      simpa [ha_id] using hx'
+    · intro x hx
+      exact cl.le_closure (T.level i) hx
 
 /-- 🔴 Exercise M6f: 閉元の塔の global は cl-閉集合。
 
@@ -495,15 +507,15 @@ def ofAlgebra (T : StructureTower ι α)
             全 i で成り立つので cl(global) ⊆ ⋂ᵢ level i = global。 -/
 theorem cl_global_subset (T : ClosedTower cl ι) :
     cl T.global ⊆ T.global := by
-  sorry
-  /- skeleton:
-     intro x hx
-     apply Set.mem_iInter.mpr
-     intro i
-     have h1 : cl T.global ⊆ cl (T.level i) :=
-       cl.monotone (global_subset_level T.toStructureTower i)
-     have h2 : cl (T.level i) = T.level i := T.level_closed i
-     exact h2 ▸ (h1 hx) -/
+  intro x hx
+  apply Set.mem_iInter.mpr
+  intro i
+  have h1 : cl T.global ⊆ cl (T.level i) := by
+    apply cl.monotone
+    intro y hy
+    exact Set.mem_iInter.mp hy i
+  have h2 : cl (T.level i) = T.level i := T.level_closed i
+  exact h2 ▸ (h1 hx)
 
 end ClosedTower
 
@@ -551,7 +563,7 @@ end ClosedTower
   核心的洞察:
     toFun = id のモナド（＝冪等モナド）では、
     モナド法則が「型レベルの整合性チェック」に帰着する。
-    非自明な内容は unit と join の **構成**（sorry の中身）にあり、
+    非自明な内容は unit と join の **構成**（穴埋め部分）にあり、
     法則の **証明** 自体は自明になる。
     これは「正しく構成すれば法則は自動的に成り立つ」という
     型理論の強みを示す好例である。
