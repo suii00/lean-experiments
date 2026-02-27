@@ -29,6 +29,7 @@
 import Mathlib.Data.Set.Lattice
 import Mathlib.Order.Closure
 import Mathlib.Topology.Basic
+import Mathlib.Topology.Closure
 import Mathlib.Algebra.Group.Subgroup.Lattice
 
 open Set Function
@@ -166,8 +167,8 @@ variable {α : Type*} [TopologicalSpace α]
 noncomputable def topClosure : ClosureOperator (Set α) where
   toFun := _root_.closure
   monotone' := fun _S _T h => closure_mono h
-  le_closure' := sorry
-  idempotent' := sorry
+  le_closure' := fun _S => subset_closure
+  idempotent' := fun _S => isClosed_closure.closure_eq
 
 /-- 🟢 Exercise G1b: IsClosed S ↔ topClosure の不動点。
 
@@ -180,7 +181,13 @@ noncomputable def topClosure : ClosureOperator (Set α) where
     Hint-3: constructor → 各方向。 -/
 theorem isClosed_iff_topClosure_fixed (S : Set α) :
     IsClosed S ↔ topClosure S = S := by
-  sorry
+  constructor
+  · intro h
+    change _root_.closure S = S
+    exact h.closure_eq
+  · intro h
+    change _root_.closure S = S at h
+    exact (closure_eq_iff_isClosed (s := S)).1 h
 
 /-- 🟢 Exercise G1c: 閉集合の塔から ClosedTower を構成する。
     各レベルが IsClosed であれば、topClosure の ClosedTower になる。
@@ -191,10 +198,12 @@ theorem isClosed_iff_topClosure_fixed (S : Set α) :
 def closedSetTower {ι : Type*} [Preorder ι]
     (T : StructureTower ι α)
     (hclosed : ∀ i, IsClosed (T.level i)) :
-    ClosedTower topClosure ι where
+    ClosedTower (topClosure (α := α)) ι where
   toStructureTower := T
   level_closed := by
-    sorry
+    intro i
+    change _root_.closure (T.level i) = T.level i
+    exact (hclosed i).closure_eq
 
 /-- 🟢 Exercise G1d: ClosedTower の各レベルは IsClosed。
     （G1c の逆方向）
@@ -203,9 +212,9 @@ def closedSetTower {ι : Type*} [Preorder ι]
     Hint-2: isClosed_iff_topClosure_fixed を使う。
     Hint-3: `(isClosed_iff_topClosure_fixed _).mpr (T.level_closed i)` -/
 theorem ClosedTower.levels_isClosed {ι : Type*} [Preorder ι]
-    (T : ClosedTower topClosure ι) (i : ι) :
+    (T : ClosedTower (topClosure (α := α)) ι) (i : ι) :
     IsClosed (T.level i) := by
-  sorry
+  exact (isClosed_iff_topClosure_fixed (S := T.level i)).2 (T.level_closed i)
 
 /-- 🟡 Exercise G1e: 定数閉集合塔。
     閉集合 S をすべてのレベルに配置した塔は ClosedTower。
@@ -215,11 +224,13 @@ theorem ClosedTower.levels_isClosed {ι : Type*} [Preorder ι]
     Hint-3: 構造体リテラルで直接構成。 -/
 def constClosedTower {ι : Type*} [Preorder ι]
     (S : Set α) (h : IsClosed S) :
-    ClosedTower topClosure ι where
+    ClosedTower (topClosure (α := α)) ι where
   level := fun _ => S
   monotone_level := fun _i _j _hij => Subset.rfl
   level_closed := by
-    sorry
+    intro _i
+    change _root_.closure S = S
+    exact h.closure_eq
 
 end Topology
 
@@ -264,15 +275,18 @@ variable {G : Type*} [Group G]
 def subgroupClosure : ClosureOperator (Set G) where
   toFun := fun S => ↑(Subgroup.closure S)
   monotone' := by
-    sorry
+    intro S T h
+    exact SetLike.coe_subset_coe.mpr (Subgroup.closure_mono h)
     -- skeleton:
     -- intro S T h
     -- exact SetLike.coe_subset_coe.mpr (Subgroup.closure_mono h)
   le_closure' := by
-    sorry
+    intro S
+    exact Subgroup.subset_closure
     -- skeleton: intro S; exact Subgroup.subset_closure
   idempotent' := by
-    sorry
+    intro S
+    exact congr_arg SetLike.coe (Subgroup.closure_eq (Subgroup.closure S))
     -- skeleton:
     -- intro S
     -- exact congr_arg SetLike.coe (Subgroup.closure_eq (Subgroup.closure S))
@@ -287,7 +301,14 @@ def subgroupClosure : ClosureOperator (Set G) where
     Hint-3: Exists を使って「ある H が存在して S = ↑H」と表現。 -/
 theorem isSubgroupCarrier_iff_fixed (S : Set G) :
     (∃ H : Subgroup G, (H : Set G) = S) ↔ subgroupClosure S = S := by
-  sorry
+  constructor
+  · rintro ⟨H, rfl⟩
+    change ↑(Subgroup.closure (↑H : Set G)) = (↑H : Set G)
+    exact congr_arg SetLike.coe (Subgroup.closure_eq H)
+  · intro h
+    refine ⟨Subgroup.closure S, ?_⟩
+    change (↑(Subgroup.closure S) : Set G) = S at h
+    exact h
   /- skeleton:
      constructor
      · rintro ⟨H, rfl⟩
@@ -305,13 +326,15 @@ theorem isSubgroupCarrier_iff_fixed (S : Set G) :
 def subgroupTower {ι : Type*} [Preorder ι]
     (H : ι → Subgroup G)
     (hmono : ∀ ⦃i j : ι⦄, i ≤ j → H i ≤ H j) :
-    ClosedTower subgroupClosure ι where
+    ClosedTower (subgroupClosure (G := G)) ι where
   level := fun i => ↑(H i)
   monotone_level := by
-    sorry
+    intro i j hij x hx
+    exact hmono hij hx
     -- skeleton: intro i j hij x hx; exact hmono hij hx
   level_closed := by
-    sorry
+    intro i
+    exact (isSubgroupCarrier_iff_fixed (S := (H i : Set G))).1 ⟨H i, rfl⟩
     -- skeleton: intro i; exact (isSubgroupCarrier_iff_fixed _).mp ⟨H i, rfl⟩
 
 /-- 🟡 Exercise G2d: ClosedTower の各レベルは部分群の台集合。
@@ -321,9 +344,11 @@ def subgroupTower {ι : Type*} [Preorder ι]
     Hint-2: (isSubgroupCarrier_iff_fixed _).mpr で Subgroup を復元。
     Hint-3: `⟨Subgroup.closure (T.level i), (T.level_closed i).symm⟩` -/
 theorem ClosedTower.levels_isSubgroup {ι : Type*} [Preorder ι]
-    (T : ClosedTower subgroupClosure ι) (i : ι) :
+    (T : ClosedTower (subgroupClosure (G := G)) ι) (i : ι) :
     ∃ H : Subgroup G, (H : Set G) = T.level i := by
-  sorry
+  refine ⟨Subgroup.closure (T.level i), ?_⟩
+  change subgroupClosure (T.level i) = T.level i
+  exact T.level_closed i
 
 /-- 🟡 Exercise G2e: FilteredGroup は subgroupClosure の ClosedTower を与える。
 
@@ -341,10 +366,21 @@ def filteredGroupTower {ι : Type*} [Preorder ι]
     (hone : ∀ i, (1 : G) ∈ T.level i)
     (hmul : ∀ i {x y : G}, x ∈ T.level i → y ∈ T.level i → x * y ∈ T.level i)
     (hinv : ∀ i {x : G}, x ∈ T.level i → x⁻¹ ∈ T.level i) :
-    ClosedTower subgroupClosure ι where
+    ClosedTower (subgroupClosure (G := G)) ι where
   toStructureTower := T
   level_closed := by
-    sorry
+    intro i
+    let H : Subgroup G := {
+      carrier := T.level i
+      one_mem' := hone i
+      mul_mem' := by
+        intro x y hx hy
+        exact hmul i hx hy
+      inv_mem' := by
+        intro x hx
+        exact hinv i hx
+    }
+    exact (isSubgroupCarrier_iff_fixed (S := T.level i)).1 ⟨H, rfl⟩
     /- skeleton:
        intro i
        have H : Subgroup G := {
@@ -388,7 +424,7 @@ section Synthesis
 theorem liftCl_topClosure_level {α : Type*} [TopologicalSpace α]
     {ι : Type*} [Preorder ι] (T : StructureTower ι α) (i : ι) :
     (liftCl topClosure T).level i = _root_.closure (T.level i) := by
-  sorry
+  rfl
 
 /-- 🟢 Exercise G3b: 代数版 — liftCl は levelwise subgroup closure。
 
@@ -398,7 +434,7 @@ theorem liftCl_topClosure_level {α : Type*} [TopologicalSpace α]
 theorem liftCl_subgroupClosure_level {G : Type*} [Group G]
     {ι : Type*} [Preorder ι] (T : StructureTower ι G) (i : ι) :
     (liftCl subgroupClosure T).level i = ↑(Subgroup.closure (T.level i)) := by
-  sorry
+  rfl
 
 /-- 🟡 Exercise G3c: 位相版 — 閉集合塔の global は閉集合。
     cl_global_subset (L3 M6f) を topClosure に適用し、
@@ -409,9 +445,12 @@ theorem liftCl_subgroupClosure_level {G : Type*} [Group G]
     Hint-3: 合わせて closure (global T) = global T → IsClosed。 -/
 theorem closedTower_global_isClosed {α : Type*} [TopologicalSpace α]
     {ι : Type*} [Preorder ι]
-    (T : ClosedTower topClosure ι) :
+    (T : ClosedTower (topClosure (α := α)) ι) :
     IsClosed T.global := by
-  sorry
+  exact
+    (isClosed_iff_topClosure_fixed (S := T.global)).2
+      (Set.Subset.antisymm (ClosedTower.cl_global_subset T)
+        ((topClosure (α := α)).le_closure T.global))
   /- skeleton:
      rw [← isClosed_iff_topClosure_fixed]
      -- or directly:
@@ -428,9 +467,12 @@ theorem closedTower_global_isClosed {α : Type*} [TopologicalSpace α]
     Hint-3: Set.Subset.antisymm で等式にし、Subgroup.closure (global T) が証人。 -/
 theorem closedTower_global_isSubgroup {G : Type*} [Group G]
     {ι : Type*} [Preorder ι]
-    (T : ClosedTower subgroupClosure ι) :
+    (T : ClosedTower (subgroupClosure (G := G)) ι) :
     ∃ H : Subgroup G, (H : Set G) = T.global := by
-  sorry
+  exact
+    (isSubgroupCarrier_iff_fixed (S := T.global)).2
+      (Set.Subset.antisymm (ClosedTower.cl_global_subset T)
+        ((subgroupClosure (G := G)).le_closure T.global))
   /- skeleton:
      have hsub := ClosedTower.cl_global_subset T
      -- hsub : subgroupClosure T.global ⊆ T.global
