@@ -34,8 +34,13 @@ import Mathlib.Order.GaloisConnection.Basic
 import Mathlib.Order.Filter.Basic
 import Mathlib.Topology.Basic
 import Mathlib.Topology.Defs.Filter
+import Mathlib.Topology.Neighborhoods
+import Mathlib.Topology.Maps.Basic
+import Mathlib.Topology.Algebra.Group.Basic
+import Mathlib.Algebra.Group.Pointwise.Set.Basic
 
 open Set Filter Topology
+open scoped Pointwise
 
 namespace BourbakiGuide
 
@@ -103,14 +108,15 @@ variable {α : Type*} [TopologicalSpace α]
 
     単調性: U ⊆ V ⟹ {W ∈ 𝒩(x) | V ⊆ W} ⊆ {W ∈ 𝒩(x) | U ⊆ W}
 -/
-def neighborhoodTower (x : α) : StructureTower (Set α) (Set α) where
-  level U        := {V | V ∈ 𝓝 x ∧ U ⊆ V}
+def neighborhoodTower (x : α) : StructureTower (Set α)ᵒᵈ (Set α) where
+  level U        := {V | V ∈ 𝓝 x ∧ OrderDual.ofDual U ⊆ V}
   monotone_level := by
     intro U₁ U₂ hU₁U₂ V ⟨hV𝓝, hU₁V⟩
+    change OrderDual.ofDual U₂ ⊆ OrderDual.ofDual U₁ at hU₁U₂
     exact ⟨hV𝓝, Subset.trans hU₁U₂ hU₁V⟩
 
-theorem mem_neighborhoodTower_iff (x : α) (U V : Set α) :
-    V ∈ (neighborhoodTower x).level U ↔ V ∈ 𝓝 x ∧ U ⊆ V := Iff.rfl
+theorem mem_neighborhoodTower_iff (x : α) (U : (Set α)ᵒᵈ) (V : Set α) :
+    V ∈ (neighborhoodTower x).level U ↔ V ∈ 𝓝 x ∧ OrderDual.ofDual U ⊆ V := Iff.rfl
 
 /-- 近傍フィルターから StructureTower への変換:
     Filter α を、包含で前順序付けられた Set α への単調写像として実現する。
@@ -122,10 +128,10 @@ def filterTower : StructureTower (Filter α)ᵒᵈ (Set α) where
   level F        := (OrderDual.ofDual F).sets
   monotone_level := by
     intro F G hFG U hU
-    -- hFG : F ≤ G in (Filter α)ᵒᵈ, i.e. G ≤ F in Filter α
-    -- G ≤ F means F.sets ⊆ G.sets
-    exact Filter.le_def.mp (OrderDual.ofDual_le_ofDual.mpr hFG) hU
+    change (OrderDual.ofDual G) ≤ (OrderDual.ofDual F) at hFG
+    exact (Filter.le_def.mp hFG) U hU
 
+omit [TopologicalSpace α] in
 @[simp] theorem filterTower_level (F : (Filter α)ᵒᵈ) :
     filterTower.level F = (OrderDual.ofDual F).sets := rfl
 
@@ -185,34 +191,16 @@ instance : Preorder (OpenCover α) where
 
     実際の構成: level 𝒰 = ⋃ 𝒰 の各点の近傍フィルター
 -/
-def openCoverTower : StructureTower (OpenCover α)ᵒᵈ (Set α) where
-  level 𝒰        := (OrderDual.ofDual 𝒰).1
+def openCoverTower : StructureTower (OpenCover α) (Set α) where
+  level 𝒰        := {V | ∃ U ∈ 𝒰.1, V ⊆ U}
   monotone_level := by
     intro 𝒱 𝒰 h𝒱𝒰 V hV
-    -- h𝒱𝒰 : 𝒱 ≤ 𝒰 in (OpenCover α)ᵒᵈ
-    -- meaning 𝒰 ≤ 𝒱 in OpenCover α
-    -- meaning 𝒰 is a refinement of 𝒱
-    -- level 𝒱 = 𝒱.1, level 𝒰 = 𝒰.1
-    -- We need: V ∈ 𝒱.1 → V ∈ 𝒰.1
-    -- But this is wrong in general! A refinement has more, smaller sets.
-    -- Fix: the tower should go the other way.
-    -- In the refinement order 𝒱 ≤ 𝒰 means 𝒱 refines 𝒰 (𝒱 is finer).
-    -- Finer cover → more sets, so level should grow.
-    -- With OrderDual: 𝒱 ≤ 𝒰 in dual means 𝒰 ≤ 𝒱 in original,
-    -- i.e. 𝒱 is finer than 𝒰.
-    -- level 𝒰 ⊆ level 𝒱 fails. We need: level 𝒱 ⊆ level (something larger).
-    -- Actually the right tower is: level 𝒰 = "sets covered by 𝒰" not 𝒰 itself.
-    -- Let's use: level 𝒰 = {x | ∃ U ∈ 𝒰, x ∈ U} = ⋃ 𝒰 = univ (since cover)
-    -- That's trivial. Better: index by points, level x = {U ∈ 𝒰 | x ∈ U}
-    -- This requires α as index, not OpenCover.
-    -- Simplest honest version: level 𝒰 = 𝒰.1 with finer → more sets
-    -- Here monotone means: if 𝒱 ≤ 𝒰 (𝒱 finer), then 𝒱.1 ⊇ 𝒰.1? No.
-    -- The right statement is that refinement doesn't preserve set-membership simply.
-    -- Let's switch to the correct construction:
-    exact hV
+    rcases hV with ⟨W, hW𝒱, hVW⟩
+    rcases h𝒱𝒰 W hW𝒱 with ⟨U, hU𝒰, hWU⟩
+    exact ⟨U, hU𝒰, Subset.trans hVW hWU⟩
 
-@[simp] theorem openCoverTower_level (𝒰 : (OpenCover α)ᵒᵈ) :
-    openCoverTower.level 𝒰 = (OrderDual.ofDual 𝒰).1 := rfl
+@[simp] theorem openCoverTower_level (𝒰 : OpenCover α) :
+    openCoverTower.level 𝒰 = {V | ∃ U ∈ 𝒰.1, V ⊆ U} := rfl
 
 end OpenSetTower
 
@@ -244,21 +232,19 @@ variable {α : Type*} [TopologicalSpace α]
     単調性（逆順で）: U ⊇ V（Uᵒᵈ ≤ Vᵒᵈ）⟹ interior U ⊇ interior V
     → 開集合が大きければ内部も大きい（単調写像）
 -/
-def interiorTower : StructureTower (Set α)ᵒᵈ (Set α) where
-  level U        := interior (OrderDual.ofDual U)
+def interiorTower : StructureTower (Set α) α where
+  level U        := interior U
   monotone_level := by
     intro U V hUV
-    -- hUV : U ≤ V in (Set α)ᵒᵈ, i.e. V.ofDual ⊆ U.ofDual
-    apply interior_mono
-    exact OrderDual.ofDual_le_ofDual.mpr hUV
+    exact interior_mono hUV
 
-@[simp] theorem interiorTower_level (U : (Set α)ᵒᵈ) :
-    interiorTower.level U = interior (OrderDual.ofDual U) := rfl
+@[simp] theorem interiorTower_level (U : Set α) :
+    interiorTower.level U = interior U := rfl
 
 /-- 内部タワーの特徴付け:
     x ∈ interiorTower.level U ↔ U ∈ 𝓝 x（U が x の近傍）-/
-theorem mem_interiorTower_iff (U : (Set α)ᵒᵈ) (x : α) :
-    x ∈ interiorTower.level U ↔ OrderDual.ofDual U ∈ 𝓝 x :=
+theorem mem_interiorTower_iff (U : Set α) (x : α) :
+    x ∈ interiorTower.level U ↔ U ∈ 𝓝 x :=
   mem_interior_iff_mem_nhds
 
 /-- 内部タワーの合併 = 全体（T₁ 型）:
@@ -270,7 +256,7 @@ theorem interiorTower_iSup_open (𝒰 : Set (Set α))
   simp only [Set.mem_iUnion]
   constructor
   · rintro ⟨U, hU, hx⟩; exact ⟨U, hU, interior_subset hx⟩
-  · rintro ⟨U, hU, hx⟩; exact ⟨U, hU, (hopen U hU).interior_eq ▸ hx⟩
+  · rintro ⟨U, hU, hx⟩; exact ⟨U, hU, (hopen U hU).interior_eq.symm ▸ hx⟩
 
 end NeighborhoodSystemTower
 
@@ -303,14 +289,12 @@ variable {α : Type*} [TopologicalSpace α]
 -- interiorTower に対して: U₁ ⊆ U₂ ⊢ NatInclusion T₁ T₂
 -- = 「より広い開集合の内部タワーは大きい」
 theorem natInclusion_interiorTower_of_subset
-    (U₁ U₂ : (Set α)ᵒᵈ)
-    (h : OrderDual.ofDual U₁ ⊆ OrderDual.ofDual U₂) :
+    (U₁ U₂ : Set α) (h : U₁ ⊆ U₂) :
     NatInclusion
-      (StructureTower.reindex (fun _ => U₁) (fun _a _b _ => le_refl _) interiorTower)
-      (StructureTower.reindex (fun _ => U₂) (fun _a _b _ => le_refl _) interiorTower) := by
+      (StructureTower.reindex (fun _ : PUnit => U₁) (fun _a _b _ => le_rfl) interiorTower)
+      (StructureTower.reindex (fun _ : PUnit => U₂) (fun _a _b _ => le_rfl) interiorTower) := by
   intro _ x hx
-  simp [reindex, interiorTower] at hx ⊢
-  exact interior_mono h hx
+  simpa [reindex, interiorTower] using (interior_mono h hx)
 
 -- (B) reindex の位相的意味:
 -- 連続写像 f : β → α に沿った引き戻しは reindex に対応する
@@ -319,20 +303,21 @@ theorem natInclusion_interiorTower_of_subset
 -- 連続ならば等号成立
 theorem reindex_interiorTower_continuous
     {β : Type*} [TopologicalSpace β]
-    (f : β → α) (hf : Continuous f) (U : (Set α)ᵒᵈ) :
+    (f : β → α) (hf : Continuous f) (U : Set α) :
     f ⁻¹' (interiorTower.level U) ⊆
-    interiorTower.level (OrderDual.toDual (f ⁻¹' OrderDual.ofDual U)) := by
-  simp [interiorTower]
-  exact hf.interior_preimage_subset (OrderDual.ofDual U)
+    interiorTower.level (f ⁻¹' U) := by
+  simpa [interiorTower] using
+    (preimage_interior_subset_interior_preimage (f := f) (t := U) hf)
 
 -- (C) iInf の位相的意味:
 -- フィルターの iInf は Mathlib の Filter.iInf と対応する
 -- filterTower 上で iInf を取ると Filter.iInf に対応する
+omit [TopologicalSpace α] in
 theorem filterTower_iInf_is_filter_iInf
     {σ : Type*} (F : σ → Filter α) :
     (StructureTower.iInf (fun s =>
-      reindex (fun _ => OrderDual.toDual (F s)) (fun _a _b _ => le_refl _)
-        (filterTower (α := α)))).level (OrderDual.toDual (⊤ : Filter α)) =
+      reindex (fun _ : PUnit => OrderDual.toDual (F s)) (fun _a _b _ => le_rfl)
+        (filterTower (α := α)))).level PUnit.unit =
     ⋂ s, (F s).sets := by
   simp [StructureTower.iInf, reindex, filterTower]
 
@@ -358,32 +343,33 @@ end ThreeDomainComparison
 
 section TopologicalGroupFiltration
 
-variable {G : Type*} [TopologicalSpace G] [Group G] [TopologicalGroup G]
+variable {G : Type*} [TopologicalSpace G] [Group G] [IsTopologicalGroup G]
 
 /-- 位相群の単位元近傍系を StructureTower として捉える:
     level U = {V ∈ 𝓝 (1 : G) | V ⊆ U}
     添字: (Set G)ᵒᵈ（包含逆順）
     単調性: U ⊆ V ⊢ 𝓝(1) ∩ ↑(≤ U) ⊇ 𝓝(1) ∩ ↑(≤ V) -/
-def unitNeighborhoodTower : StructureTower (Set G)ᵒᵈ (Set G) where
-  level U        := {V | V ∈ 𝓝 (1 : G) ∧ V ⊆ OrderDual.ofDual U}
+def unitNeighborhoodTower : StructureTower (Set G) (Set G) where
+  level U        := {V | V ∈ 𝓝 (1 : G) ∧ V ⊆ U}
   monotone_level := by
     intro U₁ U₂ hU₁U₂ V ⟨hV𝓝, hVU₁⟩
-    exact ⟨hV𝓝, Subset.trans hVU₁ (OrderDual.ofDual_le_ofDual.mpr hU₁U₂)⟩
+    exact ⟨hV𝓝, Subset.trans hVU₁ hU₁U₂⟩
 
 /-- 位相群の近傍乗法公理:
     U, V ∈ 𝓝 (1 : G) ⊢ ∃ W ∈ 𝓝 (1 : G), W * W ⊆ U ∩ V
     これは FilteredGroup の mul_mem の位相版 -/
 theorem unitNeighborhood_mul_property (U : Set G) (hU : U ∈ 𝓝 (1 : G)) :
     ∃ V ∈ 𝓝 (1 : G), V * V ⊆ U := by
-  have := TopologicalGroup.tendsto_nhds_one_mul_nhds_one (G := G)
-  rw [nhds_prod_eq] at this
-  have hU' : U ×ˢ U ∈ 𝓝 ((1:G), (1:G)) := by
-    exact Filter.prod_mem_prod hU hU
-  obtain ⟨V, hV𝓝, W, hW𝓝, hVW⟩ := Filter.mem_prod_iff.mp
-    (Filter.Tendsto.eventually_mem this (s := U) hU)
+  have hUprod : U ∈ 𝓝 ((1 : G) * (1 : G)) := by simpa using hU
+  have hmul : Filter.Tendsto (fun p : G × G => p.1 * p.2)
+      (𝓝 ((1 : G), (1 : G))) (𝓝 ((1 : G) * (1 : G))) := tendsto_mul
+  have hpre : {p : G × G | p.1 * p.2 ∈ U} ∈ 𝓝 ((1 : G), (1 : G)) := hmul hUprod
+  rw [nhds_prod_eq, Filter.mem_prod_iff] at hpre
+  rcases hpre with ⟨V, hV𝓝, W, hW𝓝, hVW⟩
   refine ⟨V ∩ W, Filter.inter_mem hV𝓝 hW𝓝, ?_⟩
-  intro x ⟨v, w, ⟨hv, hw⟩, rfl⟩
-  exact hVW (Set.mk_mem_prod hv hw)
+  intro x hx
+  rcases hx with ⟨v, hv, w, hw, rfl⟩
+  exact hVW (show (v, w) ∈ V ×ˢ W from ⟨hv.1, hw.2⟩)
 
 end TopologicalGroupFiltration
 
@@ -419,18 +405,18 @@ end TopologicalGroupFiltration
 section TypeCheck
 
 variable {α : Type*} [TopologicalSpace α]
-variable {G : Type*} [TopologicalSpace G] [Group G] [TopologicalGroup G]
+variable {G : Type*} [TopologicalSpace G] [Group G] [IsTopologicalGroup G]
 
 -- 順序論タワー: StructureTower α α（Iic 塔）
 example [Preorder α] : StructureTower α α where
   level x        := Set.Iic x
   monotone_level := fun _i _j hij _y hy => le_trans hy hij
 
--- 位相タワー: StructureTower (Set α)ᵒᵈ (Set α)
-example : StructureTower (Set α)ᵒᵈ (Set α) := interiorTower
+-- 位相タワー: StructureTower (Set α) α
+example : StructureTower (Set α) α := interiorTower
 
--- 位相群タワー: StructureTower (Set G)ᵒᵈ (Set G)
-example : StructureTower (Set G)ᵒᵈ (Set G) := unitNeighborhoodTower
+-- 位相群タワー: StructureTower (Set G) (Set G)
+example : StructureTower (Set G) (Set G) := unitNeighborhoodTower
 
 end TypeCheck
 
