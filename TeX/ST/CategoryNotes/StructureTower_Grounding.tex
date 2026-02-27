@@ -1,0 +1,103 @@
+\documentclass[11pt,a4paper,lualatex,ja=standard]{bxjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\theoremstyle{definition}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{example}[theorem]{例}
+\newtheorem{remark}[theorem]{注意}
+
+\title{構造の塔：具体例の接地（位相と代数への応用）}
+\author{su}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+\begin{abstract}
+本稿では、抽象的に構築された閉包作用素（Closure Operator）理論を位相空間論と群論の2つの分野に適用し、「構造の塔（Structure Tower）」の枠組みが具体的にどのように接地（grounding）されるかを解説する。抽象的なAPIが異なる数学的分野でも同一のインターフェースとして機能することを確認する。
+\end{abstract}
+
+\section{序論}
+抽象的な閉包作用素 $cl$ は、集合 $S$ に対して $S \subseteq cl(S)$ （拡大性）、$S \subseteq T \implies cl(S) \subseteq cl(T)$ （単調性）、および $cl(cl(S)) = cl(S)$ （冪等性）を満たす作用素として定義される。
+これを用いて、各レベル $T_i$ が $cl(T_i) = T_i$ を満たすような構造の塔を \textbf{ClosedTower} と呼ぶ。
+本稿では、この $cl$ を以下の2つの具体的な例に適用し、理論の汎用性を実証する：
+\begin{itemize}
+    \item \textbf{位相空間論}：$cl$ を位相的閉包（topological closure）に対応させる。
+    \item \textbf{群論}：$cl$ を部分群生成（subgroup generation）に対応させる。
+\end{itemize}
+
+\section{位相的閉包への接地}
+位相空間 $\alpha$ における閉包作用素を $\overline{(\cdot)}$ と書く。これは \texttt{topClosure} として定義され、抽象的な閉包作用素の3つの公理を満たす。
+
+\begin{theorem}
+位相空間 $\alpha$ において、部分集合 $S \subseteq \alpha$ が閉集合であることは、$S = \overline{S}$ となることと同値である。
+\end{theorem}
+
+これより、各レベル $T_i$ が位相的に閉集合であるような「閉集合の塔」は、まさに \texttt{topClosure} に関する ClosedTower に他ならない。
+
+\begin{example}
+定数閉集合塔（Constant Closed Tower）は、ある一つの閉集合 $S$ をすべてのレベルに配置した塔であり、これは自明に ClosedTower となる。
+\end{example}
+
+\section{部分群生成への接地}
+次に、群 $G$ における部分集合 $S \subseteq G$ が生成する部分群 $\langle S \rangle$ を考える。この生成作用素は、写像 $S \mapsto \langle S \rangle$ として、集合 $G$ 上の閉包作用素 \texttt{subgroupClosure} を定める。
+
+\begin{theorem}
+群 $G$ の部分集合 $S \subseteq G$ に対して、ある部分群 $H \le G$ が存在して $S = H$ となること（$S$ が部分群の台集合であること）は、$S = \langle S \rangle$ となることと同値である。
+\end{theorem}
+
+これにより、各レベル $T_i$ が部分群をなす「部分群の塔」は、\texttt{subgroupClosure} に関する ClosedTower として特徴付けられる。
+
+\section{抽象APIの統合と可視化}
+抽象レベルで構築した塔のモナド的API（\texttt{liftCl}, \texttt{unit}, \texttt{algebra} など）が、位相論的および代数的な枠組みの両方でそのまま適用できる。
+
+具体的には、塔 $T$ の各レベルに閉包作用素を適用する操作 $\mathsf{liftCl}(T)$ を考える。
+\begin{align*}
+    (\mathsf{liftCl}_{\text{top}}(T))_i &= \overline{T_i} \quad \text{（レベルごとの閉包）}\\
+    (\mathsf{liftCl}_{\text{sub}}(T))_i &= \langle T_i \rangle \quad \text{（レベルごとの生成部分群）}
+\end{align*}
+
+このとき、部分集合から閉包への包含写像 \texttt{unit} と、既に閉である場合の恒等写像 \texttt{algebra} は次のような可換図式で表される：
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzcd}
+        T \arrow[r, "\mathsf{unit}"] \arrow[dr, "\mathrm{id}"'] & \mathsf{liftCl}(T) \arrow[d, "\mathsf{algebra}"] \\
+         & T
+    \end{tikzcd}
+    \caption{ClosedTowerにおけるunitとalgebraの隨伴関係}
+\end{figure}
+
+なお、この $\mathsf{algebra}$ 射は、$T$ が ClosedTower（各レベルが閉集合、または部分群）である場合にのみ存在し、このとき $\mathsf{algebra} \circ \mathsf{unit} = \mathrm{id}$ が成り立つ。
+
+さらに、大域的な元の共通部分について、以下の定理が両方の文脈で同一の証明構造から導かれる：
+\begin{theorem}
+$T$ が ClosedTower のとき、$T$ の全体共通部分（global section）も閉である。
+すなわち、
+\[
+    \overline{\bigcap_i T_i} \subseteq \bigcap_i T_i \quad (\text{位相的閉包})
+\]
+\[
+    \left\langle \bigcap_i T_i \right\rangle \subseteq \bigcap_i T_i \quad (\text{部分群生成})
+\]
+\end{theorem}
+この事実は、異なる数学的ドメインにおける事象が、単一の抽象APIを通して統一的に扱えることを如実に示している。
+
+\end{document}
