@@ -7,7 +7,7 @@
 
   目標:
     StructureTower の圏を7つの視点から掘り下げ、
-    圏論的な思考パターンを sorry 補完で体得する。
+    圏論的な思考パターンを穴埋め補完で体得する。
 
   学習の流れ:
     §F1. 層関手と自然変換     — 各レベルへの「評価」が関手をなす
@@ -49,7 +49,7 @@ def union (T : StructureTower ι α) : Set α := ⋃ i, T.level i
 
 def comap (f : α → β) (T : StructureTower ι β) : StructureTower ι α where
   level i := f ⁻¹' T.level i
-  monotone_level := fun _i _j hij x hx => T.monotone_level hij hx
+  monotone_level := fun _i _j hij _x hx => T.monotone_level hij hx
 
 def map (f : α → β) (T : StructureTower ι α) : StructureTower ι β where
   level i := f '' T.level i
@@ -139,7 +139,9 @@ def Hom.restrictLevel {T₁ : StructureTower ι α} {T₂ : StructureTower ι β
     Hint-3: `funext ⟨x, hx⟩; rfl` -/
 theorem Hom.restrictLevel_id (T : StructureTower ι α) (i : ι) :
     (Hom.id T).restrictLevel i = _root_.id := by
-  sorry
+  funext x
+  rcases x with ⟨x, hx⟩
+  rfl
 
 /-- 🟢 Exercise F1b: 合成射の制限は制限の合成。
 
@@ -150,7 +152,9 @@ theorem Hom.restrictLevel_comp
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β} {T₃ : StructureTower ι γ}
     (g : Hom T₂ T₃) (f : Hom T₁ T₂) (i : ι) :
     (Hom.comp g f).restrictLevel i = (g.restrictLevel i) ∘ (f.restrictLevel i) := by
-  sorry
+  funext x
+  rcases x with ⟨x, hx⟩
+  rfl
 
 /-- 単調性が与えるレベル間の包含射（自然変換の成分）。 -/
 def levelInclusion (T : StructureTower ι α) {i j : ι} (hij : i ≤ j) :
@@ -176,7 +180,9 @@ theorem levelInclusion_natural
     (f : Hom T₁ T₂) {i j : ι} (hij : i ≤ j) :
     (f.restrictLevel j) ∘ (levelInclusion T₁ hij) =
     (levelInclusion T₂ hij) ∘ (f.restrictLevel i) := by
-  sorry
+  funext x
+  rcases x with ⟨x, hx⟩
+  rfl
 
 /-- 🟡 Exercise F1d: levelInclusion の推移性。
     i ≤ j ≤ k に対して、包含射は合成可能。
@@ -188,7 +194,9 @@ theorem levelInclusion_trans (T : StructureTower ι α)
     {i j k : ι} (hij : i ≤ j) (hjk : j ≤ k) :
     (levelInclusion T hjk) ∘ (levelInclusion T hij) =
     levelInclusion T (le_trans hij hjk) := by
-  sorry
+  funext x
+  rcases x with ⟨x, hx⟩
+  rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §F2. 大域切断関手（Global Sections Functor）  🟢🟡
@@ -214,7 +222,8 @@ def global (T : StructureTower ι α) : Set α := ⋂ i, T.level i
     Hint-3: `intro x hx; exact Set.mem_iInter.mp hx i` -/
 theorem global_subset_level (T : StructureTower ι α) (i : ι) :
     T.global ⊆ T.level i := by
-  sorry
+  intro x hx
+  exact Set.mem_iInter.mp hx i
 
 /-- 🟢 Exercise F2b: global は union に含まれる。
     （全レベル共通の元は、少なくとも1つのレベルには属する）
@@ -225,7 +234,9 @@ theorem global_subset_level (T : StructureTower ι α) (i : ι) :
             ただし i : ι が必要。[Nonempty ι] を前提にする。 -/
 theorem global_subset_union [Nonempty ι] (T : StructureTower ι α) :
     T.global ⊆ T.union := by
-  sorry
+  intro x hx
+  rcases ‹Nonempty ι› with ⟨i⟩
+  exact Set.mem_iUnion.mpr ⟨i, global_subset_level T i hx⟩
 
 /-- 🟡 Exercise F2c: 射は global を保存する。
 
@@ -234,7 +245,8 @@ theorem global_subset_union [Nonempty ι] (T : StructureTower ι α) :
     Hint-3: `intro x hx; exact Set.mem_iInter.mpr (fun i => f.preserves i (Set.mem_iInter.mp hx i))` -/
 theorem Hom.mapsTo_global {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f : Hom T₁ T₂) : MapsTo f.toFun T₁.global T₂.global := by
-  sorry
+  intro x hx
+  exact Set.mem_iInter.mpr (fun i => f.preserves i (Set.mem_iInter.mp hx i))
 
 /-- 🟡 Exercise F2d: 定数塔の global はその集合自身。
 
@@ -243,7 +255,13 @@ theorem Hom.mapsTo_global {T₁ : StructureTower ι α} {T₂ : StructureTower �
     Hint-3: `simp [global, const, Set.iInter_const]` -/
 theorem global_const [Nonempty ι] (S : Set α) :
     (const ι S).global = S := by
-  sorry
+  ext x
+  constructor
+  · intro hx
+    rcases ‹Nonempty ι› with ⟨i⟩
+    exact Set.mem_iInter.mp hx i
+  · intro hx
+    exact Set.mem_iInter.mpr (fun _ => hx)
 
 -- ════════════════════════════════════════════════════════════
 -- §F3. 同型射（Isomorphisms）  🟢🟡🔴
@@ -271,8 +289,8 @@ structure Iso (T₁ : StructureTower ι α) (T₂ : StructureTower ι β) where
 def Iso.refl (T : StructureTower ι α) : Iso T T where
   hom := Hom.id T
   inv := Hom.id T
-  hom_inv_id := by sorry  -- Hom.id_comp (Hom.id T)
-  inv_hom_id := by sorry  -- Hom.id_comp (Hom.id T)
+  hom_inv_id := by exact Hom.id_comp (Hom.id T)
+  inv_hom_id := by exact Hom.id_comp (Hom.id T)
 
 /-- 🟢 Exercise F3b: 同型の対称性。
 
@@ -281,10 +299,10 @@ def Iso.refl (T : StructureTower ι α) : Iso T T where
     Hint-3: フィールドを e の対応するものに置き換えるだけ。 -/
 def Iso.symm {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (e : Iso T₁ T₂) : Iso T₂ T₁ where
-  hom := sorry  -- e.inv
-  inv := sorry  -- e.hom
-  hom_inv_id := sorry  -- e.inv_hom_id
-  inv_hom_id := sorry  -- e.hom_inv_id
+  hom := e.inv
+  inv := e.hom
+  hom_inv_id := e.inv_hom_id
+  inv_hom_id := e.hom_inv_id
 
 /-- 🟡 Exercise F3c: 同型の推移性。
 
@@ -299,7 +317,13 @@ def Iso.trans {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
   hom := Hom.comp e₂.hom e₁.hom
   inv := Hom.comp e₁.inv e₂.inv
   hom_inv_id := by
-    sorry
+    apply Hom.ext
+    funext x
+    have h₂ : e₂.inv.toFun (e₂.hom.toFun (e₁.hom.toFun x)) = e₁.hom.toFun x := by
+      simpa [Hom.comp, Hom.id] using congr_fun (congr_arg Hom.toFun e₂.hom_inv_id) (e₁.hom.toFun x)
+    have h₁ : e₁.inv.toFun (e₁.hom.toFun x) = x := by
+      simpa [Hom.comp, Hom.id] using congr_fun (congr_arg Hom.toFun e₁.hom_inv_id) x
+    simpa [Hom.comp, h₂] using h₁
     /- 方針:
        (e₁.inv ∘ e₂.inv) ∘ (e₂.hom ∘ e₁.hom)
        = e₁.inv ∘ (e₂.inv ∘ e₂.hom) ∘ e₁.hom   -- assoc ×2
@@ -307,7 +331,13 @@ def Iso.trans {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
        = e₁.inv ∘ e₁.hom                          -- id_comp
        = id                                        -- e₁.hom_inv_id -/
   inv_hom_id := by
-    sorry
+    apply Hom.ext
+    funext x
+    have h₁ : e₁.hom.toFun (e₁.inv.toFun (e₂.inv.toFun x)) = e₂.inv.toFun x := by
+      simpa [Hom.comp, Hom.id] using congr_fun (congr_arg Hom.toFun e₁.inv_hom_id) (e₂.inv.toFun x)
+    have h₂ : e₂.hom.toFun (e₂.inv.toFun x) = x := by
+      simpa [Hom.comp, Hom.id] using congr_fun (congr_arg Hom.toFun e₂.inv_hom_id) x
+    simpa [Hom.comp, h₁] using h₂
     -- 同じパターンを e₁ と e₂ を入れ替えて適用
 
 /-- 🟡 Exercise F3d: Equiv からの同型構成。
@@ -323,8 +353,8 @@ def Iso.ofEquiv (e : α ≃ β)
     Iso T₁ T₂ where
   hom := { toFun := e, preserves := fun i x hx => hfwd i x hx }
   inv := { toFun := e.symm, preserves := fun i y hy => hbwd i y hy }
-  hom_inv_id := by sorry  -- Hom.ext (funext e.symm_apply_apply)
-  inv_hom_id := by sorry  -- Hom.ext (funext e.apply_symm_apply)
+  hom_inv_id := by exact Hom.ext (funext e.symm_apply_apply)
+  inv_hom_id := by exact Hom.ext (funext e.apply_symm_apply)
 
 /-- 🟡 Exercise F3e: 同型射はレベルごとに全単射。
 
@@ -335,13 +365,26 @@ def Iso.ofEquiv (e : α ≃ β)
 theorem Iso.bijOn_level {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (e : Iso T₁ T₂) (i : ι) :
     Set.BijOn e.hom.toFun (T₁.level i) (T₂.level i) := by
-  sorry
+  refine ⟨e.hom.preserves i, ?_, ?_⟩
+  · intro x hx y hy hxy
+    have h := congrArg e.inv.toFun hxy
+    have hx' : e.inv.toFun (e.hom.toFun x) = x := by
+      simpa [Hom.comp, Hom.id] using congr_fun (congr_arg Hom.toFun e.hom_inv_id) x
+    have hy' : e.inv.toFun (e.hom.toFun y) = y := by
+      simpa [Hom.comp, Hom.id] using congr_fun (congr_arg Hom.toFun e.hom_inv_id) y
+    calc
+      x = e.inv.toFun (e.hom.toFun x) := by simpa using hx'.symm
+      _ = e.inv.toFun (e.hom.toFun y) := h
+      _ = y := hy'
+  · intro y hy
+    refine ⟨e.inv.toFun y, e.inv.preserves i hy, ?_⟩
+    simpa [Hom.comp, Hom.id] using congr_fun (congr_arg Hom.toFun e.inv_hom_id) y
   /- skeleton:
      refine ⟨e.hom.preserves i, ?_, ?_⟩
      · -- InjOn: e.inv で左キャンセル
-       sorry
+       省略
      · -- SurjOn: e.inv で原像を構成
-       sorry -/
+       省略 -/
 
 -- ════════════════════════════════════════════════════════════
 -- §F4. 直積と射影（Product & Projections）  🟢🟡
@@ -365,13 +408,17 @@ theorem Iso.bijOn_level {T₁ : StructureTower ι α} {T₂ : StructureTower ι 
 def fst (T₁ : StructureTower ι α) (T₂ : StructureTower ι β) :
     Hom (prod T₁ T₂) T₁ where
   toFun := Prod.fst
-  preserves := by sorry
+  preserves := by
+    intro i p hp
+    exact hp.1
 
 /-- 🟢 Exercise F4b: 第二射影は Hom。 -/
 def snd (T₁ : StructureTower ι α) (T₂ : StructureTower ι β) :
     Hom (prod T₁ T₂) T₂ where
   toFun := Prod.snd
-  preserves := by sorry
+  preserves := by
+    intro i p hp
+    exact hp.2
 
 /-- 🟡 Exercise F4c: 2つの Hom から直積への Hom を作る（prodMap）。
     f : T₁ → T₂, g : S₁ → S₂ から prod T₁ S₁ → prod T₂ S₂。
@@ -384,7 +431,9 @@ def Hom.prodMap {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f : Hom T₁ T₂) (g : Hom S₁ S₂) :
     Hom (prod T₁ S₁) (prod T₂ S₂) where
   toFun p := (f.toFun p.1, g.toFun p.2)
-  preserves := by sorry
+  preserves := by
+    intro i p hp
+    exact ⟨f.preserves i hp.1, g.preserves i hp.2⟩
 
 /-- 🟡 Exercise F4d: prodMap は恒等射を保つ。
 
@@ -393,7 +442,10 @@ def Hom.prodMap {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     Hint-3: `Hom.ext (funext fun p => Prod.mk.eta)` -/
 theorem Hom.prodMap_id (T₁ : StructureTower ι α) (T₂ : StructureTower ι β) :
     Hom.prodMap (Hom.id T₁) (Hom.id T₂) = Hom.id (prod T₁ T₂) := by
-  sorry
+  apply Hom.ext
+  funext p
+  rcases p with ⟨x, y⟩
+  rfl
 
 /-- 🟡 Exercise F4e: prodMap は合成を保つ。
 
@@ -407,7 +459,7 @@ theorem Hom.prodMap_comp
     (g₂ : Hom S₂ S₃) (g₁ : Hom S₁ S₂) :
     Hom.prodMap (Hom.comp f₂ f₁) (Hom.comp g₂ g₁) =
     Hom.comp (Hom.prodMap f₂ g₂) (Hom.prodMap f₁ g₁) := by
-  sorry
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §F5. 直積の普遍性（Universal Property of Product）  🟡🔴
@@ -437,7 +489,9 @@ def Hom.pair {T : StructureTower ι γ}
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f : Hom T T₁) (g : Hom T T₂) : Hom T (prod T₁ T₂) where
   toFun x := (f.toFun x, g.toFun x)
-  preserves := by sorry
+  preserves := by
+    intro i x hx
+    exact ⟨f.preserves i hx, g.preserves i hx⟩
 
 /-- 🟡 Exercise F5b: fst ∘ pair = 左成分。
 
@@ -448,14 +502,14 @@ theorem Hom.fst_pair {T : StructureTower ι γ}
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f : Hom T T₁) (g : Hom T T₂) :
     Hom.comp (fst T₁ T₂) (Hom.pair f g) = f := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🟡 Exercise F5c: snd ∘ pair = 右成分。 -/
 theorem Hom.snd_pair {T : StructureTower ι γ}
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f : Hom T T₁) (g : Hom T T₂) :
     Hom.comp (snd T₁ T₂) (Hom.pair f g) = g := by
-  sorry
+  exact Hom.ext rfl
 
 /-- 🔴 Exercise F5d: 一意性。射影条件を満たす射は pair に等しい。
 
@@ -473,7 +527,13 @@ theorem Hom.pair_unique {T : StructureTower ι γ}
     (hf : Hom.comp (fst T₁ T₂) h = f)
     (hg : Hom.comp (snd T₁ T₂) h = g) :
     h = Hom.pair f g := by
-  sorry
+  apply Hom.ext
+  funext x
+  have h1 : (h.toFun x).1 = f.toFun x := by
+    simpa [Hom.comp, fst] using congr_fun (congr_arg Hom.toFun hf) x
+  have h2 : (h.toFun x).2 = g.toFun x := by
+    simpa [Hom.comp, snd] using congr_fun (congr_arg Hom.toFun hg) x
+  exact Prod.ext h1 h2
   /- skeleton:
      apply Hom.ext; funext x
      have h1 := congr_fun (congr_arg Hom.toFun hf) x
@@ -509,7 +569,9 @@ def Hom.ofConstMap (f : α → β) (S : Set α) (T : StructureTower ι β)
     (hf : ∀ i, MapsTo f S (T.level i)) :
     Hom (const ι S) T where
   toFun := f
-  preserves := by sorry
+  preserves := by
+    intro i x hx
+    exact hf i hx
 
 /-- 🟡 Exercise F6b: const からの Hom は S を global に送る。
 
@@ -519,7 +581,8 @@ def Hom.ofConstMap (f : α → β) (S : Set α) (T : StructureTower ι β)
 theorem Hom.const_mapsTo_global (S : Set α) {T : StructureTower ι β}
     (h : Hom (const ι S) T) :
     MapsTo h.toFun S T.global := by
-  sorry
+  intro x hx
+  exact Set.mem_iInter.mpr (fun i => h.preserves i hx)
 
 /-- 🟡 Exercise F6c: S を global T に送る写像は const S からの Hom を与える。
     （F6a の global 版）
@@ -531,7 +594,9 @@ def Hom.ofConstToGlobal (f : α → β) (S : Set α) (T : StructureTower ι β)
     (hf : MapsTo f S T.global) :
     Hom (const ι S) T where
   toFun := f
-  preserves := by sorry
+  preserves := by
+    intro i x hx
+    exact global_subset_level T i (hf hx)
 
 /-- 🔴 Exercise F6d: 随伴の往復（round-trip）。
     ofConstToGlobal で作った Hom を const_mapsTo_global に通すと元に戻る。
@@ -542,7 +607,7 @@ def Hom.ofConstToGlobal (f : α → β) (S : Set α) (T : StructureTower ι β)
 theorem adjunction_roundtrip (f : α → β) (S : Set α) (T : StructureTower ι β)
     (hf : MapsTo f S T.global) (x : α) (hx : x ∈ S) :
     f x ∈ T.global := by
-  sorry
+  exact hf hx
   -- これは hf hx そのもの
 
 -- ════════════════════════════════════════════════════════════
@@ -562,7 +627,9 @@ theorem adjunction_roundtrip (f : α → β) (S : Set α) (T : StructureTower ι
 def Hom.ofMap (f : α → β) (T : StructureTower ι α) :
     Hom T (map f T) where
   toFun := f
-  preserves := by sorry
+  preserves := by
+    intro i x hx
+    exact ⟨x, hx, rfl⟩
 
 /-- 🟡 Exercise F7b: comap f は逆方向の Hom を誘導する（f が単射のとき）。
     単射条件は map ∘ comap = id を保証する。
@@ -573,7 +640,9 @@ def Hom.ofMap (f : α → β) (T : StructureTower ι α) :
 def Hom.ofComap (f : α → β) (T : StructureTower ι β) :
     Hom (comap f T) T where
   toFun := f
-  preserves := by sorry
+  preserves := by
+    intro i x hx
+    exact hx
 
 /-- 🟡 Exercise F7c: prod と map の交換。
     map (f × g) (prod T₁ T₂) = prod (map f T₁) (map g T₂)
@@ -586,7 +655,13 @@ def Hom.ofComap (f : α → β) (T : StructureTower ι β) :
 theorem map_prod (f : α → β) (g : γ → δ)
     (T₁ : StructureTower ι α) (T₂ : StructureTower ι γ) :
     map (Prod.map f g) (prod T₁ T₂) = prod (map f T₁) (map g T₂) := by
-  sorry
+  ext i p
+  constructor
+  · rintro ⟨⟨a, c⟩, ⟨ha, hc⟩, hEq⟩
+    exact ⟨⟨a, ha, congrArg Prod.fst hEq⟩, ⟨c, hc, congrArg Prod.snd hEq⟩⟩
+  · rintro ⟨⟨a, ha, hb⟩, ⟨c, hc, hd⟩⟩
+    refine ⟨(a, c), ⟨ha, hc⟩, ?_⟩
+    exact Prod.ext hb hd
   /- skeleton:
      ext i ⟨b, d⟩
      simp only [map, prod, Set.mem_image, Set.mem_prod]
@@ -613,7 +688,7 @@ theorem Hom.pair_comp {T T' : StructureTower ι γ}
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
     (f₁ : Hom T' T₁) (f₂ : Hom T' T₂) (f : Hom T T') :
     Hom.comp (Hom.pair f₁ f₂) f = Hom.pair (Hom.comp f₁ f) (Hom.comp f₂ f) := by
-  sorry
+  exact Hom.ext rfl
 
 -- ════════════════════════════════════════════════════════════
 -- §Summary. 全体の振り返り
