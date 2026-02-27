@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lualatex -interaction=nonstopmode -halt-on-error StructureTower_CategoricalView.tex)"
+    ]
+  }
+}

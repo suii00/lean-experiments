@@ -1,0 +1,1078 @@
+% =============================================================================
+%  StructureTower の主定理と接続定理
+%  LuaLaTeX 文書
+% =============================================================================
+\documentclass[a4paper,11pt]{ltjsarticle}
+
+%% ─── パッケージ ─────────────────────────────────────────────────────────────
+\usepackage{luatexja-fontspec}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{tikz-cd}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathmorphing}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{bm}
+
+%% ─── ページ設定 ──────────────────────────────────────────────────────────────
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+
+%% ─── フォント ────────────────────────────────────────────────────────────────
+% TeXLive 付属の原ノ味フォント（Harano Aji）を使用
+\setmainjfont{Harano Aji Mincho}[
+  BoldFont = Harano Aji Mincho,
+  BoldFeatures = {FakeBold=2},
+]
+\setsansjfont{Harano Aji Gothic}
+% モノスペースフォント（DejaVu Sans Mono は広い Unicode 範囲をカバー）
+\setmonofont[Scale=0.85]{DejaVu Sans Mono}
+
+%% ─── 色 ──────────────────────────────────────────────────────────────────────
+\definecolor{leanblue}{HTML}{2563EB}
+\definecolor{leanbg}{HTML}{F8FAFC}
+\definecolor{leancomment}{HTML}{6B7280}
+\definecolor{leankeyword}{HTML}{7C3AED}
+\definecolor{leanstring}{HTML}{059669}
+\definecolor{accentcolor}{HTML}{1E40AF}
+\definecolor{theoremcolor}{HTML}{EFF6FF}
+\definecolor{definitioncolor}{HTML}{F0FDF4}
+\definecolor{remarkcolor}{HTML}{FFF7ED}
+
+%% ─── hyperref ────────────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentcolor,
+  urlcolor=leanblue,
+  citecolor=accentcolor,
+  pdftitle={StructureTower の主定理と接続定理},
+  pdfauthor={su},
+}
+
+%% ─── 定理環境 ────────────────────────────────────────────────────────────────
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{注意}
+
+%% ─── tcolorbox スタイル ───────────────────────────────────────────────────────
+\newtcolorbox{proofstrategy}{
+  colback=remarkcolor,
+  colframe=orange!60!black,
+  title={\textbf{証明戦略}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{mathinsight}{
+  colback=theoremcolor,
+  colframe=accentcolor,
+  title={\textbf{数学的洞察}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+%% ─── Lean コードリスト ────────────────────────────────────────────────────────
+\lstdefinelanguage{lean4}{
+  morekeywords={def,theorem,lemma,example,instance,class,structure,
+    where,let,in,do,if,then,else,match,with,fun,return,
+    import,open,namespace,section,end,variable,
+    inductive,abbrev,noncomputable,private,protected,
+    sorry,admit,have,show,suffices,calc,by,exact,
+    apply,intro,intros,constructor,cases,induction,
+    simp,rw,rfl,ext,ring,linarith,omega,norm_num,
+    decide,trivial,assumption,contradiction,classical,
+    refine,rcases,obtain,use,push_neg,funext,
+    Type,Prop,Sort,Set,true,false,
+    attribute,deriving},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+  literate=
+    % 長いマッチを先に（×ˢ は × の前に置く）
+    {×ˢ}{{\(\times\)}}2
+    % ギリシャ文字
+    {α}{{\(\alpha\)}}1
+    {β}{{\(\beta\)}}1
+    {γ}{{\(\gamma\)}}1
+    {ι}{{\(\iota\)}}1
+    {κ}{{\(\kappa\)}}1
+    {μ}{{\(\mu\)}}1
+    {σ}{{\(\sigma\)}}1
+    {φ}{{\(\varphi\)}}1
+    % 矢印
+    {→}{{\(\to\)}}1
+    {←}{{\(\leftarrow\)}}1
+    {↔}{{\(\leftrightarrow\)}}1
+    % 括弧
+    {⟨}{{\(\langle\)}}1
+    {⟩}{{\(\rangle\)}}1
+    {⦃}{{\(\{\)}}1
+    {⦄}{{\(\}\)}}1
+    % 比較・論理
+    {≤}{{\(\leq\)}}1
+    {≥}{{\(\geq\)}}1
+    {≠}{{\(\neq\)}}1
+    {∀}{{\(\forall\)}}1
+    {∃}{{\(\exists\)}}1
+    {∧}{{\(\wedge\)}}1
+    {∨}{{\(\vee\)}}1
+    {¬}{{\(\neg\)}}1
+    {⊢}{{\(\vdash\)}}1
+    % 集合
+    {∈}{{\(\in\)}}1
+    {∉}{{\(\notin\)}}1
+    {⊆}{{\(\subseteq\)}}1
+    {⊂}{{\(\subset\)}}1
+    {∪}{{\(\cup\)}}1
+    {∩}{{\(\cap\)}}1
+    {⋂}{{\(\bigcap\)}}1
+    {∅}{{\(\emptyset\)}}1
+    % 積・合成
+    {×}{{\(\times\)}}1
+    {∘}{{\(\circ\)}}1
+    % 数域
+    {ℕ}{{\(\mathbb{N}\)}}1
+    {ℤ}{{\(\mathbb{Z}\)}}1
+    {ℝ}{{\(\mathbb{R}\)}}1
+    {ℚ}{{\(\mathbb{Q}\)}}1
+    % 記号
+    {:=}{{:=}}2,
+}
+
+\lstnewenvironment{leancode}[1][]{%
+  \lstset{
+    language=lean4,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{leankeyword}\bfseries,
+    commentstyle=\color{leancomment}\itshape,
+    stringstyle=\color{leanstring},
+    backgroundcolor=\color{leanbg},
+    frame=single,
+    rulecolor=\color{leanblue!30},
+    framesep=8pt,
+    xleftmargin=12pt,
+    xrightmargin=12pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{leancomment},
+    numbersep=8pt,
+    aboveskip=1em,
+    belowskip=1em,
+    #1
+  }%
+}{}
+
+%% ─── ヘッダー・フッター ───────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\sffamily\nouppercase{\leftmark}}
+\fancyhead[R]{\small\sffamily StructureTower 形式化}
+\fancyfoot[C]{\thepage}
+
+%% ─── 便利マクロ ───────────────────────────────────────────────────────────────
+\newcommand{\Tower}[2]{\mathbf{Tower}(#1,\,#2)}
+\newcommand{\NatIncl}{\mathrm{NatIncl}}
+\newcommand{\reindex}{\mathrm{reindex}}
+\newcommand{\rank}{\mathrm{rank}}
+\newcommand{\Fix}{\mathrm{Fix}}
+\newcommand{\EMAlg}{\mathrm{EMAlg}}
+\newcommand{\lev}{\mathrm{level}}
+\newcommand{\iInf}{\mathsf{iInf}}
+
+%% =============================================================================
+\begin{document}
+
+%% ─── タイトル ─────────────────────────────────────────────────────────────────
+\title{%
+  {\LARGE\sffamily\bfseries StructureTower の主定理と接続定理}\\[0.5em]
+  {\large\sffamily Lean\,4 による形式化とその数学的解説}%
+}
+\author{su}
+\date{\today}
+\maketitle
+
+%% ─── AI 開示 ──────────────────────────────────────────────────────────────────
+\begin{center}
+\small
+\textit{AI assistance disclosure:}\\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。\\
+\TeX{}文書は Claude Code (Anthropic) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\vspace{1em}
+
+%% ─── アブストラクト ────────────────────────────────────────────────────────────
+\begin{abstract}
+本稿では，前順序集合 $\iota$ 上の単調集合族
+$(\lev(i))_{i \in \iota}$ を「構造塔（StructureTower）」として
+Lean\,4 / Mathlib4 で形式化した3本の主定理と接続定理を数学的に解説する．
+
+\textbf{定理A}（reindex の関手性）では，
+単調写像 $f \colon \iota \to \kappa$ による添字引き戻し操作 $\reindex_f$ が，
+NatInclusion（逐次包含）を射とする「構造塔の圏」の関手をなすことを証明する．
+
+\textbf{定理B}（rank の一意性）では，
+全充足塔（ExhaustiveTower）において
+$\rank(x) = \min\{i \mid x \in \lev(i)\}$ が一意に定まり，
+「強い単射公理」$x \in \lev(i) \Leftrightarrow r(x) \leq i$
+を満たす関数 $r$ が $\rank$ に等しいことを示す．
+
+\textbf{定理C}（EMAlgebras の完備束構造）では，
+閉包作用素 $c$ の固定点集合（EM代数）が任意交叉で閉じており，
+完備束の下半束をなすことを確立する．
+
+さらに \textbf{接続定理}（Bridge）として，
+次数付き環（FilteredRing）の乗法互換条件（mul\_mem 公理）が，
+二項タワー（BinaryTower）から reindex タワーへの Hom と同値であり，
+mapOnHom の $h_g$ 条件の代数的具現化であることを示す．
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%% =============================================================================
+\section{導入}
+%% =============================================================================
+
+数学における「塔構造」とは，前順序集合 $\iota$ によって添字付けられた集合族
+$(A_i)_{i \in \iota}$ であって，$i \leq j \Rightarrow A_i \subseteq A_j$
+という単調性を満たすものである．
+フィルトレーション・グレーデッドモジュール・閉包列など，
+数学の各分野でこの概念が現れる．
+
+本稿が解説するのは，次の二つの Lean\,4 ファイルである：
+\begin{itemize}
+  \item \texttt{StructureTower\_MainTheorems.lean}：3本の主定理（A, B, C）
+  \item \texttt{StructureTower\_Bridge.lean}：代数的フィルトレーションとの接続
+\end{itemize}
+
+\begin{mathinsight}
+なぜ単なる \texttt{OrderHom\;ι\;(Set\;α)}（前順序集合から冪集合への単調写像）ではなく，
+\texttt{StructureTower} という構造体が必要か？
+\begin{itemize}
+  \item \textbf{定理A}：reindex の関手性は「自明な前合成」に見えるが，
+        NatInclusion の圏での関手的性質は定理として明示的に述べる必要がある．
+  \item \textbf{定理B}：rank（最小レベル）は OrderHom の言語では隠れた情報であり，
+        StructureTower の「内部構造」として初めて定式化される．
+  \item \textbf{定理C}：EM代数と iInf の相互作用は，集合の包含だけでは見えない
+        塔固有の代数的構造を反映している．
+\end{itemize}
+\end{mathinsight}
+
+%% =============================================================================
+\section{基本定義}
+%% =============================================================================
+
+\subsection{構造塔（StructureTower）}
+
+\begin{definition}[構造塔]
+\label{def:structure-tower}
+型 $\iota$（前順序 $\leq$ 付き）と型 $\alpha$ に対して，
+\textbf{構造塔} $\mathsf{StructureTower}(\iota, \alpha)$ は以下のデータからなる：
+\begin{itemize}
+  \item 関数 $\lev \colon \iota \to \mathcal{P}(\alpha)$
+  \item 単調性：$i \leq j \Rightarrow \lev(i) \subseteq \lev(j)$
+\end{itemize}
+\end{definition}
+
+\begin{leancode}
+structure StructureTower (ι α : Type*) [Preorder ι] : Type _ where
+  level          : ι → Set α
+  monotone_level : ∀ ⦃i j : ι⦄, i ≤ j → level i ⊆ level j
+\end{leancode}
+
+\subsection{NatInclusion と Hom}
+
+\begin{definition}[NatInclusion]
+\label{def:nat-inclusion}
+同じ型 $\alpha$ 上の二つの構造塔
+$T_1, T_2 \colon \mathsf{StructureTower}(\iota, \alpha)$ に対して，
+\[
+  \NatIncl(T_1, T_2)
+  \;\stackrel{\mathrm{def}}{=}\;
+  \forall i,\quad T_1.\lev(i) \subseteq T_2.\lev(i)
+\]
+を \textbf{NatInclusion}（自然変換的包含）という．
+\end{definition}
+
+\begin{definition}[Hom]
+\label{def:hom}
+$T_1 \colon \mathsf{StructureTower}(\iota, \alpha)$ と
+$T_2 \colon \mathsf{StructureTower}(\iota, \beta)$ に対して，
+\textbf{Hom} $T_1 \to T_2$ は以下のデータからなる：
+\begin{itemize}
+  \item 関数 $\phi \colon \alpha \to \beta$
+  \item レベル保存：$\forall i,\; \phi(T_1.\lev(i)) \subseteq T_2.\lev(i)$
+\end{itemize}
+\end{definition}
+
+\begin{remark}
+NatInclusion は $\alpha = \beta$ かつ $\phi = \mathrm{id}$ のときの Hom の特殊例だが，
+「塔間の順序」としての性格を際立たせるため独立に定義する．
+\end{remark}
+
+\subsection{reindex と iInf}
+
+\begin{definition}[reindex]
+\label{def:reindex}
+単調写像 $f \colon \iota \to \kappa$ と塔
+$T \colon \mathsf{StructureTower}(\kappa, \alpha)$ に対して，
+\[
+  (\reindex_f T).\lev(i)
+  \;\stackrel{\mathrm{def}}{=}\;
+  T.\lev(f(i))
+\]
+で $\reindex_f T \colon \mathsf{StructureTower}(\iota, \alpha)$ を定める．
+単調性は $f$ の単調性と $T$ の単調性の合成から従う．
+\end{definition}
+
+\begin{definition}[iInf]
+\label{def:iinf}
+族 $\{T_s\}_{s \in \sigma}$（各 $T_s \colon \mathsf{StructureTower}(\iota, \alpha)$）に対して，
+\[
+  \Bigl(\bigwedge_{s \in \sigma} T_s\Bigr).\lev(i)
+  \;\stackrel{\mathrm{def}}{=}\;
+  \bigcap_{s \in \sigma} T_s.\lev(i)
+\]
+で下限塔 $\iInf\{T_s\}$ を定める．
+\end{definition}
+
+\begin{leancode}
+def reindex {κ : Type*} [Preorder κ] (f : ι → κ) (hf : Monotone f)
+    (T : StructureTower κ α) : StructureTower ι α where
+  level i        := T.level (f i)
+  monotone_level := fun _i _j hij => T.monotone_level (hf hij)
+
+def iInf {σ : Type*} (T : σ → StructureTower ι α) : StructureTower ι α where
+  level i        := ⋂ s, (T s).level i
+  monotone_level := fun _i _j hij _x hx =>
+    Set.mem_iInter.mpr
+      (fun s => (T s).monotone_level hij (Set.mem_iInter.mp hx s))
+\end{leancode}
+
+\subsection{閉包作用素との接続}
+
+\begin{definition}[towerOfClosure と EMAlgebras]
+\label{def:tower-of-closure}
+半順序集合 $\alpha$ 上の閉包作用素
+$c \colon \alpha \to \alpha$（単調・拡大・冪等）に対して，
+\begin{align*}
+  \mathsf{towerOfClosure}(c).\lev(x)
+    &\;\stackrel{\mathrm{def}}{=}\; \{y \in \alpha \mid y \leq c(x)\}
+    = {\downarrow}\,c(x), \\
+  \EMAlg(c)
+    &\;\stackrel{\mathrm{def}}{=}\; \{x \in \alpha \mid c(x) \leq x\}
+    = \Fix(c).
+\end{align*}
+$\EMAlg(c)$ を \textbf{EM代数}（閉元全体・固定点集合）という．
+\end{definition}
+
+\begin{remark}
+$c$ が拡大的（$x \leq c(x)$）であるから，
+$c(x) \leq x$ は $c(x) = x$（固定点条件）と同値である．
+\end{remark}
+
+%% =============================================================================
+\section{定理A: reindex の関手性}
+%% =============================================================================
+
+\subsection{圏論的設定}
+
+型 $\alpha$ を固定する．
+NatInclusion を射とする「構造塔の圏」$\Tower{\iota}{\alpha}$ を
+\begin{itemize}
+  \item \textbf{対象}：$\mathsf{StructureTower}(\iota, \alpha)$ の全元
+  \item \textbf{射}：$\NatIncl(T_1, T_2)$（前順序圏，thin category）
+\end{itemize}
+と定める．
+NatInclusion は反射性・推移性を持つので，これは適切に定義された圏である．
+
+単調写像 $f \colon \iota \to \kappa$ が与えられると，
+$\reindex_f \colon \Tower{\kappa}{\alpha} \to \Tower{\iota}{\alpha}$
+という対象間の写像が定まる．定理Aは，これが圏の関手をなすことを主張する．
+
+\subsection{主定理}
+
+\begin{theorem}[定理A：reindex の関手性]
+\label{thm:reindex-functor}
+単調写像 $f \colon \iota \to \kappa$ に対して，
+$\reindex_f \colon \Tower{\kappa}{\alpha} \to \Tower{\iota}{\alpha}$
+は圏の関手をなす．すなわち：
+\begin{enumerate}[label=\textup{(\roman*)}]
+  \item \textbf{射の保存}：
+        $\NatIncl(T_1, T_2) \Rightarrow \NatIncl(\reindex_f T_1, \reindex_f T_2)$
+  \item \textbf{恒等の保存}：
+        $\NatIncl(\reindex_f T, \reindex_f T)$（自明）
+  \item \textbf{合成の保存}：
+        $\NatIncl(T_1,T_2)$ かつ $\NatIncl(T_2,T_3)$
+        $\Rightarrow \NatIncl(\reindex_f T_1, \reindex_f T_3)$
+  \item \textbf{合成の可換性}：
+        $\reindex_f \circ \reindex_g \simeq \reindex_{g \circ f}$
+        （NatInclusion として等価）
+\end{enumerate}
+\end{theorem}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=5em, row sep=3.5em]
+    T_1 \arrow[r, "h"{name=top}, "\NatIncl"'] \arrow[d, "\reindex_f"'] &
+    T_2 \arrow[d, "\reindex_f"] \\
+    \reindex_f(T_1) \arrow[r, "\reindex_f(h)"', "\NatIncl"] &
+    \reindex_f(T_2)
+  \end{tikzcd}
+  \caption{%
+    定理A (i)：$\reindex_f$ は NatInclusion を保存する（関手の射への作用）．
+    $h(f(i))$ という一行の証明に凝縮される．
+  }
+  \label{fig:reindex-functor}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=4em, row sep=3em]
+    & \Tower{\kappa}{\alpha} \arrow[dr, "\reindex_f"] & \\
+    \Tower{\mu}{\alpha}
+      \arrow[ur, "\reindex_g"]
+      \arrow[rr, "\reindex_{g \circ f}"', bend right=15, "\simeq" above=3pt]
+    & & \Tower{\iota}{\alpha}
+  \end{tikzcd}
+  \caption{%
+    定理A (iv)：合成則 $\reindex_f \circ \reindex_g \simeq \reindex_{g \circ f}$．
+    両方向の NatInclusion は $\Subset.\mathsf{refl}$ で得られる．
+  }
+  \label{fig:reindex-comp}
+\end{figure}
+
+\begin{proofstrategy}
+\textbf{(i) の証明}：
+$h \colon \NatIncl(T_1, T_2)$ は
+$\forall i,\; T_1.\lev(i) \subseteq T_2.\lev(i)$ を意味する．
+$(\reindex_f T_k).\lev(i) = T_k.\lev(f(i))$ であるから，
+$\NatIncl(\reindex_f T_1, \reindex_f T_2)$ は
+$\forall i,\; T_1.\lev(f(i)) \subseteq T_2.\lev(f(i))$
+に帰着し，これは $h$ を $f(i)$ に適用すれば得られる：
+\[
+  \texttt{fun i \(\Rightarrow\) h (f i)}
+\]
+
+\textbf{(iv) の証明}：
+$(\reindex_f \circ \reindex_g)(T).\lev(i)
+  = T.\lev(g(f(i)))
+  = \reindex_{g \circ f}(T).\lev(i)$
+となり，両 NatInclusion は集合の等しさから自明に従う．
+Lean では \texttt{simp [reindex]} で結論する．
+\end{proofstrategy}
+
+\begin{leancode}
+-- A-1: reindex は NatInclusion を保存する
+theorem reindex_preserves_natInclusion {κ : Type*} [Preorder κ]
+    {T₁ T₂ : StructureTower κ α}
+    (f : ι → κ) (hf : Monotone f)
+    (h : NatInclusion T₁ T₂) :
+    NatInclusion (reindex f hf T₁) (reindex f hf T₂) :=
+  fun i => h (f i)   -- 証明の全体はこの一行
+
+-- A-5: 合成則（両方向 NatInclusion）
+theorem reindex_comp_natInclusion {κ μ : Type*} [Preorder κ] [Preorder μ]
+    (f : ι → κ) (hf : Monotone f) (g : κ → μ) (hg : Monotone g)
+    (T : StructureTower μ α) :
+    NatInclusion (reindex f hf (reindex g hg T))
+                 (reindex (g ∘ f) (hg.comp hf) T) ∧
+    NatInclusion (reindex (g ∘ f) (hg.comp hf) T)
+                 (reindex f hf (reindex g hg T)) := by
+  constructor <;> (intro i; simp [reindex])
+\end{leancode}
+
+%% =============================================================================
+\section{定理B: ExhaustiveTower における rank の一意性}
+%% =============================================================================
+
+\subsection{全充足塔（ExhaustiveTower）}
+
+\begin{definition}[ExhaustiveTower]
+\label{def:exhaustive-tower}
+$\mathbb{N}$-添字付き構造塔 $T \colon \mathsf{StructureTower}(\mathbb{N}, \alpha)$ が
+\textbf{全充足塔}（ExhaustiveTower）であるとは，
+\[
+  \forall x \in \alpha,\quad \exists i \in \mathbb{N},\quad x \in T.\lev(i)
+\]
+が成立することをいう．すなわち，すべての元はある有限レベルに収まる．
+\end{definition}
+
+\begin{leancode}
+structure ExhaustiveTower (α : Type*) extends StructureTower ℕ α where
+  exhaustive : ∀ x : α, ∃ i : ℕ, x ∈ level i
+\end{leancode}
+
+\subsection{rank の定義と基本性質}
+
+\begin{definition}[rank]
+\label{def:rank}
+全充足塔 $T$ と元 $x \in \alpha$ に対して，
+\[
+  \rank_T(x)
+  \;\stackrel{\mathrm{def}}{=}\;
+  \min\{i \in \mathbb{N} \mid x \in T.\lev(i)\}
+\]
+を $x$ の \textbf{rank}（最小レベル）という．
+Lean では \texttt{Nat.find}（$\omega$-の最小元）で定義する．
+\end{definition}
+
+\begin{leancode}
+noncomputable def ExhaustiveTower.rank
+    {α : Type*} (T : ExhaustiveTower α) (x : α) : ℕ :=
+  Nat.find (T.exhaustive x)   -- 最小の i を選択
+\end{leancode}
+
+rank は次の基本性質を持つ：
+
+\begin{lemma}[rank\_spec]
+\label{lem:rank-spec}
+$x \in T.\lev(\rank_T(x))$
+\quad（rank で達成される）
+\end{lemma}
+
+\begin{lemma}[rank\_le]
+\label{lem:rank-le}
+$x \in T.\lev(n) \Rightarrow \rank_T(x) \leq n$
+\quad（rank は最小である）
+\end{lemma}
+
+\begin{lemma}[rank\_antitone]
+\label{lem:rank-antitone}
+$T_1 \leq T_2$（逐次包含）$\Rightarrow \rank_{T_2}(x) \leq \rank_{T_1}(x)$
+\quad（細かい塔ほど rank が大きくなる）
+\end{lemma}
+
+\begin{proofstrategy}
+補題3（rank の反単調性）の証明：
+$T_1 \leq T_2$ より $T_1.\lev(\rank_{T_1}(x)) \subseteq T_2.\lev(\rank_{T_1}(x))$．
+補題1（rank\_spec）より $x \in T_1.\lev(\rank_{T_1}(x))$，
+したがって $x \in T_2.\lev(\rank_{T_1}(x))$．
+補題2（rank\_le）より $\rank_{T_2}(x) \leq \rank_{T_1}(x)$．
+\end{proofstrategy}
+
+\subsection{一意性定理}
+
+\begin{theorem}[定理B：rank の一意性]
+\label{thm:rank-unique}
+全充足塔 $T$ に対して，以下の二条件は同値である：
+\begin{enumerate}[label=\textup{(\roman*)}]
+  \item 関数 $r \colon \alpha \to \mathbb{N}$ が
+        \textbf{強い単射公理}
+        $\forall x,\, \forall i,\quad x \in T.\lev(i) \Leftrightarrow r(x) \leq i$
+        を満たす
+  \item $r = \rank_T$
+\end{enumerate}
+特に，強い単射公理を満たす関数は一意であり，$\rank_T$ に等しい．
+\end{theorem}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=3.5em, row sep=3em]
+    x \arrow[r, phantom, "{\in}"] & T.\lev(i)
+    \arrow[d, Leftrightarrow, "\text{強い単射公理}"] \\
+    r(x) \arrow[r, phantom, "{\leq}"] & i
+  \end{tikzcd}
+  \hspace{4em}
+  \begin{tikzcd}[column sep=3em, row sep=3em]
+    \alpha \arrow[r, "\rank_T"] \arrow[rd, "r"', bend right=15] & \mathbb{N} \\
+    & \mathbb{N} \arrow[u, "\text{id}"', equal]
+  \end{tikzcd}
+  \caption{%
+    左：強い単射公理（Iic-塔の条件）．
+    右：rank の一意性——強い単射公理を満たす $r$ は必ず $\rank_T$ に等しい．
+  }
+  \label{fig:rank-unique}
+\end{figure}
+
+\begin{proofstrategy}
+$r = \rank_T$ を $\mathtt{Nat.le\_antisymm}$ で示す：
+
+\medskip
+\noindent\textbf{$r(x) \leq \rank_T(x)$}：
+rank\_spec より $x \in T.\lev(\rank_T(x))$．
+強い単射公理の $(\Rightarrow)$ 方向より $r(x) \leq \rank_T(x)$．
+
+\medskip
+\noindent\textbf{$\rank_T(x) \leq r(x)$}：
+強い単射公理の $(\Leftarrow)$ 方向に $r(x) \leq r(x)$（自明）を代入すると
+$x \in T.\lev(r(x))$ が成立する．
+rank\_le より $\rank_T(x) \leq r(x)$．
+\end{proofstrategy}
+
+\begin{leancode}
+theorem ExhaustiveTower.rank_unique_iff {α : Type*} (T : ExhaustiveTower α)
+    (r : α → ℕ) :
+    (∀ x i, x ∈ T.level i ↔ r x ≤ i) → r = T.rank := by
+  intro hchar
+  funext x
+  apply Nat.le_antisymm
+  · -- r x ≤ rank(x): rank_spec から hchar の ⇒ 方向で移す
+    exact (hchar x (T.rank x)).1 (T.rank_spec x)
+  · -- rank(x) ≤ r x: hchar の ⇐ 方向（r x ≤ r x）から rank_le を使う
+    exact T.rank_le x (r x) ((hchar x (r x)).2 (le_refl _))
+\end{leancode}
+
+\begin{theorem}[Iic-塔の存在]
+\label{thm:iic-tower}
+任意の関数 $r \colon \alpha \to \mathbb{N}$ に対して，
+強い単射公理 $x \in T.\lev(i) \Leftrightarrow r(x) \leq i$
+を満たす全充足塔 $T_r$ が存在する．
+\[
+  T_r.\lev(i) = \{x \in \alpha \mid r(x) \leq i\} = r^{-1}([0, i])
+\]
+この $T_r$ を \textbf{Iic-塔}という．
+\end{theorem}
+
+%% =============================================================================
+\section{定理C: EMAlgebras の完備束構造}
+%% =============================================================================
+
+\subsection{EM代数の基本性質}
+
+\begin{proposition}[EM代数の特徴づけ]
+\label{prop:em-algebra-char}
+閉包作用素 $c$ に対して，
+$x \in \EMAlg(c) \Leftrightarrow c(x) = x$．
+\end{proposition}
+
+\begin{proof}
+拡大性 $x \leq c(x)$ と仮定 $c(x) \leq x$ を合わせると $c(x) = x$．
+逆は定義から自明．
+\end{proof}
+
+\begin{proposition}
+\label{prop:closure-mem-em}
+任意の $x \in \alpha$ に対して $c(x) \in \EMAlg(c)$．
+\end{proposition}
+
+\begin{proof}
+冪等性 $c(c(x)) = c(x)$ より．
+\end{proof}
+
+\subsection{主定理}
+
+\begin{theorem}[定理C：EMAlgebras の完備束構造]
+\label{thm:em-iinf}
+族 $(x_s)_{s \in \sigma} \subseteq \EMAlg(c)$ に対して，
+任意の $y \in \alpha$ について
+$\forall s,\; y \leq x_s$（$y$ は全 $x_s$ の下界）ならば
+$\forall s,\; c(y) \leq x_s$（$c(y)$ も全 $x_s$ の下界）が成立する．
+
+すなわち，$\EMAlg(c)$ は任意交叉（無限下限）で閉じており，
+完備束の下半束（meet-semilattice）をなす．
+\end{theorem}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=4em, row sep=3em]
+    \alpha \arrow[r, "c", bend left=10]
+    \arrow[r, "{c \circ c = c}"', phantom, shift right=4pt]
+    & \alpha \\
+    \Fix(c) \arrow[u, hook, "{\iota}"] \arrow[ur, "c \circ \iota = \iota"', bend right=10] &
+  \end{tikzcd}
+  \hspace{4em}
+  \begin{tikzcd}[column sep=3em, row sep=2.5em]
+    & y \arrow[dl, "{\leq x_s}"' near start] \arrow[d, "{c}" description] \\
+    x_s \in \EMAlg(c) & c(y) \arrow[l, "{\leq x_s}"]
+  \end{tikzcd}
+  \caption{%
+    左：閉包作用素の冪等性（$\Fix(c)$ への収縮）．
+    右：下界 $y$ を $c$ で写しても下界のまま——定理Cの証明アイデア．
+  }
+  \label{fig:em-diagram}
+\end{figure}
+
+\begin{proofstrategy}
+$c(y) \leq x_s$ を示す：
+\[
+  c(y) \;\leq\; c(x_s) \;=\; x_s.
+\]
+第一の不等式は $y \leq x_s$ と $c$ の単調性から．
+等式は $x_s \in \EMAlg(c)$，すなわち $c(x_s) = x_s$ から．
+
+Lean では \texttt{calc} を用いて：
+\begin{center}
+  \texttt{calc c y ≤ c x := c.monotone hyx\quad  \_   = x   := (emAlgebra\_iff\_fixed ...).mp hx}
+\end{center}
+\end{proofstrategy}
+
+\begin{leancode}
+-- C-3: EM代数の上界性（中心補題）
+theorem emAlgebra_upper_bound (c : ClosureOperator α) {x y : α}
+    (hx : x ∈ EMAlgebras c) (hyx : y ≤ x) : c y ≤ x := by
+  calc c y ≤ c x := c.monotone hyx
+    _      = x   := (emAlgebra_iff_fixed c x).mp hx
+
+-- C-6 (主定理C): EM代数は iInf に閉じている
+theorem emAlgebras_iInf_closed (c : ClosureOperator α)
+    {σ : Type*} (xs : σ → α)
+    (hxs : ∀ i, xs i ∈ EMAlgebras c) :
+    ∀ y, (∀ i, y ≤ xs i) → (∀ i, c y ≤ xs i) :=
+  fun _y hy i => emAlgebra_upper_bound c (hxs i) (hy i)
+\end{leancode}
+
+\subsection{towerOfClosure との接続}
+
+\begin{proposition}[EM代数と安定層]
+\label{prop:em-stable-level}
+$x \in \EMAlg(c)
+  \;\Leftrightarrow\;
+  (\mathsf{towerOfClosure}(c)).\lev(x) = {\downarrow}\,x$.
+
+すなわち，EM代数の元 $x$ は「自己安定層」を持つ：
+$c(x) = x$ ゆえ ${\downarrow}\,c(x) = {\downarrow}\,x$．
+\end{proposition}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=5em, row sep=3em]
+    (\alpha,\leq)
+      \arrow[r, "\mathsf{towerOfClosure}(c)"]
+    & \mathsf{StructureTower}(\alpha,\alpha) \\
+    \Fix(c)
+      \arrow[u, hook]
+      \arrow[r, "\text{安定層}"]
+    & \{T \mid T.\lev(x) = {\downarrow}\,x\}
+      \arrow[u, hook]
+  \end{tikzcd}
+  \caption{%
+    EM代数（固定点集合）と塔の安定層の対応．
+    $\Fix(c)$ の元は $\mathsf{towerOfClosure}(c)$ において
+    自己安定なレベルを持つ．
+  }
+  \label{fig:em-tower}
+\end{figure}
+
+%% =============================================================================
+\section{接続定理（Bridge）: 代数的フィルトレーション}
+%% =============================================================================
+
+本節では \texttt{StructureTower\_Bridge.lean} の内容を解説する．
+目標は，FilteredRing（次数付き環のフィルトレーション）における
+乗法の条件が StructureTower の Hom として圏論的に定式化できることを示すことである．
+
+\subsection{二項タワー（BinaryTower）}
+
+乗法 $\ast \colon R \times R \to R$ を Tower の射として捉えるには，
+$R \times R$ 上のタワー構造が必要である．
+
+\begin{definition}[BinaryTower]
+\label{def:binary-tower}
+$T \colon \mathsf{StructureTower}(\iota, R)$ に対して，
+\[
+  (\mathsf{BinaryTower}\,T).\lev(i, j)
+  \;\stackrel{\mathrm{def}}{=}\;
+  T.\lev(i) \times T.\lev(j)
+\]
+で $\mathsf{StructureTower}(\iota \times \iota, R \times R)$ を定める．
+$\iota \times \iota$ の前順序は積順序
+$(i,j) \leq (i',j') \Leftrightarrow i \leq i' \wedge j \leq j'$．
+\end{definition}
+
+\begin{leancode}
+def binaryTower (T : StructureTower ι α) : StructureTower (ι × ι) (α × α) where
+  level ij := T.level ij.1 ×ˢ T.level ij.2   -- Set.prod
+  monotone_level := by
+    intro ⟨i₁, i₂⟩ ⟨j₁, j₂⟩ ⟨h₁, h₂⟩ ⟨x, y⟩ ⟨hx, hy⟩
+    exact ⟨T.monotone_level h₁ hx, T.monotone_level h₂ hy⟩
+\end{leancode}
+
+\subsection{FilteredRing とその乗法 Hom}
+
+\begin{definition}[FilteredRing]
+\label{def:filtered-ring}
+$\iota$（可換加法モノイド + 前順序，加法が単調）と環 $R$ に対して，
+\textbf{次数付き環のフィルトレーション} $F$ は
+構造塔 $F \colon \mathsf{StructureTower}(\iota, R)$ であって次を満たすもの：
+\begin{enumerate}[label=\textup{(\roman*)}]
+  \item $0 \in F.\lev(i)$ （零元を含む）
+  \item $x, y \in F.\lev(i) \Rightarrow x + y \in F.\lev(i)$ （加法閉）
+  \item $x \in F.\lev(i) \Rightarrow -x \in F.\lev(i)$ （逆元閉）
+  \item $1 \in F.\lev(0)$ （単位元は最小層）
+  \item $x \in F.\lev(i),\; y \in F.\lev(j) \Rightarrow x \cdot y \in F.\lev(i+j)$
+        （\textbf{乗法の次数加算}，mul\_mem 公理）
+\end{enumerate}
+\end{definition}
+
+条件 (v) が StructureTower の Hom として解釈できる：
+
+\begin{theorem}[乗法と Hom の同値]
+\label{thm:mul-hom-equiv}
+FilteredRing $F$ に対して，乗法 $\ast \colon R \times R \to R$ は
+\[
+  \mathsf{BinaryTower}(F)
+  \xrightarrow{\ (x,y)\,\mapsto\, x \cdot y\ }
+  \reindex_{+}(F)
+\]
+の Hom になる．ただし $\reindex_{+}(F)$ は
+$(i,j) \mapsto i+j$ による引き戻し．さらに：
+\[
+  \text{mul\_mem 公理}
+  \;\Longleftrightarrow\;
+  \text{乗法が }\mathsf{BinaryTower}(F) \to \reindex_{(i,j)\mapsto i+j}(F)\text{ の Hom}
+\]
+\end{theorem}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=5em, row sep=3.5em]
+    \mathsf{BinaryTower}(F)
+    \arrow[r, "{(x,y)\mapsto x\cdot y}", "\mathrm{Hom}"']
+    & \reindex_{+}(F) \\
+    F.\lev(i) \times F.\lev(j)
+    \arrow[u, phantom, "\ni"{sloped}]
+    \arrow[r, "\ni\; x\cdot y"']
+    & F.\lev(i+j)
+    \arrow[u, phantom, "\ni"{sloped}]
+  \end{tikzcd}
+  \caption{%
+    定理（乗法 Hom 同値）：FilteredRing の mul\_mem 公理は，
+    乗法が BinaryTower から reindex タワーへの Hom であることと同値．
+  }
+  \label{fig:mul-hom}
+\end{figure}
+
+\begin{leancode}
+-- 方向1: mul_mem → Hom の構成
+def FilteredRing.toMulHom (F : FilteredRing ι R) :
+    Hom (binaryTower F.toStructureTower)
+        (reindex (fun ij : ι × ι => ij.1 + ij.2) fst_add_snd_monotone
+          F.toStructureTower) where
+  toFun     := fun ⟨x, y⟩ => x * y
+  preserves := by
+    intro ⟨i, j⟩ ⟨x, y⟩ ⟨hx, hy⟩
+    simp [reindex]
+    exact F.mul_mem i j hx hy  -- mul_mem 公理を直接適用
+\end{leancode}
+
+\subsection{FilteredRingHom と Tower の Hom}
+
+\begin{definition}[FilteredRingHom]
+\label{def:filtered-ring-hom}
+FilteredRing $F \colon \mathsf{FilteredRing}(\iota, R)$，
+$G \colon \mathsf{FilteredRing}(\iota, S)$ に対して，
+\textbf{FilteredRingHom} $\varphi \colon F \to G$ は：
+\begin{itemize}
+  \item 環準同型 $\varphi \colon R \to^{+*} S$
+  \item レベル保存：$\forall i,\; \varphi(F.\lev(i)) \subseteq G.\lev(i)$
+\end{itemize}
+\end{definition}
+
+\begin{proposition}
+\label{prop:filtered-hom-is-tower-hom}
+FilteredRingHom $\varphi \colon F \to G$ は，
+下部の StructureTower の Hom になる．
+\end{proposition}
+
+\subsection{mapOnHom と $h_g$ 条件}
+
+\texttt{StructureTower\_Bridge.lean} の核心は，
+\texttt{mapOnHom} の $h_g$ 条件（可換性条件）が
+FilteredRingHom の乗法互換性に対応するという観察である．
+
+\begin{definition}[mapOnHom]
+\label{def:map-on-hom}
+$f \colon \alpha \to \beta$，
+$g \colon \mathsf{Hom}(T_1, T_2)$，
+$g_\beta \colon \beta \to \beta$，
+および \textbf{可換性条件}（$h_g$ 条件）
+\[
+  \forall x,\quad g_\beta(f(x)) = f(g(x))
+\]
+が与えられたとき，\textbf{mapOnHom} は
+$\mathsf{Hom}(\mathsf{map}_f(T_1),\, \mathsf{map}_f(T_2))$
+を構成する（\texttt{toFun} $= g_\beta$）．
+\end{definition}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=4.5em, row sep=3.5em]
+    \alpha \arrow[r, "f"] \arrow[d, "g"'] & \beta \arrow[d, "g_\beta"] \\
+    \alpha \arrow[r, "f"'] & \beta
+  \end{tikzcd}
+  \caption{%
+    $h_g$ 条件：$g_\beta \circ f = f \circ g$．
+    これが mapOnHom の存在条件であり，
+    同時に FilteredRingHom の乗法互換性の圏論的本質でもある．
+  }
+  \label{fig:hg-cond}
+\end{figure}
+
+\subsection{統合定理：可換図式}
+
+FilteredRingHom $\varphi \colon F \to G$ があるとき，
+次の可換図式が成立する：
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=5em, row sep=4em]
+    \mathsf{BinaryTower}(F)
+    \arrow[r, "{\varphi \times \varphi}"]
+    \arrow[d, "\ast_F"']
+    & \mathsf{BinaryTower}(G)
+    \arrow[d, "\ast_G"] \\
+    \reindex_{+}(F)
+    \arrow[r, "\varphi"']
+    & \reindex_{+}(G)
+  \end{tikzcd}
+  \caption{%
+    FilteredRingHom の可換図式
+    （定理 \texttt{mul\_hom\_square\_commutes}）．
+    上の経路：$(x,y) \mapsto (\varphi x, \varphi y) \mapsto \varphi(x) \cdot \varphi(y)$．
+    下の経路：$(x,y) \mapsto x \cdot y \mapsto \varphi(x \cdot y)$．
+    両者は $\varphi(x \cdot y) = \varphi(x) \cdot \varphi(y)$（環準同型）により一致．
+  }
+  \label{fig:filtered-hom-square}
+\end{figure}
+
+この可換性の証明は，環準同型の乗法保存という事実から直接得られる：
+
+\begin{leancode}
+-- mul_hom_square_commutes: 可換図式の成立
+theorem mul_hom_square_commutes
+    (F : FilteredRing ι R) (G : FilteredRing ι S)
+    (φ : FilteredRingHom F G)
+    (ij : ι × ι) (p : R × R) (...) :
+    -- 両経路が一致することの等式
+    φ.toFun (p.1 * p.2) = φ.toFun p.1 * φ.toFun p.2 :=
+  map_mul φ.toFun p.1 p.2   -- RingHom の乗法保存
+
+-- 系: φ が Hom かつ mul_mem が結合して φ(x*y) ∈ G.level(i+j) を導く
+theorem filteredRing_category_coherence
+    (F : FilteredRing ι R) (G : FilteredRing ι S)
+    (φ : FilteredRingHom F G) (i j : ι) {x y : R}
+    (hx : x ∈ F.level i) (hy : y ∈ F.level j) :
+    φ.toFun (x * y) ∈ G.level (i + j) := by
+  rw [map_mul]
+  exact G.mul_mem i j (φ.preserves i hx) (φ.preserves j hy)
+\end{leancode}
+
+%% =============================================================================
+\section{\texorpdfstring{$h_g$}{hg} 条件の3つの顔}
+%% =============================================================================
+
+接続定理の哲学的核心は，一見異なる3つの条件が同一の数学的構造の「3つの顔」であることだ．
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[column sep=0em, row sep=4em]
+    & h_g\text{ 条件（mapOnHom）}
+    \arrow[dl, Leftrightarrow, "\text{§2 Bridge}"']
+    \arrow[dr, Leftrightarrow, "\text{§4 Bridge}"]
+    & \\
+    \text{mul\_mem 公理}
+    \arrow[rr, Leftrightarrow, "\text{同値の連鎖}"']
+    & & \text{FilteredRingHom の乗法互換}
+  \end{tikzcd}
+  \caption{$h_g$ 条件の同値の連鎖}
+  \label{fig:hg-three-faces}
+\end{figure}
+
+\begin{enumerate}[leftmargin=2em, label=\textbf{顔\arabic*：}]
+  \item \textbf{CategoricalView（mapOnHom の設計条件）}\\
+        $g_\beta \circ f = f \circ g$\\
+        「$\beta$-側の操作 $g_\beta$ が $f$ を通じて $\alpha$-側の操作 $g$ と可換」
+
+  \item \textbf{EscapeExercises（FilteredRing.mul\_mem）}\\
+        $x \in F(i),\; y \in F(j) \Rightarrow x \cdot y \in F(i+j)$\\
+        「乗法が次数加算と可換」
+
+  \item \textbf{Bridge（FilteredRingHom の乗法互換性）}\\
+        $\varphi(x \cdot y) = \varphi(x) \cdot \varphi(y)$
+        かつ $\varphi(F(i)) \subseteq G(i)$\\
+        「環準同型が次数を保つ」
+\end{enumerate}
+
+\medskip
+
+\textbf{同値の連鎖}（ファイルコメントより）：
+\begin{align*}
+  &\text{FilteredRing.mul\_mem} \\
+  \Longleftrightarrow\; &\text{（§2）乗法が }
+    \mathsf{BinaryTower}(F) \to \reindex_{+}(F)\text{ の Hom} \\
+  \Longleftrightarrow\; &\text{（§4）mapOnHom の }h_g\text{ 条件が成立} \\
+  \Longleftrightarrow\; &\text{（§3）FilteredRingHom のレベル保存 + 乗法可換性}
+\end{align*}
+
+\begin{mathinsight}
+この同値の連鎖が「EscapeExercises（代数的フィルトレーション）と
+CategoricalView（圏論的視点）の橋渡し」（Bridge ファイルの目的）である．
+
+特に，FilteredRing の圏における射の条件
+（レベル保存 + 環準同型）が，
+StructureTower の圏における Hom の条件
+（mapOnHom の $h_g$ 型）と完全に一致することは，
+この形式化プロジェクトの中心的な知見の一つである．
+\end{mathinsight}
+
+%% =============================================================================
+\section{まとめ}
+%% =============================================================================
+
+本稿では，StructureTower の形式化における3本の主定理と接続定理を解説した．
+
+\begin{itemize}
+  \item \textbf{定理A}（\ref{thm:reindex-functor}）：
+        $\reindex_f$ は NatInclusion の圏の関手である．
+        証明の核心は「$\mathtt{fun\; i \Rightarrow h\;(f\;i)}$」という一行に凝縮される．
+
+  \item \textbf{定理B}（\ref{thm:rank-unique}）：
+        ExhaustiveTower における rank は，
+        強い単射公理（Iic-塔の条件）によって一意に特徴づけられる．
+        Lean の \texttt{Nat.find} と \texttt{Nat.le\_antisymm} が核心を担う．
+
+  \item \textbf{定理C}（\ref{thm:em-iinf}）：
+        閉包作用素の EM代数は任意交叉で閉じており，
+        完備束の下半束をなす．
+        単調性と固定点条件の calc チェーンが証明を短くする．
+
+  \item \textbf{接続定理}（\ref{thm:mul-hom-equiv}, 図~\ref{fig:filtered-hom-square}）：
+        FilteredRing の mul\_mem 公理は，
+        BinaryTower から reindex タワーへの Hom と同値であり，
+        mapOnHom の $h_g$ 条件の代数的具現化である．
+\end{itemize}
+
+\begin{remark}[OrderHom との比較]
+単なる \texttt{OrderHom ι (Set α)}（単調な集合値写像）では：
+\begin{itemize}
+  \item rank の情報（最小レベル関数）を表現できない（定理Bの非自明性の源）
+  \item reindex の関手性は「自明な前合成」に見えるが，
+        NatInclusion の圏での関手的性質は定理として明示的に述べる必要がある
+        （定理Aの意義）
+  \item EM代数と iInf の相互作用（定理C）は
+        集合の包含だけでは見えない構造
+\end{itemize}
+StructureTower は「単調集合族」に
+\textbf{数学的な意味付け・圏論的な枠組み}を与える
+型理論的構造として機能する．
+\end{remark}
+
+\end{document}

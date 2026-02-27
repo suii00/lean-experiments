@@ -1,0 +1,983 @@
+% =============================================================================
+% StructureTower の圏論的構造 — Lean 4 形式化と数学的解説
+% LuaLaTeX document
+% =============================================================================
+\documentclass[a4paper,11pt]{ltjsarticle}
+
+% --- Core packages ---
+\usepackage{luatexja-fontspec}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz-cd}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+
+% --- Page geometry ---
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+
+% --- Fonts ---
+\setmainjfont{Noto Serif CJK JP}
+\setsansjfont{Noto Sans CJK JP}
+
+% --- Colors ---
+\definecolor{leanblue}{HTML}{2563EB}
+\definecolor{leanbg}{HTML}{F8FAFC}
+\definecolor{leancomment}{HTML}{6B7280}
+\definecolor{leankeyword}{HTML}{7C3AED}
+\definecolor{leanstring}{HTML}{059669}
+\definecolor{accentcolor}{HTML}{1E40AF}
+\definecolor{theoremcolor}{HTML}{EFF6FF}
+\definecolor{definitioncolor}{HTML}{F0FDF4}
+\definecolor{remarkcolor}{HTML}{FFF7ED}
+
+% --- Hyperref ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentcolor,
+  urlcolor=leanblue,
+  citecolor=accentcolor,
+  pdftitle={構造塔の圏論的構造},
+  pdfauthor={su},
+}
+
+% --- Theorem environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{注意}
+
+% --- Lean code environment ---
+\lstdefinelanguage{lean4}{
+  morekeywords={def,theorem,lemma,example,instance,class,structure,
+    where,let,in,do,if,then,else,match,with,fun,return,
+    import,open,namespace,section,end,variable,
+    inductive,abbrev,noncomputable,private,protected,
+    sorry,admit,have,show,suffices,calc,by,exact,
+    apply,intro,intros,constructor,cases,induction,
+    simp,rw,rfl,ext,ring,linarith,omega,norm_num,
+    decide,trivial,assumption,contradiction,
+    Type,Prop,Sort,Set,true,false,
+    attribute,deriving},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+  literate=
+    {α}{{\(\alpha\)}}1
+    {β}{{\(\beta\)}}1
+    {γ}{{\(\gamma\)}}1
+    {δ}{{\(\delta\)}}1
+    {ι}{{\(\iota\)}}1
+    {κ}{{\(\kappa\)}}1
+    {φ}{{\(\varphi\)}}1
+    {→}{{\(\to\)}}1
+    {←}{{\(\leftarrow\)}}1
+    {⟨}{{\(\langle\)}}1
+    {⟩}{{\(\rangle\)}}1
+    {≤}{{\(\leq\)}}1
+    {≥}{{\(\geq\)}}1
+    {≠}{{\(\neq\)}}1
+    {∀}{{\(\forall\)}}1
+    {∃}{{\(\exists\)}}1
+    {∧}{{\(\wedge\)}}1
+    {∨}{{\(\vee\)}}1
+    {¬}{{\(\neg\)}}1
+    {∈}{{\(\in\)}}1
+    {∉}{{\(\notin\)}}1
+    {⊆}{{\(\subseteq\)}}1
+    {⊂}{{\(\subset\)}}1
+    {∪}{{\(\cup\)}}1
+    {∩}{{\(\cap\)}}1
+    {∅}{{\(\emptyset\)}}1
+    {⊤}{{\(\top\)}}1
+    {⊥}{{\(\bot\)}}1
+    {∘}{{\(\circ\)}}1
+    {×}{{\(\times\)}}1
+    {ℕ}{{\(\mathbb{N}\)}}1
+    {ℤ}{{\(\mathbb{Z}\)}}1
+    {ℝ}{{\(\mathbb{R}\)}}1
+    {:=}{{:=}}2
+    {▸}{{\(\blacktriangleright\)}}1,
+}
+
+\lstnewenvironment{leancode}[1][]{%
+  \lstset{
+    language=lean4,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{leankeyword}\bfseries,
+    commentstyle=\color{leancomment}\itshape,
+    stringstyle=\color{leanstring},
+    backgroundcolor=\color{leanbg},
+    frame=single,
+    rulecolor=\color{leanblue!30},
+    framesep=8pt,
+    xleftmargin=12pt,
+    xrightmargin=12pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{leancomment},
+    numbersep=8pt,
+    aboveskip=1em,
+    belowskip=1em,
+    #1
+  }%
+}{}
+
+% --- Tcolorbox styles ---
+\newtcolorbox{proofstrategy}{
+  colback=remarkcolor,
+  colframe=orange!60!black,
+  title={\textbf{証明戦略}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{mathinsight}{
+  colback=theoremcolor,
+  colframe=accentcolor,
+  title={\textbf{数学的洞察}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{correspondence}{
+  colback=definitioncolor,
+  colframe=green!60!black,
+  title={\textbf{対応表}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+% --- Header/Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\sffamily\nouppercase{\leftmark}}
+\fancyhead[R]{\small\sffamily Lean 4 形式化}
+\fancyfoot[C]{\thepage}
+
+% =============================================================================
+\begin{document}
+
+% --- Title ---
+\title{%
+  {\LARGE\sffamily\bfseries 構造塔の圏論的構造}\\[0.3em]
+  {\large\sffamily 圏の公理・関手・積・モナド}\\[0.5em]
+  {\large\sffamily Lean 4 による形式化とその数学的解説}%
+}
+\author{su}
+\date{\today}
+\maketitle
+
+% --- AI Disclosure ---
+\begin{center}
+\small
+\textit{AI assistance disclosure:}\\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。\\
+\TeX\ 文書は Claude (Anthropic) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\vspace{1em}
+
+% --- Abstract ---
+\begin{abstract}
+構造塔（StructureTower）は、前順序集合 $(\iota, \leq)$ で添字付けられた
+単調増大部分集合族 $\{L_i\}_{i \in \iota}$ として定義される数学的構造である。
+本稿では、構造塔とそのレベル保存写像（Hom）が圏をなすことを出発点として、
+3段階の圏論的構造を Lean~4 で形式化し、その数学的内容を解説する。
+
+レベル1では圏の公理（恒等律・結合律）、共変・反変関手（map/comap）、
+忘却関手（union）の整合性を確認する。
+レベル2では層関手（レベル評価）と自然変換、大域切断関手（global）、
+同型射、直積の普遍性、自由構造塔と随伴の萌芽を扱う。
+レベル3では閉包作用素 $\mathrm{cl}$ から誘導される冪等モナド
+$(\mathrm{liftCl},\, \eta,\, \mu)$ を構成し、
+閉包公理（拡大性・単調性・冪等性）とモナド公理（単位律・結合律）の
+正確な対応を確立する。さらに Kleisli 射と Eilenberg--Moore 代数を
+構成し、後者が「全レベルが閉集合である塔」に一致することを示す。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{序論}
+% =============================================================================
+
+\subsection{動機と背景}
+
+Nicolas Bourbaki の「構造の母」（structures m\`{e}res）の思想に触発され、
+構造塔（StructureTower）は順序・代数・位相という三つの母構造を統一的に
+扱う枠組みとして設計された。
+本稿の中心的な問いは、
+この構造塔が OrderHom（順序準同型）の単なる言い換えに留まらず、
+圏論的に豊かな内部構造を持つことをいかに示すかである。
+
+構造塔のレベル保存写像 Hom は圏を構成し、この圏の上に
+関手・自然変換・極限・モナドといった圏論的装置が自然に載る。
+特に閉包作用素から誘導されるモナドは、
+「この枠組みでないと自然に記述できない構造」の典型例となる。
+
+\subsection{基本定義}
+
+\begin{definition}[構造塔]\label{def:structure-tower}
+前順序集合 $(\iota, \leq)$ と型 $\alpha$ に対し、
+\textbf{構造塔} $T = (\iota, \alpha, L)$ とは、
+写像 $L : \iota \to \mathcal{P}(\alpha)$ であって
+\[
+  i \leq j \implies L(i) \subseteq L(j)
+\]
+を満たすものである。$L(i)$ をレベル $i$ と呼ぶ。
+\end{definition}
+
+\begin{leancode}
+@[ext]
+structure StructureTower (ι α : Type*) [Preorder ι] : Type _ where
+  level : ι → Set α
+  monotone_level : ∀ ⦃i j : ι⦄, i ≤ j → level i ⊆ level j
+\end{leancode}
+
+\begin{definition}[構造塔の射]\label{def:hom}
+構造塔 $T_1 : \mathrm{ST}(\iota, \alpha)$ と $T_2 : \mathrm{ST}(\iota, \beta)$ の間の
+\textbf{射}（Hom）とは、写像 $f : \alpha \to \beta$ であって
+\[
+  \forall\, i \in \iota,\quad f(T_1.L(i)) \subseteq T_2.L(i)
+\]
+を満たすもの、すなわち各レベルを保存する写像である。
+\end{definition}
+
+\begin{leancode}
+structure Hom (T₁ : StructureTower ι α) (T₂ : StructureTower ι β) where
+  toFun : α → β
+  preserves : ∀ i, MapsTo toFun (T₁.level i) (T₂.level i)
+\end{leancode}
+
+\begin{remark}[射の外延性]
+Hom の2つのフィールドのうち \texttt{preserves} は命題型（Prop）である。
+Lean~4 の proof irrelevance により、射の等しさは基底写像 \texttt{toFun} の等しさに帰着する。
+これは以降の圏の公理の証明で繰り返し用いられる核心的事実であり、
+多くの等式が \texttt{Hom.ext rfl}（すなわち定義的等式）で閉じる根拠である。
+\end{remark}
+
+
+% =============================================================================
+\section{レベル1: 圏の公理と基本関手}\label{sec:level1}
+% =============================================================================
+
+\subsection{圏の公理}
+
+構造塔と射が圏を構成するために必要な三つの公理を確認する。
+
+\begin{theorem}[構造塔の圏]\label{thm:category}
+構造塔の射は以下を満たす:
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{左恒等律}: $\mathrm{id} \circ f = f$
+  \item \textbf{右恒等律}: $f \circ \mathrm{id} = f$
+  \item \textbf{結合律}: $(h \circ g) \circ f = h \circ (g \circ f)$
+\end{enumerate}
+\end{theorem}
+
+\begin{proofstrategy}
+恒等射 $\mathrm{id}_T$ の基底写像は恒等関数 $\mathrm{id}_\alpha$ であり、
+合成 $(g \circ f)$ の基底写像は関数合成 $g_{\mathrm{fun}} \circ f_{\mathrm{fun}}$ である。
+関数の合成は定義的に結合的であり、恒等関数は単位元であるため、
+三つの公理はいずれも \texttt{Hom.ext rfl}（定義的等式による射の外延性）で閉じる。
+\end{proofstrategy}
+
+\begin{leancode}
+theorem Hom.id_comp (f : Hom T₁ T₂) :
+    Hom.comp (Hom.id T₂) f = f := Hom.ext rfl
+
+theorem Hom.comp_id (f : Hom T₁ T₂) :
+    Hom.comp f (Hom.id T₁) = f := Hom.ext rfl
+
+theorem Hom.comp_assoc (h : Hom T₃ T₄) (g : Hom T₂ T₃)
+    (f : Hom T₁ T₂) :
+    Hom.comp (Hom.comp h g) f
+    = Hom.comp h (Hom.comp g f) := Hom.ext rfl
+\end{leancode}
+
+全体像を圏として整理すると次の図式のようになる。
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=large, row sep=large]
+  T_1 \arrow[r, "f"] \arrow[rr, bend left=30, "g \circ f"]
+  & T_2 \arrow[r, "g"]
+  & T_3
+\end{tikzcd}
+\caption{構造塔の圏 $\mathbf{ST}(\iota)$ における射の合成}
+\end{figure}
+
+\subsection{共変関手 map と反変関手 comap}
+
+写像 $f : \alpha \to \beta$ は構造塔の圏に対して2種類の関手的操作を誘導する。
+
+\begin{definition}[順像と逆像]
+写像 $f : \alpha \to \beta$ と構造塔に対し、
+\textbf{順像}（map）と\textbf{逆像}（comap）を次で定義する:
+\begin{align}
+  (\mathrm{map}\; f\; T).L(i) &:= f(T.L(i)) = \{f(x) \mid x \in T.L(i)\} \\
+  (\mathrm{comap}\; f\; T).L(i) &:= f^{-1}(T.L(i)) = \{x \mid f(x) \in T.L(i)\}
+\end{align}
+\end{definition}
+
+\begin{theorem}[関手性]\label{thm:functoriality}
+map は共変関手、comap は反変関手として振る舞う:
+\begin{align}
+  \mathrm{map}\;\mathrm{id} &= \mathrm{id}, &
+  \mathrm{map}\;g \circ \mathrm{map}\;f &= \mathrm{map}\;(g \circ f) \\
+  \mathrm{comap}\;\mathrm{id} &= \mathrm{id}, &
+  \mathrm{comap}\;f \circ \mathrm{comap}\;g &= \mathrm{comap}\;(g \circ f)
+\end{align}
+\end{theorem}
+
+\begin{proofstrategy}
+いずれも塔の外延性（\texttt{ext}）でレベルの各点に帰着した後、
+集合の像・逆像に関する標準的な補題（$\mathrm{image\_id}$, $\mathrm{preimage\_comp}$ 等）
+から \texttt{simp} で処理される。
+\end{proofstrategy}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=large]
+  \mathrm{ST}(\iota, \alpha) \arrow[r, "\mathrm{map}\; f"]
+  \arrow[d, "\mathrm{map}\; (g \circ f)"']
+  & \mathrm{ST}(\iota, \beta) \arrow[d, "\mathrm{map}\; g"] \\
+  {} & \mathrm{ST}(\iota, \gamma)
+\end{tikzcd}
+\qquad
+\begin{tikzcd}[column sep=huge, row sep=large]
+  \mathrm{ST}(\iota, \gamma)
+  \arrow[r, "\mathrm{comap}\; g"]
+  \arrow[d, "\mathrm{comap}\; (g \circ f)"']
+  & \mathrm{ST}(\iota, \beta) \arrow[d, "\mathrm{comap}\; f"] \\
+  {} & \mathrm{ST}(\iota, \alpha)
+\end{tikzcd}
+\caption{map（左、共変）と comap（右、反変）の関手性}
+\end{figure}
+
+
+\subsection{忘却関手と添字変換}
+
+構造塔からその\textbf{和集合}（union）を取り出す操作は忘却関手を定める。
+
+\begin{definition}
+$\mathrm{union}(T) := \bigcup_{i \in \iota} T.L(i)$
+\end{definition}
+
+\begin{proposition}
+射 $f : \mathrm{Hom}(T_1, T_2)$ は union を保存する:
+$f(\mathrm{union}(T_1)) \subseteq \mathrm{union}(T_2)$。
+さらに恒等射と合成も union 上で整合的に振る舞う。
+\end{proposition}
+
+添字変換 $\varphi : \kappa \to \iota$（単調写像）による\textbf{reindex} は
+反変関手的に射を引き戻す。
+
+\begin{leancode}
+def Hom.reindex (f : Hom T₁ T₂) (φ : κ → ι) (hφ : Monotone φ) :
+    Hom (reindex φ hφ T₁) (reindex φ hφ T₂) where
+  toFun := f.toFun
+  preserves := by intro k x hx; exact f.preserves (φ k) hx
+\end{leancode}
+
+
+% =============================================================================
+\section{レベル2: 関手・同型・極限}\label{sec:level2}
+% =============================================================================
+
+\subsection{層関手と自然変換}
+
+各レベル $i$ への「評価」は、構造塔の圏から集合の圏への関手を定める。
+
+\begin{definition}[層関手]\label{def:layer-functor}
+添字 $i \in \iota$ を固定する。
+\textbf{層関手} $\mathrm{Ev}_i : \mathbf{ST}(\iota) \to \mathbf{Set}$ を
+\[
+  \mathrm{Ev}_i(T) := T.L(i), \qquad
+  \mathrm{Ev}_i(f) := f|_{T_1.L(i)} : T_1.L(i) \to T_2.L(i)
+\]
+で定義する。
+\end{definition}
+
+\begin{theorem}[関手性と自然性]
+$\mathrm{Ev}_i$ は関手（恒等と合成を保存）であり、
+$i \leq j$ から誘導される包含射
+$\iota_{ij} : T.L(i) \hookrightarrow T.L(j)$
+は自然変換 $\mathrm{Ev}_i \Rightarrow \mathrm{Ev}_j$ を構成する。
+\end{theorem}
+
+この自然性は以下の可換図式で表現される。
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=large]
+  T_1.L(i) \arrow[r, "f|_i"] \arrow[d, hook, "\iota_{ij}"']
+  & T_2.L(i) \arrow[d, hook, "\iota_{ij}"] \\
+  T_1.L(j) \arrow[r, "f|_j"']
+  & T_2.L(j)
+\end{tikzcd}
+\caption{自然性の正方形: $f|_j \circ \iota_{ij} = \iota_{ij} \circ f|_i$}
+\label{fig:naturality}
+\end{figure}
+
+\begin{leancode}
+theorem levelInclusion_natural (f : Hom T₁ T₂)
+    {i j : ι} (hij : i ≤ j) :
+    (f.restrictLevel j) ∘ (levelInclusion T₁ hij) =
+    (levelInclusion T₂ hij) ∘ (f.restrictLevel i) := by
+  funext ⟨x, hx⟩; rfl
+\end{leancode}
+
+\begin{proofstrategy}
+部分型の元 $\langle x, h_x \rangle$ に対して両辺を展開すると、
+値部分はいずれも $f(x)$ であり、
+membership の証明部分は proof irrelevance により等しい。
+したがって \texttt{rfl} で閉じる。
+\end{proofstrategy}
+
+
+\subsection{大域切断関手}
+
+union が「最も緩い」見方であるのに対し、global は「最も厳しい」見方を与える。
+
+\begin{definition}[大域切断]
+$\mathrm{global}(T) := \bigcap_{i \in \iota} T.L(i)$
+\end{definition}
+
+\begin{proposition}\label{prop:global-functor}
+射は大域切断を保存する:
+$f : \mathrm{Hom}(T_1, T_2) \implies f(\mathrm{global}(T_1)) \subseteq \mathrm{global}(T_2)$。
+すなわち $\mathrm{global}$ は $\mathbf{ST}(\iota) \to \mathbf{Set}$ の関手である。
+\end{proposition}
+
+
+\subsection{同型射}\label{sec:iso}
+
+\begin{definition}[同型射]
+構造塔の\textbf{同型} $T_1 \cong T_2$ とは、射の対 $(h, h^{-1})$ であって
+$h^{-1} \circ h = \mathrm{id}_{T_1}$ かつ $h \circ h^{-1} = \mathrm{id}_{T_2}$ を
+満たすものである。
+\end{definition}
+
+\begin{theorem}
+同型射は各レベルで全単射を誘導する:
+$h : T_1 \cong T_2 \implies h|_i : T_1.L(i) \xrightarrow{\sim} T_2.L(i)$。
+\end{theorem}
+
+同型は反射律・対称律・推移律を満たし、
+型の同値写像（Equiv）からも自然に構成される。
+
+\begin{leancode}
+def Iso.trans (e₁ : Iso T₁ T₂) (e₂ : Iso T₂ T₃) :
+    Iso T₁ T₃ where
+  hom := Hom.comp e₂.hom e₁.hom
+  inv := Hom.comp e₁.inv e₂.inv
+  -- (e₁.inv ∘ e₂.inv) ∘ (e₂.hom ∘ e₁.hom)
+  -- = e₁.inv ∘ (e₂.inv ∘ e₂.hom) ∘ e₁.hom
+  -- = e₁.inv ∘ id ∘ e₁.hom = id
+\end{leancode}
+
+
+\subsection{直積と普遍性}\label{sec:product}
+
+\begin{definition}[直積]
+$(\mathrm{prod}\; T_1\; T_2).L(i) := T_1.L(i) \times T_2.L(i)$
+\end{definition}
+
+\begin{theorem}[直積の普遍性]\label{thm:product-universal}
+任意の塔 $T$ と射 $f : T \to T_1$, $g : T \to T_2$ に対して、
+射 $\mathrm{pair}(f, g) : T \to \mathrm{prod}(T_1, T_2)$ が
+\textbf{一意に}存在し、
+$\mathrm{fst} \circ \mathrm{pair}(f, g) = f$ かつ
+$\mathrm{snd} \circ \mathrm{pair}(f, g) = g$ を満たす。
+\end{theorem}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=large, row sep=large]
+  & T \arrow[dl, "f"'] \arrow[dr, "g"]
+    \arrow[d, dashed, "{\exists!\;\mathrm{pair}(f{,}g)}"] & \\
+  T_1
+  & \mathrm{prod}(T_1, T_2) \arrow[l, "\mathrm{fst}"]
+    \arrow[r, "\mathrm{snd}"']
+  & T_2
+\end{tikzcd}
+\caption{直積の普遍性}
+\label{fig:product-universal}
+\end{figure}
+
+\begin{leancode}
+theorem Hom.pair_unique (f : Hom T T₁) (g : Hom T T₂)
+    (h : Hom T (prod T₁ T₂))
+    (hf : Hom.comp (fst T₁ T₂) h = f)
+    (hg : Hom.comp (snd T₁ T₂) h = g) :
+    h = Hom.pair f g := by
+  apply Hom.ext; funext x
+  exact Prod.ext
+    (congr_fun (congr_arg Hom.toFun hf) x)
+    (congr_fun (congr_arg Hom.toFun hg) x)
+\end{leancode}
+
+\begin{proofstrategy}
+一意性の証明は $h$ と $\mathrm{pair}(f,g)$ の基底写像を点ごとに比較する。
+$\mathrm{fst} \circ h = f$ から $(h(x))_1 = f(x)$ が、
+$\mathrm{snd} \circ h = g$ から $(h(x))_2 = g(x)$ が得られ、
+$\mathrm{Prod.ext}$ で $h(x) = (f(x), g(x)) = \mathrm{pair}(f,g)(x)$
+が結論される。
+\end{proofstrategy}
+
+
+\subsection{自由構造塔と随伴の萌芽}
+
+定数塔 $\mathrm{const}(\iota, S)$ は全レベルに $S$ を一様に配置した塔である。
+
+\begin{proposition}[随伴の萌芽]\label{prop:adjunction}
+次の自然な全単射が成り立つ:
+\[
+  \mathrm{Hom}(\mathrm{const}(\iota, S),\; T) \;\cong\;
+  \{f : \alpha \to \beta \mid f(S) \subseteq \mathrm{global}(T)\}
+\]
+\end{proposition}
+
+これは $\mathrm{const} \dashv \mathrm{global}$ という随伴の萌芽である。
+左辺は「$S$ からの全レベル保存写像」であり、
+右辺は「$S$ を大域切断に送る写像」である。
+全レベルを保存する条件は、
+ちょうど全レベルの共通部分に値が入ることと同値になる。
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=huge]
+  \mathbf{Set}
+  \arrow[r, bend left=25, "{\mathrm{const}(\iota,-)}"]
+  & \mathbf{ST}(\iota)
+  \arrow[l, bend left=25, "\mathrm{global}"]
+\end{tikzcd}
+\[
+  \mathrm{const} \dashv \mathrm{global}
+\]
+\caption{随伴 $\mathrm{const} \dashv \mathrm{global}$ の図式}
+\label{fig:adjunction}
+\end{figure}
+
+
+% =============================================================================
+\section{レベル3: 閉包モナド}\label{sec:level3}
+% =============================================================================
+
+レベル3の主題は、閉包作用素から誘導される冪等モナドである。
+閉包の三公理がモナドの三公理に正確に対応するという事実は、
+構造塔の枠組みが持つ表現力の核心を示す。
+
+\subsection{閉包作用素}
+
+\begin{definition}[閉包作用素]
+$\mathrm{Set}\;\alpha$ 上の\textbf{閉包作用素} $\mathrm{cl}$ とは、
+$(\mathcal{P}(\alpha), \subseteq)$ 上の作用素であって
+以下を満たすものである:
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{拡大性}（extensive）: $A \subseteq \mathrm{cl}(A)$
+  \item \textbf{単調性}（monotone）:
+    $A \subseteq B \implies \mathrm{cl}(A) \subseteq \mathrm{cl}(B)$
+  \item \textbf{冪等性}（idempotent）:
+    $\mathrm{cl}(\mathrm{cl}(A)) = \mathrm{cl}(A)$
+\end{enumerate}
+\end{definition}
+
+\begin{example}
+閉包作用素の典型例として、位相空間の閉包、
+群の生成（部分集合から生成される部分群）、
+$\sigma$-代数の生成などがある。
+\end{example}
+
+
+\subsection{Levelwise 自己関手}
+
+\begin{definition}[liftCl]\label{def:liftCl}
+閉包作用素 $\mathrm{cl}$ と構造塔 $T$ に対し、
+$\mathrm{liftCl}(\mathrm{cl}, T)$ を
+\[
+  \mathrm{liftCl}(\mathrm{cl}, T).L(i) := \mathrm{cl}(T.L(i))
+\]
+で定義する。$\mathrm{cl}$ の単調性により、これは再び構造塔をなす。
+\end{definition}
+
+\begin{leancode}
+def liftCl (cl : ClosureOperator (Set α))
+    (T : StructureTower ι α) : StructureTower ι α where
+  level i := cl (T.level i)
+  monotone_level := by
+    intro i j hij x hx
+    exact cl.monotone (T.monotone_level hij) hx
+\end{leancode}
+
+\begin{proofstrategy}
+$i \leq j$ のとき $T.L(i) \subseteq T.L(j)$（塔の単調性）であり、
+$\mathrm{cl}$ の単調性から
+$\mathrm{cl}(T.L(i)) \subseteq \mathrm{cl}(T.L(j))$ が従う。
+\end{proofstrategy}
+
+
+\subsection{Unit 自然変換 $\eta : T \to \mathrm{cl}(T)$}
+
+\begin{definition}[Unit]\label{def:unit}
+閉包の拡大性 $T.L(i) \subseteq \mathrm{cl}(T.L(i))$ から、
+自然な射 $\eta_T : T \to \mathrm{liftCl}(\mathrm{cl}, T)$ が得られる:
+\[
+  \eta_T := (\mathrm{id}_\alpha,\;
+  \mathrm{cl.le\_closure})
+\]
+基底写像は恒等関数であり、レベル保存は拡大性そのものである。
+\end{definition}
+
+$\eta$ の自然性は以下の可換図式で表現される。
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=large]
+  T_1 \arrow[r, "\eta_{T_1}"] \arrow[d, "\iota"']
+  & \mathrm{liftCl}(T_1) \arrow[d, "\mathrm{liftCl}(\iota)"] \\
+  T_2 \arrow[r, "\eta_{T_2}"']
+  & \mathrm{liftCl}(T_2)
+\end{tikzcd}
+\caption{Unit の自然性（$\iota$ は包含射）}
+\end{figure}
+
+
+\subsection{Join $\mu : \mathrm{cl}^2(T) \to \mathrm{cl}(T)$}
+
+\begin{definition}[Join]\label{def:join}
+冪等性 $\mathrm{cl}(\mathrm{cl}(A)) = \mathrm{cl}(A)$ から、
+$\mu_T : \mathrm{liftCl}^2(T) \to \mathrm{liftCl}(T)$ が得られる:
+\[
+  \mu_T := (\mathrm{id}_\alpha,\;
+  \mathrm{cl.idempotent} \text{ の } \supseteq \text{方向})
+\]
+\end{definition}
+
+\begin{proposition}
+$\mu_T$ と $\eta_{\mathrm{liftCl}(T)}$ は互いに逆射である:
+\begin{gather}
+\mu_T \circ \eta_{\mathrm{cl}(T)} = \mathrm{id}
+\qquad\text{かつ}\qquad
+\eta_{\mathrm{cl}(T)} \circ \mu_T = \mathrm{id}
+\end{gather}
+\end{proposition}
+
+これは $\mathrm{liftCl}^2(T) \cong \mathrm{liftCl}(T)$ を意味し、
+冪等モナド特有の現象である。
+
+
+\subsection{モナド法則}
+
+\begin{theorem}[閉包モナド]\label{thm:monad-laws}
+三つ組 $(\mathrm{liftCl},\, \eta,\, \mu)$ はモナドをなす:
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{左単位律}:
+    $\mu \circ \eta_{\mathrm{cl}(T)} = \mathrm{id}_{\mathrm{cl}(T)}$
+  \item \textbf{右単位律}:
+    $\mu \circ \mathrm{liftCl}(\eta) = \mathrm{id}_{\mathrm{cl}(T)}$
+  \item \textbf{結合律}:
+    $\mu \circ \mu_{\mathrm{cl}(T)} = \mu \circ \mathrm{liftCl}(\mu)$
+\end{enumerate}
+\end{theorem}
+
+\begin{leancode}
+-- 左単位律
+theorem monad_left_unit (T : StructureTower ι α) :
+    Hom.comp (join cl T) (unit cl (liftCl cl T))
+    = Hom.id (liftCl cl T) := Hom.ext rfl
+
+-- 右単位律
+theorem monad_right_unit (T : StructureTower ι α) :
+    Hom.comp (join cl T)
+      (liftCl_mapId cl T (liftCl cl T)
+        (fun i => cl.le_closure (T.level i)))
+    = Hom.id (liftCl cl T) := Hom.ext rfl
+
+-- 結合律
+theorem monad_assoc (T : StructureTower ι α) :
+    Hom.comp (join cl T) (join cl (liftCl cl T))
+    = Hom.comp (join cl T) (liftCl_mapId cl ...)
+    := Hom.ext rfl
+\end{leancode}
+
+\begin{mathinsight}
+三つのモナド法則がすべて \texttt{Hom.ext rfl} で閉じるのは偶然ではない。
+$\eta$ と $\mu$ の基底写像がいずれも $\mathrm{id}_\alpha$ であるため、
+任意の合成の基底写像もまた $\mathrm{id}_\alpha$ となり、
+等式は型レベルの整合性チェックに帰着する。
+
+非自明な数学的内容は $\eta$ と $\mu$ の\textbf{構成}
+（preserves の証明）にあり、
+法則の\textbf{証明}自体は自明になる。
+これは「正しく構成すれば法則は自動的に成り立つ」という
+依存型理論の特質を示す好例である。
+\end{mathinsight}
+
+閉包公理とモナド公理の対応を図式で整理する。
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=huge]
+  T \arrow[r, "\eta"] \arrow[dr, equal]
+  & \mathrm{cl}(T) \arrow[d, "\mu"] \\
+  & \mathrm{cl}(T)
+\end{tikzcd}
+\qquad
+\begin{tikzcd}[column sep=huge, row sep=huge]
+  \mathrm{cl}(T) \arrow[r, "\mathrm{cl}(\eta)"]
+  \arrow[dr, equal]
+  & \mathrm{cl}^2(T) \arrow[d, "\mu"] \\
+  & \mathrm{cl}(T)
+\end{tikzcd}
+\qquad
+\begin{tikzcd}[column sep=huge, row sep=huge]
+  \mathrm{cl}^3(T) \arrow[r, "\mathrm{cl}(\mu)"]
+  \arrow[d, "\mu_{\mathrm{cl}(T)}"']
+  & \mathrm{cl}^2(T) \arrow[d, "\mu"] \\
+  \mathrm{cl}^2(T) \arrow[r, "\mu"']
+  & \mathrm{cl}(T)
+\end{tikzcd}
+\caption{モナド法則: 左単位律（左）、右単位律（中）、結合律（右）}
+\label{fig:monad-laws}
+\end{figure}
+
+\begin{correspondence}
+\centering
+\begin{tabular}{lll}
+\textbf{閉包公理} & \textbf{モナド公理} & \textbf{証明の核} \\
+\hline
+拡大性 $A \subseteq \mathrm{cl}(A)$
+  & $\eta : T \to F(T)$ & \texttt{cl.le\_closure} \\
+冪等性 $\mathrm{cl}^2 = \mathrm{cl}$
+  & $\mu : F^2(T) \to F(T)$ & \texttt{cl.idempotent} \\
+単調性
+  & $F$ は関手 & \texttt{cl.monotone} \\
+（自明） & 左単位律 & \texttt{Hom.ext rfl} \\
+（自明） & 右単位律 & \texttt{Hom.ext rfl} \\
+（自明） & 結合律 & \texttt{Hom.ext rfl}
+\end{tabular}
+\end{correspondence}
+
+
+\subsection{Kleisli 射}\label{sec:kleisli}
+
+\begin{definition}[Kleisli 射]
+構造塔 $T_1, T_2$ に対し、\textbf{Kleisli 射}を
+\[
+  T_1 \to_{\mathrm{Kl}} T_2
+  := \mathrm{Hom}(T_1,\; \mathrm{liftCl}(\mathrm{cl}, T_2))
+\]
+で定義する。これは「$T_1$ の各レベルを $T_2$ の各レベルの
+\textbf{閉包の中に}送る」写像であり、
+厳密な保存より緩い条件で近似や飽和を表現する。
+\end{definition}
+
+Kleisli 恒等射は $\eta$（unit）そのものであり、
+Kleisli 合成は $\mu$ を経由した合成で定義される:
+\[
+  g \circ_{\mathrm{Kl}} f := \mu \circ g \circ f
+  \quad (f : T_1 \to_{\mathrm{Kl}} T_2,\;
+         g : T_2 \to_{\mathrm{Kl}} T_3)
+\]
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=large, row sep=large]
+  T_1 \arrow[r, "f"]
+  \arrow[rrr, bend right=25, "{g \circ_{\mathrm{Kl}} f}"']
+  & \mathrm{cl}(T_2) \arrow[r, "g"]
+  & \mathrm{cl}(\mathrm{cl}(T_3)) \arrow[r, "\mu"]
+  & \mathrm{cl}(T_3)
+\end{tikzcd}
+\caption{Kleisli 合成の図式}
+\end{figure}
+
+\begin{remark}
+一般の Kleisli 合成には $\mathrm{cl}$ と $g$ の可換性
+（naturality）が必要であり、
+本形式化では $\mathrm{toFun} = \mathrm{id}$ の特殊ケースで構成している。
+これは「レベル間の包含関係だけで合成が閉じる」状況に対応し、
+添字付き filtration の典型的な設定である。
+\end{remark}
+
+
+\subsection{Eilenberg--Moore 代数}\label{sec:em}
+
+\begin{definition}[閉元の塔]
+閉包作用素 $\mathrm{cl}$ に対し、\textbf{閉元の塔}（ClosedTower）とは、
+構造塔 $T$ であって全レベルが $\mathrm{cl}$-不動点であるもの:
+\[
+  \forall\, i,\quad \mathrm{cl}(T.L(i)) = T.L(i)
+\]
+\end{definition}
+
+\begin{leancode}
+structure ClosedTower (cl : ClosureOperator (Set α))
+    (ι : Type*) [Preorder ι]
+    extends StructureTower ι α where
+  level_closed : ∀ i, cl (level i) = level i
+\end{leancode}
+
+\begin{theorem}[EM 代数と閉元の塔の等価性]\label{thm:em-equiv}
+モナド $(\mathrm{liftCl}, \eta, \mu)$ の Eilenberg--Moore 代数は、
+閉元の塔と正確に対応する:
+\begin{enumerate}[label=(\roman*)]
+  \item 閉元の塔 $T$ は $\mathrm{liftCl}$ の不動点:
+        $\mathrm{liftCl}(\mathrm{cl}, T) = T$。
+  \item 構造射
+        $a : \mathrm{liftCl}(T) \to T$
+        （$a \circ \eta = \mathrm{id}$, $a_{\mathrm{fun}} = \mathrm{id}$）
+        が存在する塔は閉元の塔。
+\end{enumerate}
+\end{theorem}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=large]
+  T \arrow[r, "\eta"] \arrow[dr, equal]
+  & \mathrm{cl}(T) \arrow[d, "a"] \\
+  & T
+\end{tikzcd}
+\qquad\qquad
+\begin{tikzcd}
+  \mathrm{cl}^2(T) \arrow[r, "\mathrm{cl}(a)"]
+  \arrow[d, "\mu"']
+  & \mathrm{cl}(T) \arrow[d, "a"] \\
+  \mathrm{cl}(T) \arrow[r, "a"']
+  & T
+\end{tikzcd}
+\caption{EM 代数の公理:
+  $a \circ \eta = \mathrm{id}$（左）と
+  $a \circ \mu = a \circ \mathrm{cl}(a)$（右）}
+\end{figure}
+
+\begin{proofstrategy}
+(i) $\mathrm{liftCl}(T).L(i) = \mathrm{cl}(T.L(i)) = T.L(i)$
+（level\_closed による）。
+
+(ii) $a.\mathrm{preserves}$ は
+$\mathrm{cl}(T.L(i)) \subseteq T.L(i)$
+（$a_{\mathrm{fun}} = \mathrm{id}$ より）。
+拡大性 $T.L(i) \subseteq \mathrm{cl}(T.L(i))$
+と合わせて等号が得られ、$\mathrm{Set.Subset.antisymm}$ で結合する。
+\end{proofstrategy}
+
+\begin{proposition}[閉元の global は閉集合]
+閉元の塔 $T$ の大域切断は $\mathrm{cl}$-閉集合である（一方向）:
+\[
+  \mathrm{cl}(\mathrm{global}(T)) \subseteq \mathrm{global}(T)
+\]
+\end{proposition}
+
+\begin{proofstrategy}
+任意の $i$ について
+$\mathrm{global}(T) \subseteq T.L(i)$ であるから、
+単調性より
+$\mathrm{cl}(\mathrm{global}(T)) \subseteq
+ \mathrm{cl}(T.L(i)) = T.L(i)$。
+全 $i$ で成り立つので
+$\mathrm{cl}(\mathrm{global}(T)) \subseteq
+ \bigcap_i T.L(i) = \mathrm{global}(T)$。
+\end{proofstrategy}
+
+
+% =============================================================================
+\section{全体像と展望}\label{sec:conclusion}
+% =============================================================================
+
+\subsection{三層の圏論的構造}
+
+本稿で構成した構造を整理すると、三つの層が浮かび上がる。
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[row sep=huge, column sep=tiny]
+  & \fbox{\textsf{レベル3: モナド}}
+    \arrow[dl] \arrow[dr] & \\
+  \fbox{\parbox{3cm}{\centering\textsf{Kleisli 圏}\\[-0.2em]
+    \scriptsize $T_1 \to_{\mathrm{Kl}} T_2$}}
+  & &
+  \fbox{\parbox{3cm}{\centering\textsf{EM 代数}\\[-0.2em]
+    \scriptsize 閉元の塔}} \\
+  & \fbox{\textsf{レベル2: 関手・極限}}
+    \arrow[dl] \arrow[d] \arrow[dr] & \\
+  \fbox{\parbox{2.5cm}{\centering\textsf{層関手}\\[-0.2em]
+    \scriptsize $\mathrm{Ev}_i$}}
+  & \fbox{\parbox{2.5cm}{\centering\textsf{直積}\\[-0.2em]
+    \scriptsize 普遍性}}
+  & \fbox{\parbox{3cm}{\centering\textsf{随伴}\\[-0.2em]
+    \scriptsize $\mathrm{const} \dashv \mathrm{global}$}} \\
+  & \fbox{\textsf{レベル1: 圏の公理}}
+    \arrow[dl] \arrow[d] \arrow[dr] & \\
+  \fbox{\parbox{2cm}{\centering\textsf{map}\\[-0.2em]
+    \scriptsize 共変}}
+  & \fbox{\parbox{2cm}{\centering\textsf{comap}\\[-0.2em]
+    \scriptsize 反変}}
+  & \fbox{\parbox{2.5cm}{\centering\textsf{reindex}\\[-0.2em]
+    \scriptsize 添字変換}}
+\end{tikzcd}
+\caption{構造塔の圏論的構造の階層}
+\end{figure}
+
+
+\subsection{冪等モナドの意義}
+
+レベル3で明らかになった核心的洞察は、
+閉包作用素のモナドが\textbf{冪等モナド}（idempotent monad）
+であることに由来する。
+冪等モナドでは $\mu$ が $\eta$ の逆射となり、
+$F^2(T) \cong F(T)$ が成り立つ。
+
+この性質のおかげで、
+モナド法則が型レベルの整合性に帰着し、
+Kleisli 圏と EM 圏が比較的単純な構造を持ち、
+EM 代数が「不動点」という明快な特徴づけを得る。
+一方、非冪等な例（例: 自由群モナド）への拡張は
+今後の課題として残る。
+
+
+\subsection{今後の方向性}
+
+今後は以下の発展が考えられる。
+第一に、位相空間の閉包や $I$-進 filtration の飽和など、
+具体的な閉包作用素による liftCl モナドの実例を展開すること。
+第二に、Mathlib の \texttt{CategoryTheory} との接続として、
+正式な \texttt{Category} インスタンスの定義と
+\texttt{CategoryTheory.Monad} への登録を行うこと。
+第三に、$\mathrm{toFun} \neq \mathrm{id}$ の Kleisli 合成における
+naturality 条件を探求すること。
+最後に、Hom 集合の間の順序構造から2-圏的・enriched な構造への
+発展が期待される。
+
+
+% =============================================================================
+\end{document}
