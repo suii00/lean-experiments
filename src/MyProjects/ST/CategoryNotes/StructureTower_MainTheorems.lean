@@ -159,17 +159,21 @@ structure ExhaustiveTower (α : Type*) extends StructureTower ℕ α where
 
 -- B-2: rank の定義（Nat.find による最小ランク）
 noncomputable def ExhaustiveTower.rank {α : Type*} (T : ExhaustiveTower α) (x : α) : ℕ :=
-  Nat.find (T.exhaustive x)
+  by
+    classical
+    exact Nat.find (T.exhaustive x)
 
 -- B-3: rank の実現（rank(x) において x は確かに存在する）
 theorem ExhaustiveTower.rank_spec {α : Type*} (T : ExhaustiveTower α) (x : α) :
-    x ∈ T.level (T.rank x) :=
-  Nat.find_spec (T.exhaustive x)
+    x ∈ T.level (T.rank x) := by
+  classical
+  exact Nat.find_spec (T.exhaustive x)
 
 -- B-4: rank の最小性
 theorem ExhaustiveTower.rank_le {α : Type*} (T : ExhaustiveTower α) (x : α)
-    (n : ℕ) (h : x ∈ T.level n) : T.rank x ≤ n :=
-  Nat.find_min' (T.exhaustive x) h
+    (n : ℕ) (h : x ∈ T.level n) : T.rank x ≤ n := by
+  classical
+  exact Nat.find_min' (T.exhaustive x) h
 
 -- B-5: rank の単調性（細かい塔 ⊆ 粗い塔 ならば rank が下がる）
 theorem ExhaustiveTower.rank_antitone {α : Type*}
@@ -190,13 +194,10 @@ theorem ExhaustiveTower.rank_unique_iff {α : Type*} (T : ExhaustiveTower α)
   intro hchar
   funext x
   apply Nat.le_antisymm
-  · -- r x ≤ rank(x): rank は最小なので r x のレベルに x が入る
-    apply T.rank_le
-    rw [hchar]
-  · -- rank(x) ≤ r x: rank_spec より x ∈ level(rank x), hchar より r x ≤ rank x
-    have hspec := T.rank_spec x
-    rw [hchar] at hspec
-    exact hspec
+  · -- r x ≤ rank(x): rank_spec より x ∈ level(rank x), hchar で移す
+    exact (hchar x (T.rank x)).1 (T.rank_spec x)
+  · -- rank(x) ≤ r x: r x のレベルへ入ることを hchar で作って最小性を適用
+    exact T.rank_le x (r x) ((hchar x (r x)).2 (le_refl _))
 
 -- B-7: 強い単射公理を持つ塔は Iic-塔と同型
 --   level i = {x | r x ≤ i} であることと単調性が等価
@@ -204,7 +205,7 @@ theorem ExhaustiveTower.iic_characterization {α : Type*}
     (r : α → ℕ) :
     ∃ (T : ExhaustiveTower α), ∀ x i, x ∈ T.level i ↔ r x ≤ i := by
   refine ⟨⟨⟨fun i => {x | r x ≤ i}, fun _i _j hij _x hx => le_trans hx hij⟩,
-    fun x => ⟨r x, le_refl _⟩⟩, fun x i => Iff.rfl⟩
+    fun x => ⟨r x, by simp⟩⟩, fun x i => Iff.rfl⟩
 
 -- ════════════════════════════════════════════════════════════
 -- Theorem C: EMAlgebras の完備束構造
@@ -234,7 +235,7 @@ variable {α : Type*} [PartialOrder α]
 -- C-1: EM代数の基本性質
 theorem emAlgebra_iff_fixed (c : ClosureOperator α) (x : α) :
     x ∈ EMAlgebras c ↔ c x = x :=
-  ⟨fun h => le_antisymm h (c.le_closure x), fun h => h ▸ le_refl _⟩
+  ⟨fun h => le_antisymm h (c.le_closure x), fun h => by simp [EMAlgebras, h]⟩
 
 -- C-2: c(x) は常に EM代数
 theorem closure_mem_emAlgebras (c : ClosureOperator α) (x : α) :
@@ -267,7 +268,8 @@ theorem emAlgebra_iff_stable_level (c : ClosureOperator α) (x : α) :
     simp [towerOfClosure, h]
   · intro h
     -- level x = Iic x means c x ∈ Iic x, i.e. c x ≤ x
-    have : c x ∈ (towerOfClosure c).level x := c.le_closure x
+    have : c x ∈ (towerOfClosure c).level x := by
+      simp [towerOfClosure]
     rw [h] at this
     exact le_antisymm this (c.le_closure x)
 
@@ -280,7 +282,7 @@ theorem emAlgebras_iInf_closed (c : ClosureOperator α)
     -- iInf した塔の各レベルでは閉包が安定している:
     -- 任意の y ∈ ⋂ᵢ Iic(xs i) に対して c(y) ∈ ⋂ᵢ Iic(xs i)
     ∀ y, (∀ i, y ≤ xs i) → (∀ i, c y ≤ xs i) :=
-  fun y hy i => emAlgebra_upper_bound c (hxs i) (hy i)
+  fun _y hy i => emAlgebra_upper_bound c (hxs i) (hy i)
 
 end TheoremC
 
@@ -312,9 +314,15 @@ end TheoremC
 example {α : Type*} (r : α → ℕ) :
     let T := (ExhaustiveTower.iic_characterization r).choose
     ∀ x, T.rank x = r x := by
+  classical
+  dsimp
+  let T : ExhaustiveTower α := (ExhaustiveTower.iic_characterization r).choose
+  have hchar : ∀ y i, y ∈ T.level i ↔ r y ≤ i := by
+    simpa [T] using (ExhaustiveTower.iic_characterization r).choose_spec
+  have hr : r = T.rank := ExhaustiveTower.rank_unique_iff T r hchar
   intro x
-  have hchar := (ExhaustiveTower.iic_characterization r).choose_spec
-  exact (ExhaustiveTower.rank_unique_iff _ r hchar).symm ▸ rfl
+  have hx : T.rank x = r x := (congrArg (fun f => f x) hr).symm
+  simpa [T] using hx
 
 end StructureTower
 
