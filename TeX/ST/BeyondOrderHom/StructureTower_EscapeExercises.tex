@@ -1,0 +1,102 @@
+\documentclass[11pt,a4paper,lualatex,ja=standard]{bxjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz-cd}
+\usepackage[unicode,colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\title{構造の塔：順序写像を超えて\\(StructureTower Escape Exercises)}
+\author{su}
+\date{\today}
+
+\newtheorem{theorem}{定理}[section]
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{lemma}[theorem]{補題}
+\newtheorem{remark}[theorem]{注意}
+\newtheorem{example}[theorem]{例}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+\begin{abstract}
+本稿では、単純な順序写像 $\iota \to \mathcal{P}(\alpha)$ として定義される「構造の塔（Structure Tower）」に、数学的な制約や代数的な構造を導入する展開について解説する。Lean 4による形式化を通じて、部分対象の制約、階層間の代数構造（加群や環のフィルトレーション）、そして極限に関する公理（網羅性と分離性）といった、より豊かな概念を明らかにする。
+\end{abstract}
+
+\section{はじめに}
+構造の塔（\texttt{StructureTower}）は、順序集合 $\iota$ から集合 $\alpha$ の冪集合 $\mathcal{P}(\alpha)$ への単調写像（\texttt{OrderHom}）として基本的な形を持つ。本稿では、この素朴な定義を拡張し、代数構造や位相的性質と絡み合った豊かな数学的対象へと発展させる。主に以下の3つの方向性を探究する。
+\begin{itemize}
+    \item \textbf{部分対象の制約（Subobject constraints）}: 各階層が部分群や部分モノイドとなる場合。
+    \item \textbf{階層間の代数（Inter-level algebra）}: 環のフィルトレーションのように、異なる階層の元同士の演算が階層の足し算に対応する場合。
+    \item \textbf{極限の公理（Limit axioms）}: 塔が全体を網羅するか（Exhaustive）、あるいは共通部分が自明になるか（Separated）といった位相的・極限的な性質。
+\end{itemize}
+
+\section{代数的フィルトレーション}
+最初のステップとして、塔の各階層に代数的な構造を導入する。
+
+\subsection{加法可換モノイドと群のフィルトレーション}
+加法可換モノイド $M$ におけるフィルトレーション付き加法可換モノイド（\texttt{FilteredAddCommMonoid}）は、各階層 $F_i$ が $M$ の部分モノイドとなる構造の塔である。すなわち、$0 \in F_i$ であり、$x, y \in F_i$ ならば $x + y \in F_i$ を満たす。
+群 $G$ の場合も同様に、各階層が部分群となるフィルトレーション付き群（\texttt{FilteredGroup}）が定義される。
+
+\begin{example}
+自明なフィルトレーション（\texttt{trivial}）はすべての階層を $\{0\}$ としたものであり、普遍的なフィルトレーション（\texttt{universal}）はすべての階層を全空間としたものである。また、二つのフィルトレーションの交叉も再びフィルトレーションとなる。
+\end{example}
+
+準同型写像 $\varphi \colon M \to N$ が与えられたとき、$N$ 上のフィルトレーション $F$ を引き戻す（\texttt{comap}）ことができる。引き戻されたフィルトレーションの各階層は $\varphi^{-1}(F_i)$ で与えられる。引き戻しの構造は以下の可換図式で自然に表現される。
+\begin{equation*}
+\begin{tikzcd}
+M \arrow[r, "\varphi"] & N \\
+\varphi^{-1}(F_i) \arrow[u, hook] \arrow[r, "\varphi"'] & F_i \arrow[u, hook]
+\end{tikzcd}
+\end{equation*}
+群の準同型における引き戻しと押し出し（\texttt{map}、$F_i$ の像 $\varphi(F_i)$）も同様に単調性を保ち、フィルトレーションの構造を持つ。
+
+\subsection{環のフィルトレーションと階層間の作用}
+単なる部分対象の列にとどまらないのが、環のフィルトレーション（\texttt{FilteredRing}）である。環 $R$ と加法モノイドの構造を持つ添字集合 $\iota$ において、乗法は階層をまたいで以下のように作用する。
+\begin{definition}[環のフィルトレーション]
+各階層 $F_i$ が加法部分群であり、乗法に関して以下の「階層間の両立性（Inter-level algebra axiom）」を満たす構造の塔をいう。
+\[
+x \in F_i \text{ かつ } y \in F_j \implies x y \in F_{i+j}
+\]
+加えて、$1 \in F_0$ を満たす。
+\end{definition}
+
+階層間の両立性は、順序写像としての振る舞いと代数的な演算が強く結びついている箇所である。例えば、$F_0$ はそれ自身で閉じた部分環を形成し（$0+0=0$より）、また $i \le j, k \le l$ のとき $x \in F_i, y \in F_k$ ならば $xy \in F_{j+l}$ となることも単調性から直ちに従う。
+
+\begin{equation*}
+\begin{tikzcd}[row sep=large, column sep=large]
+F_i \times F_j \arrow[r, "\cdot"] \arrow[d, hook] & F_{i+j} \arrow[d, hook] \\
+R \times R \arrow[r, "\cdot"] & R
+\end{tikzcd}
+\end{equation*}
+
+\section{極限の公理}
+構造の塔の全体的な振る舞いを制約する「極限」に関する公理を考える。
+
+\subsection{網羅的塔（Exhaustive Tower）}
+すべての元がいずれかの階層に属するような塔を網羅的（\textbf{Exhaustive}）と呼ぶ。
+すなわち、$\bigcup_{i \in \iota} F_i = \alpha$ となる塔である。
+
+添字集合が自然数 $\mathbb{N}$ である場合、元 $x$ が初めて現れる階層をその元の「ランク（\texttt{rank}）」として定義できる。
+\[
+\operatorname{rank}(x) = \min \{ n \in \mathbb{N} \mid x \in F_n \}
+\]
+このランクは、元の複雑さや大きさを測る自然な指標となる。より細かい（各階層が小さい）塔になると、元のランクは押し上げられる（\texttt{rank\_antitone}）。
+
+\subsection{分離的塔（Separated Filtration）}
+加法群における分離的フィルトレーション（\textbf{Separated Filtered Additive Group}）は、すべての階層に含まれる元が $0$ のみである塔を指す。
+\[
+\bigcap_{i \in \iota} F_i = \{0\}
+\]
+この条件はハウスドルフ性に対応する。分離的であることは、「非零の元 $x \ne 0$ は必ずある階層 $F_i$ の外側に存在する」ことと同値である。これにより、元の「非零性」を、塔の有限のレベルでのテストに帰着させることができる。
+
+\section{結論}
+構造の塔は、単なる冪集合への単調写像を超えて、群・環といった代数構造や、網羅性・分離性といった位相的性質を組み込むための柔軟な枠組みを提供する。この形式化は、代数幾何学や可換環論における次数付き環や位相環の議論を構成的かつ型安全に表現する基盤となる。
+
+\end{document}
