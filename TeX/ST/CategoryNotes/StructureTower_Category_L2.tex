@@ -1,0 +1,95 @@
+\documentclass[11pt,a4paper,lualatex]{jlreq}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{tikz-cd}
+\usepackage{tcolorbox}
+\usepackage{hyperref}
+
+\title{StructureTower の圏論的展開（レベル2） \\ \large 圏論的極限、随伴、自然変換の形式化}
+\author{su}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:} \\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、\\
+Codex (OpenAI) で修正した。\\
+\TeX 文書は Gemini 3.1Pro / Antigravity (Google DeepMind) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本稿では、型の上の集合の族として定式化される \texttt{StructureTower} について、圏論的な視点からのさらなる展開を解説する。具体的には、各レベルへの評価がなす層関手と自然変換、直積の普遍性と関手性、大域切断関手、そして定数塔にまつわる随伴（adjunction）の萌芽について、Lean 4上での形式化（\texttt{StructureTower\_CategoryExercises\_L2.lean}）に基づき考察する。
+\end{abstract}
+
+\section{はじめに}
+\texttt{StructureTower} は、添字集合 $\iota$ によって順序付けられた集合のタワー（増大列や減少列など）を抽象化した構造である。対象をタワー、対象間の射（\texttt{Hom}）を「指定された全レベルで包含関係を保つ写像」と定義することで、\texttt{StructureTower} は一つの圏をなす。本稿では、この圏に対する各種の関手的な操作や普遍性を、以下の7つの視点から掘り下げる。
+
+\section{層関手と自然変換 (Layer Functor \& Naturality)}
+各レベル $i \in \iota$ への「評価」は、タワーの圏から集合の圏（あるいは型の圏）への関手とみなせる。
+すなわち、タワー $T$ に対してその $i$-番目のレベル $T.\text{level}(i)$ を対応させ、射 $f : T_1 \to T_2$ に対してはその部分集合への制限写像 $f.\text{restrictLevel}(i)$ を対応させる。
+
+この評価関手において、$i \le j$ という順序関係に伴う自然な包含写像 $\text{levelInclusion}$ は、異なる層関手の間の「自然変換（natural transformation）」として機能する。これは、任意の射 $f : \text{Hom}(T_1, T_2)$ と $i \le j$ に対して、以下の図式が可換になること（自然性の正方形）で確認される。
+
+\begin{center}
+\begin{tikzcd}[row sep=large, column sep=large]
+    T_1.\text{level}(i) \arrow[r, "f.\text{restrict}"] \arrow[d, "\text{inclusion}"'] & T_2.\text{level}(i) \arrow[d, "\text{inclusion}"] \\
+    T_1.\text{level}(j) \arrow[r, "f.\text{restrict}"'] & T_2.\text{level}(j)
+\end{tikzcd}
+\end{center}
+これは圏論における「ファイバー関手」の最も基本的な例である。
+
+\section{大域切断関手 (Global Sections Functor)}
+すべてのレベルにわたる共通部分を取る操作を\textbf{大域切断（global sections）}と呼ぶ。
+\[
+\text{global}(T) = \bigcap_{i \in \iota} T.\text{level}(i)
+\]
+和集合を取る操作（$\text{union}$）が最も緩い集合の構成であるのに対し、大域切断は全レベルの制約を同時に満たす元を取り出す最も厳しい操作である。射 $f$ は定義から各レベルを保存するため、その共通部分である大域切断も自然に保存する。すなわち、大域切断を取る操作は、また一つの関手として振る舞う。
+
+\section{同型射 (Isomorphisms)}
+圏における同型射（\textbf{Iso}）は、互いに逆となる射が存在して、それらの合成が恒等射になるものとして定義される。
+\texttt{StructureTower} における同型射は、基底となる型間の全単射（等価、\texttt{Equiv}）であって、かつその順方向および逆方向がともに全レベルの帰属関係を相互に保存するものと完全に特徴付けられる。
+
+同型射であるための必要十分条件として、基底集合上の写像が単なる全単射であるだけでなく、各レベル $i$ ごとに部分集合 $T_1.\text{level}(i)$ から $T_2.\text{level}(i)$ への全単射（\texttt{BijOn}）を誘導することを示せる。
+
+\section{直積と普遍性 (Product \& Projections)}
+2つのタワー $T_1, T_2$ の直積 $T_1 \times T_2$ は、各位相における直積集合として定義される。
+\[
+(T_1 \times T_2).\text{level}(i) = T_1.\text{level}(i) \times T_2.\text{level}(i)
+\]
+この直積について、第一成分・第二成分への射影 $\text{fst}, \text{snd}$ は当然ながら \texttt{Hom} となる。さらに、直積は圏論的な極限としての\textbf{普遍性（Universal Property）}を満たす。
+
+任意のタワー $T$ から $T_1, T_2$ への射 $f, g$ が与えられたとき、$T$ から直積 $T_1 \times T_2$ への射 $\text{pair}(f, g)$ が\textbf{一意に}存在し、以下の図式を可換にする。
+
+\begin{center}
+\begin{tikzcd}[row sep=large, column sep=large]
+    & T \arrow[dl, "f"'] \arrow[d, "{\text{pair}(f, g)}", dashed] \arrow[dr, "g"] & \\
+    T_1 & T_1 \times T_2 \arrow[l, "\text{fst}"] \arrow[r, "\text{snd}"'] & T_2
+\end{tikzcd}
+\end{center}
+この一意性は、「射影条件を満たす射は必ず \texttt{pair(f, g)} と一致する」として Lean 上でも証明される極めて強力な保証である。
+
+\section{自由構造塔と随伴への準備 (Free Tower \& Adjunction)}
+ある集合 $S \subseteq \alpha$ から定義される、すべてのレベルが $S$ であるようなタワーを\textbf{定数塔（const $S$）}と呼ぶ。
+この「定数塔を構成する操作（$\text{const}$）」と、「大域切断を取り出す操作（$\text{global}$）」は互いに\textbf{随伴（adjoint）}の関係にある。
+
+数学的には、定数塔 $\text{const}(\iota, S)$ から任意のタワー $T$ への射の集合は、集合 $S$ から $T$ の大域切断 $\text{global}(T)$ への写像の集合と自然に1対1対応する。
+\[
+\text{Hom}_{\text{Tower}}(\text{const}(\iota, S), T) \cong \{ f \mid f(S) \subseteq \text{global}(T) \}
+\]
+これは圏論における随伴手対構造の萌芽であり、左随伴である「最小限の要請から生成される自由な構造（\texttt{const}）」と、右随伴である「構造から最も厳しい条件を取り出す忘却・極限的関手（\texttt{global}）」の双対性を見事に体現している。
+
+\section{射の像と直積の関手性}
+射 $f$ による像写像（\texttt{map}）や引き戻し（\texttt{comap}）もそれぞれ関手的な振る舞いをもつ。特に、2つの写像 $f, g$ の直積写像 $f \times g$ をタワーの直積に対して適用する場合、
+\[
+\text{map}(f \times g, T_1 \times T_2) = \text{map}(f, T_1) \times \text{map}(g, T_2)
+\]
+という美しい等式が成立する。\texttt{map} と直積構成が可換であることは、\texttt{StructureTower} の圏が良好な対称的モノイダル構造の性質を継承していることを示唆している。
+
+\section{おわりに}
+\texttt{StructureTower} の圏はシンプルな定義でありながら、層関手、直積の普遍性、そして随伴関手の基礎となる豊富な圏論的構造を内包している。こうした構造を Lean 4で形式化し、等式や一意性として厳密に証明することで、圏論の抽象的な概念が地に足のついた構成的な手法として理解できることがわかるであろう。
+
+\end{document}
