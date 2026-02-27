@@ -37,7 +37,9 @@
 import Mathlib.Data.Set.Lattice
 import Mathlib.Order.GaloisConnection.Basic
 import Mathlib.Order.Closure
+import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
 import Mathlib.Algebra.Ring.Defs
+import Mathlib.Algebra.Ring.Hom.Defs
 import Mathlib.Algebra.Group.Defs
 
 open Set Function
@@ -74,7 +76,8 @@ instance {T₁ : StructureTower ι α} {T₂ : StructureTower ι β} :
 def map (f : α → β) (T : StructureTower ι α) : StructureTower ι β where
   level i        := f '' T.level i
   monotone_level := by
-    intro i j hij y ⟨x, hx, rfl⟩
+    intro i j hij y hy
+    rcases hy with ⟨x, hx, rfl⟩
     exact ⟨x, T.monotone_level hij hx, rfl⟩
 
 def reindex {κ : Type*} [Preorder κ] (f : ι → κ) (hf : Monotone f)
@@ -87,7 +90,10 @@ def mapOnHom (f : α → β) {T₁ T₂ : StructureTower ι α}
     (g : Hom T₁ T₂) (gβ : β → β) (hg : ∀ x, gβ (f x) = f (g x)) :
     Hom (map f T₁) (map f T₂) where
   toFun     := gβ
-  preserves := fun i y ⟨x, hx, rfl⟩ => ⟨g x, g.preserves i hx, hg x⟩
+  preserves := by
+    intro i y hy
+    rcases hy with ⟨x, hx, rfl⟩
+    exact ⟨g x, g.preserves i hx, (hg x).symm⟩
 
 -- ════════════════════════════════════════════════════════════
 -- §1. 二項タワー（BinaryTower）
@@ -174,7 +180,7 @@ def FilteredRing.toMulHom (F : FilteredRing ι R) :
     exact F.mul_mem i j hx hy
 
 /-- 逆方向: 「乗法が Hom」ならば mul_mem 公理が成り立つ -/
-theorem mulHom_to_mul_mem
+def mulHom_to_mul_mem
     (T : StructureTower ι R)
     (hzero : ∀ i, (0 : R) ∈ T.level i)
     (hadd  : ∀ i {x y}, x ∈ T.level i → y ∈ T.level i → x + y ∈ T.level i)
@@ -191,21 +197,27 @@ theorem mulHom_to_mul_mem
   one_mem  := hone
   mul_mem  := by
     intro i j x y hx hy
-    have := hmul.preserves (i, j) ⟨x, y⟩ ⟨hx, hy⟩
-    simp [reindex] at this
-    rwa [hmul_eq] at this
+    have hxy : (x, y) ∈ (binaryTower T).level (i, j) := ⟨hx, hy⟩
+    have hpres := hmul.preserves (i, j) hxy
+    simpa [reindex, hmul_eq] using hpres
 
 /-- 同値の主定理:
     「FilteredRing の乗法公理」と「乗法が特定の Hom」は等価 -/
-theorem mul_mem_iff_mulHom (F : FilteredRing ι R) (i j : ι) {x y : R} :
-    (x ∈ F.level i ∧ y ∈ F.level j → x * y ∈ F.level (i + j)) ↔
+theorem mul_mem_iff_mulHom (F : FilteredRing ι R) (i j : ι) :
+    (∀ x y : R, x ∈ F.level i ∧ y ∈ F.level j → x * y ∈ F.level (i + j)) ↔
     ∀ p : R × R, p ∈ (binaryTower F.toStructureTower).level (i, j) →
       p.1 * p.2 ∈ (reindex (fun ij : ι × ι => ij.1 + ij.2)
         fst_add_snd_monotone F.toStructureTower).level (i, j) := by
-  simp [binaryTower, reindex]
   constructor
-  · intro h ⟨x', y'⟩ ⟨hx', hy'⟩; exact h ⟨hx', hy'⟩
-  · intro h ⟨hx, hy⟩; exact h ⟨x, y⟩ ⟨hx, hy⟩
+  · intro h p hp
+    rcases p with ⟨x', y'⟩
+    have hxy : x' ∈ F.level i ∧ y' ∈ F.level j := by
+      simpa [binaryTower] using hp
+    simpa [reindex] using h x' y' hxy
+  · intro h x y hxy
+    have hp : (x, y) ∈ (binaryTower F.toStructureTower).level (i, j) := by
+      simpa [binaryTower] using hxy
+    simpa [reindex] using h (x, y) hp
 
 end MulHomEquiv
 
@@ -377,7 +389,7 @@ theorem mul_hom_square_commutes
     (F : FilteredRing ι R) (G : FilteredRing ι S)
     (φ : FilteredRingHom F G)
     (ij : ι × ι) (p : R × R)
-    (hp : p ∈ (binaryTower F.toStructureTower).level ij) :
+    (_hp : p ∈ (binaryTower F.toStructureTower).level ij) :
     -- 上の経路: p ↦ (φ p.1, φ p.2) ↦ φ(p.1) * φ(p.2)
     -- 下の経路: p ↦ p.1 * p.2 ↦ φ(p.1 * p.2)
     -- 両者が一致する（RingHom の乗法保存から）

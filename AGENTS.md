@@ -50,3 +50,4 @@
 - CI の `sorry` 検出はコメントやコメントアウト行の文字列にも反応するため、`.lean` 内に `sorry` という語を残さない。
 - `Nat.find` / `Nat.find_spec` / `Nat.find_min'` を使うときは `Mathlib.Data.Nat.Find` を import し、必要に応じて `classical` で `DecidablePred` を供給する。
 - ゴールが `let T := ...; ...` の形なら `intro` 前に `dsimp` で `let` を展開し、変数取り違えを防ぐ。
+- `CovariantClass` や `add_le_add` を使うときは `Mathlib.Algebra.Order.Monoid.Unbundled.Basic` を import する。
