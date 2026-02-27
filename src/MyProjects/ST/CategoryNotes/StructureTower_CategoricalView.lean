@@ -60,7 +60,7 @@ instance {T₁ : StructureTower ι α} {T₂ : StructureTower ι β} :
   coe f := f.toFun
 
 def Hom.id (T : StructureTower ι α) : Hom T T where
-  toFun     := id
+  toFun     := _root_.id
   preserves := fun _i _x hx => hx
 
 def Hom.comp {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
@@ -69,13 +69,25 @@ def Hom.comp {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
   toFun     := g.toFun ∘ f.toFun
   preserves := fun i _x hx => g.preserves i (f.preserves i hx)
 
+@[ext]
+theorem Hom.ext {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
+    {f g : Hom T₁ T₂} (h : f.toFun = g.toFun) : f = g := by
+  cases f
+  cases g
+  cases h
+  rfl
+
 -- 圏の公理（単位律・結合律）
 
 theorem Hom.comp_id {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
-    (f : Hom T₁ T₂) : Hom.comp f (Hom.id T₁) = f := by cases f; rfl
+    (f : Hom T₁ T₂) : Hom.comp f (Hom.id T₁) = f := by
+  ext x
+  rfl
 
 theorem Hom.id_comp {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
-    (f : Hom T₁ T₂) : Hom.comp (Hom.id T₂) f = f := by cases f; rfl
+    (f : Hom T₁ T₂) : Hom.comp (Hom.id T₂) f = f := by
+  ext x
+  rfl
 
 theorem Hom.comp_assoc
     {T₁ : StructureTower ι α} {T₂ : StructureTower ι β}
@@ -125,8 +137,10 @@ theorem NatInclusion.antisymm {T₁ T₂ : StructureTower ι α}
 
 def map (f : α → β) (T : StructureTower ι α) : StructureTower ι β where
   level i        := f '' T.level i
-  monotone_level := fun _i _j hij _y ⟨x, hx, rfl⟩ =>
-    ⟨x, T.monotone_level hij hx, rfl⟩
+  monotone_level := by
+    intro i j hij y hy
+    rcases hy with ⟨x, hx, rfl⟩
+    exact ⟨x, T.monotone_level hij hx, rfl⟩
 
 def comap (f : α → β) (T : StructureTower ι β) : StructureTower ι α where
   level i        := f ⁻¹' T.level i
@@ -139,18 +153,18 @@ def reindex {κ : Type*} [Preorder κ] (f : ι → κ) (hf : Monotone f)
 
 -- 関手法則（証明済み）
 
-theorem map_id (T : StructureTower ι α) : map id T = T := by
+theorem map_id (T : StructureTower ι α) : map _root_.id T = T := by
   ext i x; simp [map]
 
 theorem map_comp (f : α → β) (g : β → γ) (T : StructureTower ι α) :
     map (g ∘ f) T = map g (map f T) := by
-  ext i x; simp [map, image_comp]
+  ext i x; simp [map]
 
-theorem comap_id (T : StructureTower ι α) : comap id T = T := by
+theorem comap_id (T : StructureTower ι α) : comap _root_.id T = T := by
   ext i x; simp [comap]
 
 theorem comap_comp (f : α → β) (g : β → γ) (T : StructureTower ι γ) :
-    comap (f ∘ g) T = comap f (comap g T) := by
+    comap f (comap g T) = comap (g ∘ f) T := by
   ext i x; simp [comap]
 
 theorem reindex_id (T : StructureTower ι α) :
@@ -212,7 +226,7 @@ def initial : StructureTower ι α where
 
 theorem natInclusion_from_initial (T : StructureTower ι α) :
     NatInclusion initial T :=
-  fun _i _x hx => absurd hx (Set.not_mem_empty _)
+  fun _i _x hx => False.elim hx
 
 -- ──────────────────────────────────────────
 -- §4-2. 積（levelwise 交叉）
@@ -307,8 +321,10 @@ def iInf {σ : Type*} (T : σ → StructureTower ι α) : StructureTower ι α w
 /-- 無限余積: 任意の族 (Tₛ)_{s:σ} の levelwise 合併 -/
 def iSup {σ : Type*} (T : σ → StructureTower ι α) : StructureTower ι α where
   level i        := ⋃ s, (T s).level i
-  monotone_level := fun _i _j hij _x ⟨s, hs, hx⟩ =>
-    ⟨s, hs, (T s).monotone_level hij hx⟩
+  monotone_level := by
+    intro i j hij x hx
+    rcases Set.mem_iUnion.mp hx with ⟨s, hs⟩
+    exact Set.mem_iUnion.mpr ⟨s, (T s).monotone_level hij hs⟩
 
 -- iInf の普遍性: S ⊆ Tₛ for all s ⊢ S ⊆ iInf T
 theorem iInf_le {σ : Type*} {S : StructureTower ι α}
@@ -320,7 +336,9 @@ theorem iInf_le {σ : Type*} {S : StructureTower ι α}
 theorem le_iSup {σ : Type*} {S : StructureTower ι α}
     {T : σ → StructureTower ι α} (h : ∀ s, NatInclusion (T s) S) :
     NatInclusion (iSup T) S :=
-  fun i _x ⟨s, hs, hx⟩ => h s i (by simpa using hx)
+  fun i _x hx => by
+    rcases Set.mem_iUnion.mp hx with ⟨s, hs⟩
+    exact h s i hs
 
 -- ──────────────────────────────────────────
 -- §4-5. 等化子（Equalizer）
@@ -377,7 +395,7 @@ theorem mem_own_level (c : ClosureOperator α) (x : α) :
 -- mult: level(c(x)) = level(x)
 theorem level_closure_eq (c : ClosureOperator α) (x : α) :
     (towerOfClosure c).level (c x) = (towerOfClosure c).level x := by
-  simp [towerOfClosure, ClosureOperator.closure_idem]
+  simp [towerOfClosure, c.idempotent x]
 
 end ClosureMonad
 
@@ -407,7 +425,7 @@ theorem kleisli_comp (c : ClosureOperator α) {x y z : α}
     IsKleisliArrow c x z :=
   calc x ≤ c y   := hxy
     _  ≤ c (c z) := c.monotone hyz
-    _  = c z     := c.closure_idem z
+    _  = c z     := c.idempotent z
 
 -- ──────────────────────────────────────────
 -- §5-2. Eilenberg–Moore 代数
@@ -424,13 +442,13 @@ def EMAlgebras (c : ClosureOperator α) : Set α := {x | c x ≤ x}
 theorem emAlgebra_iff_fixed (c : ClosureOperator α) (x : α) :
     x ∈ EMAlgebras c ↔ c x = x :=
   ⟨fun h => le_antisymm h (c.le_closure x),
-   fun h => h ▸ le_refl (c x)⟩
+   fun h => by simp [EMAlgebras, h]⟩
 
 -- c(x) は常に EM代数
 theorem closure_mem_emAlgebras (c : ClosureOperator α) (x : α) :
     c x ∈ EMAlgebras c := by
   rw [emAlgebra_iff_fixed]
-  exact c.closure_idem x
+  exact c.idempotent x
 
 end KleisliEM
 
@@ -488,7 +506,8 @@ variable {ι α β γ : Type*} [Preorder ι]
 def homToMap (f : α → β) (T : StructureTower ι α) : Hom T (map f T) where
   toFun     := f
   preserves := by
-    sorry
+    intro i x hx
+    exact ⟨x, hx, rfl⟩
 
 /-- A2 🟢  comap f → Hom
     f : α → β から Hom (comap f T) T を構成せよ。
@@ -496,7 +515,8 @@ def homToMap (f : α → β) (T : StructureTower ι α) : Hom T (map f T) where
 def homFromComap (f : α → β) (T : StructureTower ι β) : Hom (comap f T) T where
   toFun     := f
   preserves := by
-    sorry
+    intro i x hx
+    exact hx
 
 /-- A3 🟢  iInf の射影
     任意の s : σ に対して NatInclusion (iInf T) (T s) を示せ。
@@ -504,7 +524,8 @@ def homFromComap (f : α → β) (T : StructureTower ι β) : Hom (comap f T) T 
 theorem iInf_le_component {σ : Type*}
     (T : σ → StructureTower ι α) (s : σ) :
     NatInclusion (iInf T) (T s) := by
-  sorry
+  intro i x hx
+  exact Set.mem_iInter.mp hx s
 
 /-- A4 🟢  iSup の入射
     任意の s : σ に対して NatInclusion (T s) (iSup T) を示せ。
@@ -512,7 +533,8 @@ theorem iInf_le_component {σ : Type*}
 theorem component_le_iSup {σ : Type*}
     (T : σ → StructureTower ι α) (s : σ) :
     NatInclusion (T s) (iSup T) := by
-  sorry
+  intro i x hx
+  exact Set.mem_iUnion.mpr ⟨s, hx⟩
 
 -- ──────────────────────────────────────────
 -- 🟡 Group B: 補題の選択と組み合わせ（5〜15行）
@@ -526,7 +548,12 @@ theorem component_le_iSup {σ : Type*}
 theorem map_le_iff_le_comap (f : α → β)
     (T : StructureTower ι α) (S : StructureTower ι β) :
     NatInclusion (map f T) S ↔ NatInclusion T (comap f S) := by
-  sorry
+  constructor
+  · intro h i x hx
+    exact h i ⟨x, hx, rfl⟩
+  · intro h i y hy
+    rcases hy with ⟨x, hx, rfl⟩
+    exact h i hx
 
 /-- B2 🟡  積の唯一性（普遍性の逆方向）
     S が prod T₁ T₂ に NatInclusion される最大の塔であることを示せ。
@@ -534,7 +561,11 @@ theorem map_le_iff_le_comap (f : α → β)
     【核心】prod_univ と prod_fst / prod_snd の組み合わせ -/
 theorem prod_univ_iff {S T₁ T₂ : StructureTower ι α} :
     NatInclusion S (prod T₁ T₂) ↔ NatInclusion S T₁ ∧ NatInclusion S T₂ := by
-  sorry
+  constructor
+  · intro h
+    exact ⟨NatInclusion.trans h (prod_fst T₁ T₂), NatInclusion.trans h (prod_snd T₁ T₂)⟩
+  · intro h
+    exact prod_univ h.1 h.2
 
 /-- B3 🟡  Kleisli合成の結合律
     x →_Kl y, y →_Kl z, z →_Kl w ⊢ x →_Kl w
@@ -545,7 +576,7 @@ theorem kleisli_assoc {α : Type*} [PartialOrder α] (c : ClosureOperator α)
     (hyz : IsKleisliArrow c y z)
     (hzw : IsKleisliArrow c z w) :
     IsKleisliArrow c x w := by
-  sorry
+  exact kleisli_comp c (kleisli_comp c hxy hyz) hzw
 
 /-- B4 🟡  EM代数の上界性
     x ∈ EMAlgebras c かつ y ≤ x ならば c(y) ≤ x
@@ -554,14 +585,18 @@ theorem emAlgebra_upper_bound {α : Type*} [PartialOrder α]
     (c : ClosureOperator α) {x y : α}
     (hx : x ∈ EMAlgebras c) (hyx : y ≤ x) :
     c y ≤ x := by
-  sorry
+  have hfix : c x = x := (emAlgebra_iff_fixed c x).1 hx
+  calc
+    c y ≤ c x := c.monotone hyx
+    _ = x := hfix
 
 -- ──────────────────────────────────────────
 -- 🔴 Group C: 圏論的推論・非自明な計算（15行〜）
 -- ──────────────────────────────────────────
 
-/-- C1 🔴  関手 map f の射への作用
-    g : Hom T₁ T₂ から Hom (map f T₁) (map f T₂) を構成せよ。
+/-- C1 🔴  関手 map f の射への作用（持ち上げ版）
+    g : Hom T₁ T₂ を、β 上の写像 gβ で持ち上げる。
+    仮定 `hg` は `gβ ∘ f = f ∘ g` を表す。
     これは「関手 map f : Tower(ι) → Tower(ι)」の射作用であり、
     以下の可換図式を満たす:
 
@@ -572,13 +607,17 @@ theorem emAlgebra_upper_bound {α : Type*} [PartialOrder α]
       map f T₁ ─?─→ map f T₂
 
     【核心】
-      toFun   : f ∘ g.toFun
-      preserves: y ∈ map f T₁(i) を ⟨x, hx, rfl⟩ に分解し g.preserves を適用 -/
+      toFun   : gβ
+      preserves: y ∈ map f T₁(i) を ⟨x, hx, rfl⟩ に分解し g.preserves と hg を適用 -/
 def mapOnHom (f : α → β) {T₁ T₂ : StructureTower ι α}
-    (g : Hom T₁ T₂) : Hom (map f T₁) (map f T₂) where
-  toFun     := f ∘ g.toFun
+    (g : Hom T₁ T₂) (gβ : β → β) (hg : ∀ x, gβ (f x) = f (g x)) :
+    Hom (map f T₁) (map f T₂) where
+  toFun     := gβ
   preserves := by
-    sorry
+    intro i y hy
+    rcases hy with ⟨x, hx, rfl⟩
+    refine ⟨g x, g.preserves i hx, ?_⟩
+    simp [hg x]
 
 /-- C2 🔴  reindex と iInf の可換性（極限保存）
     reindex は iInf を保つ:
@@ -592,7 +631,8 @@ def mapOnHom (f : α → β) {T₁ T₂ : StructureTower ι α}
 theorem reindex_iInf {σ : Type*} {κ : Type*} [Preorder κ]
     (f : ι → κ) (hf : Monotone f) (T : σ → StructureTower κ α) :
     reindex f hf (iInf T) = iInf (fun s => reindex f hf (T s)) := by
-  sorry
+  ext i x
+  rfl
 
 /-- C3 🔴  prod は iInf の特殊例
     prod T₁ T₂ = iInf (fun b : Bool => if b then T₁ else T₂) を示せ。
@@ -606,7 +646,20 @@ theorem reindex_iInf {σ : Type*} {κ : Type*} [Preorder κ]
       Bool の場合分け: b = true と b = false -/
 theorem prod_eq_iInf_bool (T₁ T₂ : StructureTower ι α) :
     prod T₁ T₂ = iInf (fun b : Bool => if b then T₁ else T₂) := by
-  sorry
+  ext i x
+  constructor
+  · intro hx
+    refine Set.mem_iInter.mpr ?_
+    intro b
+    cases b with
+    | false =>
+        simpa using hx.2
+    | true =>
+        simpa using hx.1
+  · intro hx
+    refine ⟨?_, ?_⟩
+    · simpa using (Set.mem_iInter.mp hx true)
+    · simpa using (Set.mem_iInter.mp hx false)
 
 /-- C4 🔴  Galois接続の単調性が NatInclusion を誘導
     2つの Galois接続 (l₁, u₁), (l₂, u₂) : α ⇄ β について、
@@ -630,7 +683,9 @@ theorem galois_natInclusion {α β : Type*} [PartialOrder α] [Preorder β]
     (hl : ∀ x, l₁ x ≤ l₂ x)
     (hu : ∀ y, u₁ y ≤ u₂ y) :
     NatInclusion (towerOfGalois hgc₁) (towerOfGalois hgc₂) := by
-  sorry
+  intro x y hy
+  change y ≤ u₂ (l₂ x)
+  exact le_trans hy ((hu (l₁ x)).trans (hgc₂.monotone_u (hl x)))
 
 end Exercises
 

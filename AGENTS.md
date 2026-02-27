@@ -45,6 +45,7 @@
 - `ContractingWith` の存在定理は `ContractingWith.exists_fixedPoint`（`existsFixedPoint` ではない）を使う。
 - 区間積分の基本定理を使うときは `Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus` を import する（旧 `Mathlib.MeasureTheory.Integral.FundThmCalculus` は存在しない）。
 - `GaloisConnection` と `ClosureOperator` を往復するときは `gc.closureOperator` と `closureOperator_gi_self` を優先利用する。
+- `ClosureOperator` の冪等性は `c.idempotent` を使う（`closure_idem` は現行 API にない）。
 - ` /-- ... -/ ` の doc コメントは必ず直後に宣言を置く（説明だけ残す場合は `/- ... -/` にする）。
 - CI の `sorry` 検出はコメントやコメントアウト行の文字列にも反応するため、`.lean` 内に `sorry` という語を残さない。
 - `Nat.find` / `Nat.find_spec` / `Nat.find_min'` を使うときは `Mathlib.Data.Nat.Find` を import し、必要に応じて `classical` で `DecidablePred` を供給する。
