@@ -52,3 +52,6 @@
 - ゴールが `let T := ...; ...` の形なら `intro` 前に `dsimp` で `let` を展開し、変数取り違えを防ぐ。
 - `CovariantClass` や `add_le_add` を使うときは `Mathlib.Algebra.Order.Monoid.Unbundled.Basic` を import する。
 - `interior` や `mem_interior_iff_mem_nhds` を使うときは `Mathlib.Topology.Neighborhoods` を import する。
+- `@[ext]` を付けた定理は `<定理名>_iff` が自動生成されるため、同名の手書き定理を定義しない（必要なら属性を外すか別名にする）。
+- `liftCl_mapId` は常に `Hom (liftCl cl T₁) (liftCl cl T₂)` を返すので、モナド法則で使うときは `T₁`,`T₂` を先に固定して型を確認する。
+- `ClosureOperator` の具体例（`topClosure` など）で固定点等式を扱うときは `simp [def]` の過展開を避け、`change` で `closure ... = ...` などに明示的に落としてから証明する。
