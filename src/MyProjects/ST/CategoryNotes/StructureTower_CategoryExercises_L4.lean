@@ -287,7 +287,8 @@ def liftCl_comparison {cl₁ cl₂ : ClosureOperator (Set α)}
     Hom (liftCl cl₁ T) (liftCl cl₂ T) where
   toFun := _root_.id
   preserves := by
-    sorry
+    intro i x hx
+    exact hle (T.level i) hx
     /- skeleton:
        intro i x hx
        exact hle (T.level i) hx -/
@@ -303,7 +304,7 @@ theorem liftCl_comparison_trans {cl₁ cl₂ cl₃ : ClosureOperator (Set α)}
     (T : StructureTower ι α) :
     Hom.comp (liftCl_comparison h₂₃ T) (liftCl_comparison h₁₂ T) =
     liftCl_comparison (fun S => Subset.trans (h₁₂ S) (h₂₃ S)) T := by
-  sorry
+  exact Hom.ext rfl
   /- skeleton: exact Hom.ext rfl -/
 
 /-- 🔴 Exercise L4-1c: cl₂-ClosedTower は cl₁-ClosedTower（cl₁ ≤ cl₂ のとき）。
@@ -323,7 +324,12 @@ def ClosedTower.weaken {cl₁ cl₂ : ClosureOperator (Set α)}
     ClosedTower cl₁ ι where
   toStructureTower := T.toStructureTower
   level_closed := by
-    sorry
+    intro i
+    apply Set.Subset.antisymm
+    · calc
+        cl₁ (T.level i) ⊆ cl₂ (T.level i) := hle (T.level i)
+        _ = T.level i := T.level_closed i
+    · exact cl₁.le_closure (T.level i)
     /- skeleton:
        intro i
        apply Set.Subset.antisymm
@@ -345,7 +351,9 @@ theorem liftCl_absorb {cl₁ cl₂ : ClosureOperator (Set α)}
     (habsorb : ∀ S : Set α, cl₂ (cl₁ S) = cl₂ S)
     (T : StructureTower ι α) :
     liftCl cl₂ (liftCl cl₁ T) = liftCl cl₂ T := by
-  sorry
+  ext i x
+  simp [liftCl]
+  rw [habsorb]
   /- skeleton:
      ext i x
      simp [liftCl]
@@ -361,7 +369,7 @@ theorem liftCl_absorb {cl₁ cl₂ : ClosureOperator (Set α)}
 theorem liftCl_idempotent (cl : ClosureOperator (Set α))
     (T : StructureTower ι α) :
     liftCl cl (liftCl cl T) = liftCl cl T := by
-  sorry
+  exact liftCl_absorb (fun S => cl.idempotent S) T
   /- skeleton: exact liftCl_absorb (fun S => cl.idempotent S) T -/
 
 end ClParametric
@@ -414,8 +422,12 @@ variable {ι : Type*} [Preorder ι]
 def const (S : Set α) (h : MeasurableSet S) :
     MeasurableTower (α := α) ι where
   level := fun _ => S
-  monotone_level := sorry
-  level_measurable := sorry
+  monotone_level := by
+    intro _i _j _hij
+    exact Subset.rfl
+  level_measurable := by
+    intro _i
+    exact h
   /- skeleton:
      level := fun _ => S
      monotone_level := fun _i _j _hij => Subset.rfl
@@ -427,11 +439,11 @@ def const (S : Set α) (h : MeasurableSet S) :
     Hint-2: const を使う。
     Hint-3: `const Set.univ MeasurableSet.univ` -/
 def univTower : MeasurableTower (α := α) ι :=
-  sorry
+  const Set.univ MeasurableSet.univ
   /- skeleton: const Set.univ MeasurableSet.univ -/
 
 def emptyTower : MeasurableTower (α := α) ι :=
-  sorry
+  const ∅ MeasurableSet.empty
   /- skeleton: const ∅ MeasurableSet.empty -/
 
 /-- 🟡 Exercise L4-2c: 可測塔の交叉は可測。
@@ -444,12 +456,14 @@ def inter (T₁ T₂ : MeasurableTower (α := α) ι) :
     MeasurableTower (α := α) ι where
   level i := T₁.level i ∩ T₂.level i
   monotone_level := by
-    sorry
+    intro i j hij x hx
+    exact ⟨T₁.monotone_level hij hx.1, T₂.monotone_level hij hx.2⟩
     /- skeleton:
        intro i j hij x hx
        exact ⟨T₁.monotone_level hij hx.1, T₂.monotone_level hij hx.2⟩ -/
   level_measurable := by
-    sorry
+    intro i
+    exact (T₁.level_measurable i).inter (T₂.level_measurable i)
     /- skeleton:
        intro i
        exact (T₁.level_measurable i).inter (T₂.level_measurable i) -/
@@ -464,7 +478,7 @@ def inter (T₁ T₂ : MeasurableTower (α := α) ι) :
     Hint-3: そのまま。 -/
 theorem level_compl_measurable (T : MeasurableTower (α := α) ι) (i : ι) :
     MeasurableSet (T.level i)ᶜ := by
-  sorry
+  exact (T.level_measurable i).compl
   /- skeleton: exact (T.level_measurable i).compl -/
 
 /-- 🔴 Exercise L4-2e: 可測塔の global は可測集合。
@@ -477,7 +491,8 @@ theorem level_compl_measurable (T : MeasurableTower (α := α) ι) (i : ι) :
 theorem global_measurable [Countable ι]
     (T : MeasurableTower (α := α) ι) :
     MeasurableSet T.global := by
-  sorry
+  change MeasurableSet (⋂ i, T.level i)
+  exact MeasurableSet.iInter (fun i => T.level_measurable i)
   /- skeleton:
      change MeasurableSet (⋂ i, T.level i)
      exact MeasurableSet.iInter (fun i => T.level_measurable i) -/
@@ -501,7 +516,7 @@ end MeasurableTower
 theorem MeasurableTower.global_measurable_synthesis
     [Countable ι] (T : MeasurableTower (α := α) ι) :
     MeasurableSet T.global := by
-  sorry
+  exact T.global_measurable
   /- skeleton: exact T.global_measurable -/
 
 end MeasurableSection
@@ -541,7 +556,7 @@ def HasCharRank (T : ExhaustiveTower ℕ α) (r : α → ℕ) : Prop :=
 theorem rank_le_of_mem (T : ExhaustiveTower ℕ α) (x : α) (i : ℕ)
     (h : x ∈ T.level i) :
     T.rank x ≤ i := by
-  sorry
+  exact T.rank_le x i h
   /- skeleton: exact T.rank_le x i h -/
 
 /-- 🟡 Exercise L4-3b: 逆方向: rank(x) ≤ i ⟹ x ∈ level i。
@@ -553,7 +568,7 @@ theorem rank_le_of_mem (T : ExhaustiveTower ℕ α) (x : α) (i : ℕ)
 theorem mem_of_rank_le (T : ExhaustiveTower ℕ α) (x : α) (i : ℕ)
     (h : T.rank x ≤ i) :
     x ∈ T.level i := by
-  sorry
+  exact T.monotone_level h (T.rank_spec x)
   /- skeleton: exact T.monotone_level h (T.rank_spec x) -/
 
 /-- 🟡 Exercise L4-3c: rank は HasCharRank を満たす。
@@ -564,7 +579,8 @@ theorem mem_of_rank_le (T : ExhaustiveTower ℕ α) (x : α) (i : ℕ)
     Hint-3: そのまま。 -/
 theorem rank_hasCharRank (T : ExhaustiveTower ℕ α) :
     HasCharRank T T.rank := by
-  sorry
+  intro x i
+  exact ⟨rank_le_of_mem T x i, mem_of_rank_le T x i⟩
   /- skeleton:
      intro x i
      exact ⟨rank_le_of_mem T x i, mem_of_rank_le T x i⟩ -/
@@ -582,7 +598,10 @@ theorem rank_hasCharRank (T : ExhaustiveTower ℕ α) :
 theorem rank_unique (T : ExhaustiveTower ℕ α)
     (r : α → ℕ) (hchar : HasCharRank T r) :
     r = T.rank := by
-  sorry
+  funext x
+  apply Nat.le_antisymm
+  · exact (hchar x (T.rank x)).1 (T.rank_spec x)
+  · exact T.rank_le x (r x) ((hchar x (r x)).2 (le_rfl))
   /- skeleton:
      funext x
      apply Nat.le_antisymm
@@ -600,43 +619,60 @@ theorem rank_unique (T : ExhaustiveTower ℕ α)
 theorem level_eq_of_hasCharRank (T : ExhaustiveTower ℕ α)
     (r : α → ℕ) (hchar : HasCharRank T r) (i : ℕ) :
     T.level i = {x | r x ≤ i} := by
-  sorry
+  ext x
+  exact hchar x i
   /- skeleton:
      ext x
      exact hchar x i -/
 
-/-- 🔴 Exercise L4-3f: 反例構成: 前順序での rank 関数の非一意性。
-    添字に同値な元（i ≤ j かつ j ≤ i だが i ≠ j）がある場合、
-    level i = level j であっても、r(x) = i と r(x) = j の両方が
-    HasCharRank を満たしうる。
+/-- L4-3f 用の前順序版 HasCharRank。
+    L4-3a-e の `HasCharRank` は ℕ 専用なので、反例構成では
+    任意の前順序添字へ一般化した版を使う。 -/
+def HasCharRankPreorder {ι β : Type*} [Preorder ι]
+    (T : ExhaustiveTower ι β) (r : β → ι) : Prop :=
+  ∀ x i, x ∈ T.level i ↔ r x ≤ i
 
-    ここでは具体的な反例として、ι = Bool（false ≤ true ∧ true ≤ false）
-    を使い、定数塔に対して2つの異なる rank 関数を構成する。
+/-- 🔴 Exercise L4-3f: 反例構成に使う「全ての元が同値」な Bool 上の前順序。 -/
+def indiscreteBoolPreorder : Preorder Bool where
+  le := fun _ _ => True
+  lt := fun _ _ => False
+  le_refl := by
+    intro _
+    trivial
+  le_trans := by
+    intro _ _ _ _ _
+    trivial
+  lt_iff_le_not_ge := by
+    intro a b
+    simp
 
-    Hint-1: Bool に「false ≤ true かつ true ≤ false」の前順序を定義。
-    Hint-2: 定数塔 level _ := univ に対して、r₁ _ = false, r₂ _ = true。
-    Hint-3: 両方が HasCharRank を満たすが r₁ ≠ r₂。 -/
--- この演習は statement が複雑なので、以下のコメントで方針を示す。
--- 実装は読者への課題とする。
-/-
-  反例の骨格:
-
-  instance : Preorder Bool where
-    le := fun _ _ => True
-    le_refl := fun _ => trivial
-    le_trans := fun _ _ _ _ _ => trivial
-
-  def constExhaustiveTower : ExhaustiveTower Bool α where
-    level _ := Set.univ
-    monotone_level := fun _ _ _ => Subset.refl _
-    exhaustive := fun x => ⟨false, trivial⟩
-
-  -- r₁ _ := false と r₂ _ := true は両方とも HasCharRank を満たす
-  -- （le が常に True なので、x ∈ level i ↔ r x ≤ i は常に True ↔ True）
-  -- しかし r₁ ≠ r₂。
-
-  これは PartialOrder では起こり得ない（le_antisymm により i = j が帰結）。
--/
+/-- 前順序では rank 型の特徴付け関数は一意でないことがある。 -/
+theorem bool_preorder_rank_nonunique :
+    ∃ inst : Preorder Bool,
+      ∃ (T : @ExhaustiveTower Bool Unit inst) (r1 r2 : Unit → Bool),
+        @HasCharRankPreorder Bool Unit inst T r1 ∧
+        @HasCharRankPreorder Bool Unit inst T r2 ∧
+        r1 ≠ r2 := by
+  refine ⟨indiscreteBoolPreorder, ?_⟩
+  letI : Preorder Bool := indiscreteBoolPreorder
+  let T : ExhaustiveTower Bool Unit := {
+    level := fun _ => Set.univ
+    monotone_level := by
+      intro _ _ _
+      exact Subset.rfl
+    exhaustive := by
+      intro x
+      exact ⟨false, by trivial⟩
+  }
+  refine ⟨T, (fun _ => false), (fun _ => true), ?_⟩
+  refine ⟨?_, ?_, ?_⟩
+  · intro x i
+    simp [T, indiscreteBoolPreorder]
+  · intro x i
+    simp [T, indiscreteBoolPreorder]
+  · intro h
+    have h' : false = true := congrFun h Unit.unit
+    cases h'
 
 end RankUniqueness
 
@@ -670,7 +706,9 @@ def liftCl_closedTower (T : StructureTower ι α) :
     ClosedTower cl ι where
   toStructureTower := liftCl cl T
   level_closed := by
-    sorry
+    intro i
+    change cl (cl (T.level i)) = cl (T.level i)
+    exact cl.idempotent (T.level i)
     /- skeleton:
        intro i
        exact cl.idempotent (T.level i) -/
@@ -690,7 +728,7 @@ def ClosedTower.homRestrict {cl : ClosureOperator (Set α)}
     (T₁ T₂ : ClosedTower cl ι)
     (f : Hom T₁.toStructureTower T₂.toStructureTower) :
     Hom T₁.toStructureTower T₂.toStructureTower :=
-  sorry
+  f
   /- skeleton: f -/
 
 /-- 🔴 Exercise L4-4c: unit の普遍性（reflector）。
@@ -711,10 +749,17 @@ theorem unit_universal_id {cl : ClosureOperator (Set α)}
     (T : StructureTower ι α) (S : ClosedTower cl ι)
     (f : Hom T S.toStructureTower)
     (hf : f.toFun = _root_.id) :
-    ∃ (f̄ : Hom (liftCl cl T) S.toStructureTower),
-      f̄.toFun = _root_.id ∧
-      Hom.comp f̄ (unit cl T) = f := by
-  sorry
+    ∃ (fbar : Hom (liftCl cl T) S.toStructureTower),
+      fbar.toFun = _root_.id ∧
+      Hom.comp fbar (unit cl T) = f := by
+  refine ⟨⟨_root_.id, fun i x hx => ?_⟩, rfl, Hom.ext ?_⟩
+  · have h1 : cl (T.level i) ⊆ cl (S.level i) := by
+      apply cl.monotone
+      intro y hy
+      simpa [hf] using f.preserves i hy
+    rw [S.level_closed i] at h1
+    exact h1 hx
+  · exact hf.symm
   /- skeleton:
      refine ⟨⟨_root_.id, fun i x hx => ?_⟩, rfl, Hom.ext ?_⟩
      · -- preserves: x ∈ cl(T.level i) → x ∈ S.level i
@@ -738,12 +783,12 @@ theorem unit_universal_id {cl : ClosureOperator (Set α)}
 theorem unit_universal_unique {cl : ClosureOperator (Set α)}
     (T : StructureTower ι α) (S : ClosedTower cl ι)
     (f : Hom T S.toStructureTower)
-    (f̄₁ f̄₂ : Hom (liftCl cl T) S.toStructureTower)
-    (hf̄₁ : f̄₁.toFun = _root_.id) (hf̄₂ : f̄₂.toFun = _root_.id)
-    (_hcomp₁ : Hom.comp f̄₁ (unit cl T) = f)
-    (_hcomp₂ : Hom.comp f̄₂ (unit cl T) = f) :
-    f̄₁ = f̄₂ := by
-  sorry
+    (fbar1 fbar2 : Hom (liftCl cl T) S.toStructureTower)
+    (hfbar1 : fbar1.toFun = _root_.id) (hfbar2 : fbar2.toFun = _root_.id)
+    (_hcomp₁ : Hom.comp fbar1 (unit cl T) = f)
+    (_hcomp₂ : Hom.comp fbar2 (unit cl T) = f) :
+    fbar1 = fbar2 := by
+  exact Hom.ext (by rw [hfbar1, hfbar2])
   /- skeleton:
      exact Hom.ext (by rw [hf̄₁, hf̄₂]) -/
 
