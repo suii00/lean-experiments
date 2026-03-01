@@ -26,8 +26,14 @@
 \geometry{margin=2.5cm, top=3cm, bottom=3cm}
 
 % --- Fonts ---
-\setmainjfont{Noto Serif JP}
-\setsansjfont{Noto Sans JP}
+% TeXLive 付属の原ノ味フォント（Harano Aji）を使用
+\setmainjfont{Harano Aji Mincho}[
+  BoldFont = Harano Aji Mincho,
+  BoldFeatures = {FakeBold=2},
+]
+\setsansjfont{Harano Aji Gothic}
+% モノスペースフォント（DejaVu Sans Mono は広い Unicode 範囲をカバー）
+\setmonofont[Scale=0.85]{DejaVu Sans Mono}
 
 % --- Colors ---
 \definecolor{leanblue}{HTML}{2563EB}
