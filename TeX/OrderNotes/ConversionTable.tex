@@ -1,0 +1,381 @@
+\documentclass[a4paper,11pt]{ltjsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{longtable,booktabs,array}
+\usepackage[hidelinks]{hyperref}
+
+\title{Lean 4 $\leftrightarrow$ \TeX\ 対応表\\
+{\normalsize OrderNotes プロジェクト}}
+\author{su}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX 文書は Claude Code (Anthropic) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\begin{abstract}
+本表は \texttt{src/MyProjects/OrderNotes/} 以下の Lean 4 ソースファイルと、
+\texttt{TeX/OrderNotes/} 以下の \TeX ファイルの対応関係を一覧にしたものである。
+Lean の定義・定理名から数学的記述、および対応する \TeX 文書の箇所を速引きするために用いる。
+\end{abstract}
+
+\tableofcontents
+
+%% =====================================================================
+\section{ファイル対応}
+%% =====================================================================
+
+\begin{longtable}{lll}
+\toprule
+\textbf{Lean ソース} & \textbf{\TeX 文書} & \textbf{スタイル} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Lean ソース} & \textbf{\TeX 文書} & \textbf{スタイル} \\
+\midrule
+\endhead
+\texttt{ZornsLemma.lean}      & \texttt{ZornsLemma.tex}      & Bourbaki 独自定義 \\
+\texttt{ZornsLemmaMathlib.lean}& \texttt{ZornsLemmaMathlib.tex}& Mathlib 直乗り   \\
+\bottomrule
+\end{longtable}
+
+%% =====================================================================
+\section{ZornsLemma.lean（Bourbaki 版）}
+%% =====================================================================
+
+\subsection{クラス・型}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+Ordre           & 半順序      & 型 $\alpha$ 上の $\le$ が反射・推移・反対称を満たす \\
+OrdreTotal      & 全順序      & \texttt{Ordre} $+$ $\forall a,b,\; a \le b \lor b \le a$ \\
+\bottomrule
+\end{longtable}
+
+\subsection{定義}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+EstChaine       & 鎖（チェーン） &
+  $C$ が鎖 $\overset{\mathrm{def}}{\iff}$
+  $\forall a,b \in C,\; a \le b \lor b \le a$ \\
+EstMajorant     & 上界       &
+  $x$ が $S$ の上界 $\overset{\mathrm{def}}{\iff}$
+  $\forall a \in S,\; a \le x$ \\
+EstMaximal      & 極大元      &
+  $x$ が $S$ の極大元 $\overset{\mathrm{def}}{\iff}$
+  $x \in S \land (\forall y \in S,\; x \le y \implies x = y)$ \\
+EstInductif     & 帰納的集合   &
+  $S$ が帰納的 $\overset{\mathrm{def}}{\iff}$
+  $\forall C \subseteq S$（鎖），$\exists b \in S$（$C$ の上界） \\
+AxiomeDeChoix   & 選択公理    &
+  $\forall (\iota:\text{Type})\;(A:\iota \to \text{Type}),\;
+  (\forall i,\;\text{Nonempty}(A_i))
+  \implies \text{Nonempty}(\prod_i A_i)$ \\
+\bottomrule
+\end{longtable}
+
+\subsection{インスタンス・補題}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{種別} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{種別} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+ordreToPartialOrder &
+  instance &
+  \texttt{Ordre} $\to$ Mathlib の \texttt{PartialOrder} への変換 \\
+estChaine\_iff\_isChain &
+  lemma &
+  $\texttt{EstChaine}\;C \iff \texttt{IsChain}\;(\le)\;C$ \\
+\bottomrule
+\end{longtable}
+
+\subsection{定理}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+zorn &
+  Zorn の補題（局所版） &
+  $S$ が帰納的 $\implies \exists m,\;\texttt{EstMaximal}\;S\;m$ \\
+zorn\_global &
+  Zorn の補題（大域版） &
+  すべての鎖が上界を持つ $\implies \exists m,\;\forall x,\; m \le x \implies x \le m$ \\
+axiomeDeChoix\_classical &
+  AC の証明 &
+  \texttt{Classical.choice} から \texttt{AxiomeDeChoix} を導出 \\
+choix\_implique\_zorn &
+  AC $\implies$ Zorn &
+  選択公理からツォルンの補題を導く \\
+zorn\_implique\_choix &
+  Zorn $\implies$ AC &
+  ツォルンの補題から選択公理を導く \\
+equivalence\_choix\_zorn &
+  AC $\iff$ Zorn &
+  選択公理とツォルンの補題の同値性 \\
+\bottomrule
+\end{longtable}
+
+%% =====================================================================
+\section{ZornsLemmaMathlib.lean（Mathlib 版）}
+%% =====================================================================
+
+\subsection{§1 ツォルンの補題のバリエーション}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+zorn\_subset\_version &
+  Zorn（部分集合版） &
+  $\forall C \subseteq S$（鎖）に上界 $\implies
+  \exists m \in S,\;\forall x \in S,\; m \le x \implies m = x$ \\
+zorn\_total\_version &
+  Zorn（全体版） &
+  $\forall C$（鎖）が \texttt{BddAbove} $\implies
+  \exists m,\;\forall x,\; m \le x \implies x \le m$ \\
+zorn\_nonempty &
+  Zorn（空チェーン対応版） &
+  $S \neq \emptyset$ かつ空でない鎖に上界 $\implies$
+  極大元が存在 \\
+\bottomrule
+\end{longtable}
+
+\subsection{§2 選択公理との同値性}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+AC &
+  選択公理（型理論版） &
+  $\forall i,\;\text{Nonempty}(A_i) \implies
+  \text{Nonempty}(\prod_i A_i)$ \\
+AC\_Set &
+  選択公理（集合論版） &
+  $\forall i,\;S_i \neq \emptyset \implies
+  \exists f,\;\forall i,\; f(i) \in S_i$ \\
+ac\_from\_classical &
+  AC の証明 &
+  \texttt{Classical.choice} $\implies$ AC \\
+ac\_implies\_zorn &
+  AC $\implies$ Zorn &
+  AC から \texttt{zorn\_subset\_version} を導出 \\
+zorn\_implies\_ac\_set &
+  Zorn $\implies$ AC（集合論版） &
+  Zorn 仮定下で \texttt{AC\_Set} を証明 \\
+zorn\_implies\_ac &
+  Zorn $\implies$ AC（型理論版） &
+  Zorn 仮定下で \texttt{AC} を証明 \\
+ac\_iff\_zorn &
+  AC $\iff$ Zorn（主定理） &
+  $\texttt{AC} \iff \texttt{zorn\_subset\_version}$ \\
+\bottomrule
+\end{longtable}
+
+\subsection{§3 整列定理との関係}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+WellOrderOn &
+  整列順序 &
+  $\{r : \alpha \to \alpha \to \text{Prop} \mid \text{IsWellOrder}\;\alpha\;r\}$ \\
+WellOrderingTheorem &
+  整列定理 &
+  $\forall \alpha,\;\text{Nonempty}(\texttt{WellOrderOn}\;\alpha)$ \\
+ac\_implies\_well\_ordering &
+  AC $\implies$ 整列定理 &
+  \texttt{WellOrderingRel} による構成 \\
+well\_ordering\_implies\_ac &
+  整列定理 $\implies$ AC &
+  \texttt{ac\_from\_classical} に帰着 \\
+\bottomrule
+\end{longtable}
+
+\subsection{§4 典型的応用}
+
+\begin{longtable}{>{\ttfamily}l l p{6cm}}
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 名}} & \textbf{数学的概念} & \textbf{\TeX 記述} \\
+\midrule
+\endhead
+Inductive &
+  帰納的集合 &
+  $\forall C \subseteq S$（鎖），$\exists b \in S,\;\forall a \in C,\;a \le b$ \\
+inductive\_has\_maximal &
+  帰納的 $\implies$ 極大元 &
+  \texttt{Inductive}\;$S \implies \exists m \in S$（極大元） \\
+maximal\_in\_family &
+  集合族の極大元 &
+  包含帰納的 $+$ 鎖の和集合閉 $\implies$ $\exists M \in \mathcal{S}$（$\subseteq$-極大） \\
+maximal\_partial\_map\_extension &
+  写像の極大拡張 &
+  性質 $P$ を保つ鎖条件 $\implies$ $\exists (T, f)$（極大部分写像） \\
+ultrafilter\_extension\_pattern &
+  超フィルター拡張 &
+  真フィルター $F$ $\implies$ $\exists U \supseteq F$（極大フィルター） \\
+\bottomrule
+\end{longtable}
+
+%% =====================================================================
+\section{Mathlib API 対応}
+%% =====================================================================
+
+本プロジェクトで用いている主要な Mathlib の型・定理との対応を示す。
+
+\begin{longtable}{>{\ttfamily}l >{\ttfamily}l l}
+\toprule
+\textrm{\textbf{独自定義 (Bourbaki)}} & \textrm{\textbf{Mathlib}} & \textbf{関係} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{独自定義 (Bourbaki)}} & \textrm{\textbf{Mathlib}} & \textbf{関係} \\
+\midrule
+\endhead
+Ordre             & PartialOrder     & \texttt{ordreToPartialOrder} で変換 \\
+OrdreTotal        & LinearOrder      & 概念的に対応 \\
+EstChaine         & IsChain          & \texttt{estChaine\_iff\_isChain} で同値 \\
+EstMajorant       & BddAbove (上界)   & 概念的に対応 \\
+EstMaximal        & (zorn\_le₀ の結論) & 反対称律で一致 \\
+EstInductif       & (zorn\_le₀ の仮定) & 鎖条件として同等 \\
+AxiomeDeChoix     & Classical.choice & 体系に組込み済 \\
+\textrm{---}      & zorn\_le₀        & 部分集合版 Zorn \\
+\textrm{---}      & zorn\_le         & 全体版 Zorn \\
+\textrm{---}      & WellOrderingRel  & 整列関係の構成 \\
+\bottomrule
+\end{longtable}
+
+%% =====================================================================
+\section{記法対応（Lean 構文 $\leftrightarrow$ 数学記法）}
+%% =====================================================================
+
+\begin{longtable}{>{\ttfamily}l l}
+\toprule
+\textrm{\textbf{Lean 構文}} & \textbf{数学記法（\TeX）} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean 構文}} & \textbf{数学記法（\TeX）} \\
+\midrule
+\endhead
+a ≤ b                    & $a \le b$ \\
+a ∈ C                    & $a \in C$ \\
+C ⊆ S                    & $C \subseteq S$ \\
+∀ a, P a                 & $\forall a,\; P(a)$ \\
+∃ a, P a                 & $\exists a,\; P(a)$ \\
+a ∨ b                    & $a \lor b$ \\
+a ∧ b                    & $a \land b$ \\
+a → b                    & $a \implies b$ \\
+a ↔ b                    & $a \iff b$ \\
+Set α                    & $\mathcal{P}(\alpha)$ \\
+Set.univ                 & 全体集合 \\
+⋃₀ C                     & $\bigcup \mathcal{C}$（$= \bigcup_{A \in \mathcal{C}} A$） \\
+A ∩ B                    & $A \cap B$ \\
+∅                        & $\emptyset$ \\
+Nonempty α               & $\alpha \neq \emptyset$ \\
+Set.Nonempty S           & $S \neq \emptyset$ \\
+BddAbove C               & $C$ は上に有界 \\
+Subtype \{x | P x\}      & $\{x \mid P(x)\}$ \\
+fun i => A i             & $i \mapsto A_i$ \\
+(∀ i, A i)               & $\prod_i A_i$ \\
+\bottomrule
+\end{longtable}
+
+%% =====================================================================
+\section{セクション名対応}
+%% =====================================================================
+
+Lean ソースのセクション名と \TeX 文書の節タイトルの対応を示す。
+
+\subsection{ZornsLemma.lean $\leftrightarrow$ ZornsLemma.tex}
+
+\begin{longtable}{>{\ttfamily}l l}
+\toprule
+\textrm{\textbf{Lean セクション}} & \textbf{\TeX 節} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean セクション}} & \textbf{\TeX 節} \\
+\midrule
+\endhead
+Definitions & §2 順序に関する基本的定義 \\
+Bridge      & §3 Mathlibとの連携 \\
+Zorn        & §4 ツォルンの補題 \\
+Choice      & §5 選択公理との同値性 \\
+\bottomrule
+\end{longtable}
+
+\subsection{ZornsLemmaMathlib.lean $\leftrightarrow$ ZornsLemmaMathlib.tex}
+
+\begin{longtable}{>{\ttfamily}l l}
+\toprule
+\textrm{\textbf{Lean セクション}} & \textbf{\TeX 節} \\
+\midrule
+\endfirsthead
+\toprule
+\textrm{\textbf{Lean セクション}} & \textbf{\TeX 節} \\
+\midrule
+\endhead
+ZornVariants    & §2 ツォルンの補題のバリエーション \\
+ACEquivalence   & §3 選択公理との同値性 \\
+WellOrdering    & §4 整列定理との関係 \\
+Applications    & §5 ツォルンの補題の典型的応用 \\
+\bottomrule
+\end{longtable}
+
+\end{document}
