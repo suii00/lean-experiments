@@ -1,0 +1,877 @@
+% =============================================================================
+% Structure Tower 発展演習 Level 6
+% I-adic 完備化と StructureTower：Cauchy 列・null 列・普遍性・ClosedTower
+% LuaLaTeX + ltjsarticle
+% =============================================================================
+\documentclass[a4paper,11pt]{ltjsarticle}
+
+% --- Core packages ---
+\usepackage{luatexja-fontspec}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz-cd}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,decorations.pathmorphing,cd}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+
+% --- Page geometry ---
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+
+% --- Fonts ---
+\setmainjfont{Harano Aji Mincho}[
+  BoldFont = Harano Aji Mincho,
+  BoldFeatures = {FakeBold=2},
+]
+\setsansjfont{Harano Aji Gothic}
+\setmonofont[Scale=0.85]{DejaVu Sans Mono}
+
+% --- Colors ---
+\definecolor{leanblue}{HTML}{2563EB}
+\definecolor{leanbg}{HTML}{F8FAFC}
+\definecolor{leancomment}{HTML}{6B7280}
+\definecolor{leankeyword}{HTML}{7C3AED}
+\definecolor{leanstring}{HTML}{059669}
+\definecolor{accentcolor}{HTML}{1E40AF}
+\definecolor{theoremcolor}{HTML}{EFF6FF}
+\definecolor{definitioncolor}{HTML}{F0FDF4}
+\definecolor{remarkcolor}{HTML}{FFF7ED}
+\definecolor{warningcolor}{HTML}{FEF3C7}
+\definecolor{completioncolor}{HTML}{F0F9FF}
+\definecolor{cauchycolor}{HTML}{FDF4FF}
+
+% --- Hyperref ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentcolor,
+  urlcolor=leanblue,
+  citecolor=accentcolor,
+  pdftitle={Structure Tower 発展演習 Level 6},
+  pdfauthor={su},
+}
+
+% --- Theorem environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+\newtheorem{construction}[definition]{構成}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{注意}
+
+% --- Lean code listing environment ---
+\lstdefinelanguage{lean4}{
+  morekeywords={def,theorem,lemma,example,instance,class,structure,
+    where,let,in,do,if,then,else,match,with,fun,return,
+    import,open,namespace,section,end,variable,
+    inductive,abbrev,noncomputable,private,protected,
+    sorry,admit,have,show,suffices,calc,by,exact,
+    apply,intro,intros,constructor,cases,induction,
+    simp,rw,rfl,ext,ring,linarith,omega,norm_num,
+    decide,trivial,assumption,contradiction,
+    Type,Prop,Sort,Set,true,false,
+    attribute,deriving},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+  literate=
+    {->}{{\(\to\)}}2
+    {<-}{{\(\leftarrow\)}}2
+    {<->}{{\(\leftrightarrow\)}}3
+    {<=}{{\(\leq\)}}2
+    {>=}{{\(\geq\)}}2
+    {:=}{{:=}}2
+    {=>}{{\(\Rightarrow\)}}2,
+}
+
+\lstnewenvironment{leancode}[1][]{%
+  \lstset{
+    language=lean4,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{leankeyword}\bfseries,
+    commentstyle=\color{leancomment}\itshape,
+    stringstyle=\color{leanstring},
+    backgroundcolor=\color{leanbg},
+    frame=single,
+    rulecolor=\color{leanblue!30},
+    framesep=8pt,
+    xleftmargin=12pt,
+    xrightmargin=12pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{leancomment},
+    numbersep=8pt,
+    aboveskip=1em,
+    belowskip=1em,
+    inputencoding=utf8,
+    extendedchars=true,
+    #1
+  }%
+}{}
+
+% --- Tcolorbox styles ---
+\newtcolorbox{proofstrategy}{
+  colback=remarkcolor,
+  colframe=orange!60!black,
+  title={\textbf{証明戦略}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{mathinsight}{
+  colback=theoremcolor,
+  colframe=accentcolor,
+  title={\textbf{数学的洞察}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{completionbox}{
+  colback=completioncolor,
+  colframe=leanblue,
+  title={\textbf{完備化の概念}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{levelguide}{
+  colback=cauchycolor,
+  colframe=leankeyword!70!black,
+  title={\textbf{演習レベル指針}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+% --- Header/Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\sffamily\nouppercase{\leftmark}}
+\fancyhead[R]{\small\sffamily Structure Tower Level 6}
+\fancyfoot[C]{\thepage}
+
+% --- Math macros ---
+\newcommand{\Rhat}{\widehat{R}}
+\newcommand{\Ihat}{\widehat{I}}
+\newcommand{\NatD}{\mathbb{N}^{\mathrm{op}}}
+
+% =============================================================================
+\begin{document}
+
+% --- Title ---
+\title{%
+  {\LARGE\sffamily\bfseries Structure Tower 発展演習 Level 6}\\[0.5em]
+  {\large\sffamily $I$-adic 完備化と StructureTower：\\
+  Cauchy 列・null 列・普遍性・ClosedTower}\\[0.3em]
+  {\normalsize\sffamily Lean 4 / Mathlib4 による形式化とその数学的解説}%
+}
+\author{su}
+\date{\today}
+\maketitle
+
+% --- AI Disclosure ---
+\begin{center}
+\small
+\textit{AI assistance disclosure:}\\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。\\
+\TeX\ 文書は Claude Code (Anthropic) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\vspace{1em}
+
+% --- Abstract ---
+\begin{abstract}
+本稿は Lean 4 / Mathlib4 を用いた Structure Tower 形式化シリーズの Level 6 として，
+$I$-adic 完備化を \texttt{StructureTower} の言語で記述した演習ファイルの数学的解説である．
+Level 1--5 で構築した \texttt{idealPowTower}，\texttt{ClosedTower}，\texttt{ringHom\_towerHom}
+などの枠組みを全て統合し，
+\begin{enumerate}
+  \item \textbf{Cauchy 列の塔的定義}：$({\mathbb{N}} \to R)$ 上の \texttt{StructureTower} として Cauchy 列の「速さ」を階層化する；
+  \item \textbf{null 列と I-adic Setoid}：null 列の代数的閉性と，分離条件下での定数 null 列の特徴付け；
+  \item \textbf{完備化の普遍性}：\texttt{AdicCompletion} による $\widehat{R}$ の構成と，埋め込み $\iota\colon R \to \widehat{R}$ が誘導する塔準同型；
+  \item \textbf{完備塔と ClosedTower}：$\widehat{R}$ 上の冪塔が \texttt{ClosedTower} かつ自動的に分離的であること；
+\end{enumerate}
+を段階的に論じる．Bourbaki の母構造論的な視点——順序構造・代数構造・位相構造の三位一体——が一つの形式的構成に収束する過程を追う．
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{導入：Bourbaki の完備化とその塔的解釈}
+% =============================================================================
+
+\subsection{Level 6 の動機}
+
+Level 5 では，可換環 $R$ とそのイデアル $I$ に対して
+\[
+  \texttt{idealPowTower}(I)\colon \texttt{StructureTower}\; \mathbb{N}^{\mathrm{op}}\; R,
+  \quad \texttt{level}(n) = I^n
+\]
+という canonical な例を構成し，L1--L4 の全構造がこの一例に合流することを確認した．
+
+Level 6 の目標はその先にある：\textbf{$I$-adic 完備化}を \texttt{StructureTower} の言語で記述することである．
+具体的には，
+\[
+  \text{Cauchy 列} \;\to\; \text{null 列} \;\to\; \text{商環} \;\to\; \text{完備化の普遍性} \;\to\; \text{ClosedTower}
+\]
+という可換環論の中核パイプラインを段階的に形式化する．
+
+\subsection{Bourbaki の精神}
+
+$I$-adic 完備化は Bourbaki の母構造の精神に忠実な例である：
+
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=4pt, fill=theoremcolor, minimum width=3.5cm, minimum height=1cm, align=center, font=\small},
+  arrow/.style={-Stealth, thick, leanblue},
+]
+  \node[box, fill=definitioncolor] (ord) at (0,0) {順序構造\\$\mathbb{N}^{\mathrm{op}}$ 添字の塔};
+  \node[box, fill=remarkcolor] (alg) at (5,0) {代数構造\\環の Cauchy 列};
+  \node[box, fill=completioncolor] (top) at (2.5,-2.5) {位相構造\\$I$-adic 位相の完備性};
+  \node[box, fill=cauchycolor, minimum width=4cm] (comp) at (2.5,-5) {\textbf{$I$-adic 完備化}\\$\widehat{R} = \varprojlim R/I^n$};
+  \draw[arrow] (ord) -- (comp);
+  \draw[arrow] (alg) -- (comp);
+  \draw[arrow] (top) -- (comp);
+  \node at (2.5, -3.8) {\footnotesize 三つの構造が統合される};
+\end{tikzpicture}
+\end{center}
+
+\begin{mathinsight}
+Level 6 の核心的洞察：Cauchy 列の「速さ」を \texttt{StructureTower} のレベルとして捉える．
+\[
+  \texttt{level}(k) = \bigl\{x\colon \mathbb{N} \to R \;\big|\; \forall m,n,\; x_m - x_n \in I^{\min(m,n)+k}\bigr\}
+\]
+$k$ が大きいほど条件が厳しい（「速い」Cauchy 列）．
+$\mathbb{N}^{\mathrm{op}}$ で添字化すると減少族 $\to$ 増加族 となり，
+これは \texttt{idealPowTower} と同じ $\mathbb{N}^{\mathrm{op}}$ パターンである．
+\end{mathinsight}
+
+\subsection{Level 6 の全体構成}
+
+\begin{levelguide}
+難易度マーク：
+\begin{itemize}[leftmargin=2em]
+  \item[$\bullet$] \textbf{🟢 緑}：直接的な定義展開・定義の組み合わせ
+  \item[$\bullet$] \textbf{🟡 黄}：補題の選択と結合が必要
+  \item[$\bullet$] \textbf{🔴 赤}：複数の概念を統合した本質的な推論
+\end{itemize}
+\end{levelguide}
+
+\begin{center}
+\begin{tikzcd}[column sep=large, row sep=large]
+  \texttt{cauchySeqTower}(I) \ar[r, "\text{§L6-1}"]
+  & \texttt{IsIAdicNull} \ar[r, "\text{§L6-2}"]
+  & \texttt{iadicSetoid} \ar[d, "\text{商環}"] \\
+  \texttt{ClosedTower}(\hat{R}) \ar[u, "\text{§L6-4}"']
+  & \texttt{Hom(towerHom)} \ar[l, "\text{§L6-4}"']
+  & \widehat{R} \ar[l, "\iota\text{: §L6-3}"]
+\end{tikzcd}
+\captionof{figure}{Level 6 の概念間の関係}
+\end{center}
+
+% =============================================================================
+\section{\S L6-1：Cauchy 列の塔的定義}
+% =============================================================================
+
+\subsection{$I$-adic Cauchy 列}
+
+\subsubsection{古典的定義と塔的定義の比較}
+
+$I$-adic Cauchy 列の古典的定義は次のとおりである：
+
+\begin{definition}[$I$-adic Cauchy 列（古典型）]
+列 $x\colon \mathbb{N} \to R$ が \textbf{$I$-adic Cauchy} であるとは，
+\[
+  \forall k \in \mathbb{N},\; \exists N \in \mathbb{N},\; \forall m,n \ge N,\; x_m - x_n \in I^k
+\]
+が成り立つことをいう．
+\end{definition}
+
+一方，Lean の形式化では「一様型」を採用する：
+
+\begin{definition}[$I$-adic Cauchy 列（一様型，Lean 版）]
+列 $x\colon \mathbb{N} \to R$ が \textbf{$I$-adic Cauchy（一様型）} であるとは，
+\[
+  \forall m,n \in \mathbb{N},\; x_m - x_n \in I^{\min(m,n)}
+\]
+が成り立つことをいう（\texttt{IsIAdicCauchy} に対応）．
+\end{definition}
+
+\begin{remark}
+一様型は「$m$ 番目と $n$ 番目の差は $I^{\min(m,n)}$ に入る」という条件であり，
+古典型の $k=0$ 相当に対応する．
+これは \texttt{cauchySeqTower} のレベル $0$ に対応する．
+\end{remark}
+
+\subsubsection{Cauchy 列の塔構成}
+
+\begin{construction}[\texttt{cauchySeqTower}]\label{constr:cauchyseq}
+$R$ を可換環，$I \subseteq R$ をイデアルとする．
+関数空間 $(\mathbb{N} \to R)$ 上の構造塔
+\[
+  \texttt{cauchySeqTower}(I)\colon \texttt{StructureTower}\; \mathbb{N}^{\mathrm{op}}\; (\mathbb{N} \to R)
+\]
+を次で定義する：
+\[
+  \texttt{level}(k) = \bigl\{x\colon \mathbb{N} \to R \;\big|\; \forall m,n \in \mathbb{N},\; x_m - x_n \in I^{\min(m,n) + k}\bigr\}
+\]
+ここで $k \in \mathbb{N}^{\mathrm{op}}$ は「速さ」パラメータである．
+\end{construction}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  level/.style={draw, rounded corners=3pt, minimum width=6cm, minimum height=0.7cm,
+                fill=cauchycolor, font=\small, align=center},
+  arrow/.style={-Stealth, gray!70, thick},
+]
+  \node[level, fill=leanbg!80] (k0) at (0, 0) {level $0$: $x_m - x_n \in I^{\min(m,n)}$（一般 Cauchy 列）};
+  \node[level] (k1) at (0, -1.4) {level $1$: $x_m - x_n \in I^{\min(m,n)+1}$（より速い）};
+  \node[level] (k2) at (0, -2.8) {level $2$: $x_m - x_n \in I^{\min(m,n)+2}$（さらに速い）};
+  \node[font=\large] (dots) at (0, -3.9) {$\vdots$};
+  \node[level, fill=remarkcolor] (kinf) at (0, -5.1) {level $k$: $x_m - x_n \in I^{\min(m,n)+k}$（$k$ が大きいほど厳しい）};
+  \draw[arrow] (k0.south) -- (k1.north) node[midway, right, font=\small] {$\subseteq$};
+  \draw[arrow] (k1.south) -- (k2.north) node[midway, right, font=\small] {$\subseteq$};
+\end{tikzpicture}
+\caption{Cauchy 列の塔：$k$ が大きいほど「速い」Cauchy 列のみを含む（$\mathbb{N}^{\mathrm{op}}$ 添字で包含関係が増加的）}
+\end{figure}
+
+\begin{proposition}[\texttt{cauchySeqTower} の単調性]\label{prop:cauchy-mono}
+$i \le j$ in $\mathbb{N}^{\mathrm{op}}$ ならば $\texttt{level}(i) \subseteq \texttt{level}(j)$．
+\end{proposition}
+
+\begin{proof}
+$i \le j$ in $\mathbb{N}^{\mathrm{op}}$ とは $j^* \le i^*$ in $\mathbb{N}$（ただし $*$ は \texttt{ofDual}）を意味する．
+$x \in \texttt{level}(i)$ とする，すなわち任意の $m,n$ に対して $x_m - x_n \in I^{\min(m,n)+i^*}$．
+$j^* \le i^*$ より $\min(m,n)+j^* \le \min(m,n)+i^*$，
+ゆえに $I^{\min(m,n)+i^*} \subseteq I^{\min(m,n)+j^*}$（イデアルの冪の単調性）．
+よって $x_m - x_n \in I^{\min(m,n)+j^*}$，すなわち $x \in \texttt{level}(j)$．
+\end{proof}
+
+\subsubsection{代数的閉性}
+
+Cauchy 列の塔には自然な代数構造が入る：
+
+\begin{proposition}[定数列の帰属]
+任意の $r \in R$ および $k \in \mathbb{N}^{\mathrm{op}}$ に対して，
+定数列 $\overline{r} = (r, r, r, \ldots)$ は $\texttt{level}(k)$ に属する．
+\end{proposition}
+
+\begin{proof}
+$\overline{r}_m - \overline{r}_n = r - r = 0 \in I^{\min(m,n)+k}$ より明らか（$0$ は任意のイデアルの元）．
+\end{proof}
+
+\begin{proposition}[加法的閉性]
+$x, y \in \texttt{level}(k)$ ならば $x + y \in \texttt{level}(k)$．
+\end{proposition}
+
+\begin{proof}
+$(x+y)_m - (x+y)_n = (x_m - x_n) + (y_m - y_n)$．
+$x_m - x_n,\, y_m - y_n \in I^{\min(m,n)+k}$ なので，
+\texttt{Ideal.add\_mem} より $(x_m - x_n) + (y_m - y_n) \in I^{\min(m,n)+k}$．
+\end{proof}
+
+\begin{proposition}[スカラー倍の閉性]
+$r \in R$，$x \in \texttt{level}(k)$ ならば $(n \mapsto r \cdot x_n) \in \texttt{level}(k)$．
+\end{proposition}
+
+\begin{proof}
+$r \cdot x_m - r \cdot x_n = r \cdot (x_m - x_n)$．
+$x_m - x_n \in I^{\min(m,n)+k}$ なので，
+$I^k$ は $R$-加群であるから $r \cdot (x_m - x_n) \in I^{\min(m,n)+k}$．
+\end{proof}
+
+\begin{remark}
+これら三つの命題は，\texttt{cauchySeqTower} が \textbf{フィルトレーション $R$-加群}の構造を持つことを示している．
+Level 5 で確認した乗法互換性（\texttt{cauchySeqTower\_mul\_mem}）の加法・スカラー版に対応する．
+\end{remark}
+
+\begin{leancode}[caption={L6-1: Cauchy 列の塔定義}]
+-- L6-1b: Cauchy 列の塔
+def cauchySeqTower : StructureTower Nod (N -> R) where
+  level k := {x : N -> R | forall m n, x m - x n in I ^ (min m n + ofDual k)}
+  monotone_level := by
+    intro i j hij x hx m n
+    exact Ideal.pow_le_pow_right
+      (Nat.add_le_add_left (OrderDual.ofDual_le_ofDual.mpr hij) _) (hx m n)
+
+-- L6-1c: level 0 と IsIAdicCauchy の一致
+theorem cauchySeqTower_level_zero :
+    (cauchySeqTower I).level (OrderDual.toDual 0) =
+      {x : N -> R | IsIAdicCauchy I x} := by
+  ext x; simp [cauchySeqTower, IsIAdicCauchy]
+\end{leancode}
+
+% =============================================================================
+\section{\S L6-2：null 列と同値関係}
+% =============================================================================
+
+\subsection{$I$-adic null 列}
+
+\begin{definition}[$I$-adic null 列]
+列 $x\colon \mathbb{N} \to R$ が \textbf{$I$-adic null} であるとは，
+\[
+  \forall k \in \mathbb{N},\; \exists N \in \mathbb{N},\; \forall n \ge N,\; x_n \in I^k
+\]
+が成り立つことをいう．すなわち，$x_n$ が $I$-adic 位相で $0$ に収束する．
+\end{definition}
+
+\begin{remark}
+null 列と \texttt{cauchySeqTower} の \texttt{global} の対比：
+\begin{align*}
+  \texttt{global}(T) &= \bigcap_{k} \texttt{level}(k) = \{x \mid \forall k,\, \forall m,n,\, x_m - x_n \in I^k\} \\
+  \text{null 列} &= \{x \mid \forall k,\, \exists N,\, \forall n \ge N,\, x_n \in I^k\}
+\end{align*}
+null 列は「すべてのレベルに \emph{eventually} 属する列」，
+global は「すべてのレベルに \emph{常に} 属する列」である．
+\end{remark}
+
+\subsection{null 列の代数的閉性}
+
+\begin{proposition}
+次が成り立つ：
+\begin{enumerate}
+  \item 零列 $0$ は null 列である．
+  \item $x, y$ が null ならば $x + y$ も null である．
+  \item $x$ が null ならば $-x$ も null である．
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+\begin{enumerate}
+  \item $0_n = 0 \in I^k$ for all $n, k$．$N = 0$ で OK．
+  \item 各 $k$ に対し $x, y$ のそれぞれから $N_x, N_y$ を取り，$N = \max(N_x, N_y)$ とおく．
+    $n \ge N$ ならば $(x+y)_n = x_n + y_n \in I^k + I^k \subseteq I^k$（\texttt{Ideal.add\_mem}）．
+  \item $I^k$ はイデアルなので $-a \in I^k \iff a \in I^k$．
+\end{enumerate}
+\end{proof}
+
+\subsection{$I$-adic Setoid}
+
+\begin{construction}[$I$-adic Setoid]
+$({\mathbb{N}} \to R)$ 上の同値関係を
+\[
+  x \sim y \;\iff\; x - y \text{ が null 列}
+\]
+と定義する．これは確かに同値関係である：
+\begin{center}
+\begin{tikzpicture}[
+  node/.style={draw, rounded corners=3pt, fill=theoremcolor, font=\small, align=center, minimum width=3cm, minimum height=0.9cm},
+  arrow/.style={-Stealth, thick},
+]
+  \node[node] (refl) at (0,0) {\textbf{反射性}\\$x - x = 0$ は null};
+  \node[node] (symm) at (5,0) {\textbf{対称性}\\$y - x = -(x-y)$ は null};
+  \node[node] (trans) at (2.5,-2) {\textbf{推移性}\\$x - z = (x-y)+(y-z)$ は null};
+  \draw[arrow] (refl) -- (trans);
+  \draw[arrow] (symm) -- (trans);
+\end{tikzpicture}
+\end{center}
+\end{construction}
+
+\begin{leancode}[caption={L6-2e: I-adic Setoid の構成}]
+def iadicSetoid : Setoid (N -> R) where
+  r x y := IsIAdicNull I (x - y)
+  iseqv := {
+    refl := fun x => by simp [isIAdicNull_zero I]
+    symm := fun {x y} hxy => by
+      have : y - x = -(x - y) := by ring
+      rw [this]; exact isIAdicNull_neg I hxy
+    trans := fun {x y z} hxy hyz => by
+      have : x - z = (x - y) + (y - z) := by ring
+      rw [this]; exact isIAdicNull_add I hxy hyz
+  }
+\end{leancode}
+
+\subsection{分離条件と null 定数列}
+
+\begin{theorem}[分離条件と null 定数列の対応]\label{thm:separated-null}
+$I$ が \textbf{分離的}（$\bigcap_{n} I^n = 0$）であるとき，
+定数列 $(r, r, r, \ldots)$ が null 列であることと $r = 0$ は同値である：
+\[
+  \texttt{IsSeparated}(I) \implies
+  \bigl[\text{const}(r) \text{ は null}\bigr] \iff r = 0.
+\]
+\end{theorem}
+
+\begin{proof}
+($\Rightarrow$) $r \neq 0$ と仮定する．分離条件より Level 5 の脱出定理（\texttt{escape\_of\_isSeparated}）が使え，
+$r \notin I^n$ となる $n$ が存在する．しかし const$(r)$ が null ならば，そのような $n$ に対して
+$\exists N,\, r \in I^n$ となり矛盾する．
+
+($\Leftarrow$) $r = 0$ ならば，定数列はゼロ列だから null である．
+\end{proof}
+
+\begin{mathinsight}
+定理 \ref{thm:separated-null} は「\textbf{分離的} $\iff$ $I$-adic 位相が $T_1$ $\iff$ 定数 null 列は零列のみ」という等価性の形式化である．
+これは後の $\iota\colon R \to \widehat{R}$ の単射性の根拠となる．
+\end{mathinsight}
+
+% =============================================================================
+\section{\S L6-3：完備化の普遍性}
+% =============================================================================
+
+\subsection{Mathlib の $I$-adic 完備化}
+
+Lean / Mathlib では，$I$-adic 完備化は次で与えられる：
+\[
+  \widehat{R} := \texttt{AdicCompletion}\, I\, R = \varprojlim_{n} R/I^n,
+  \quad
+  \iota := \texttt{algebraMap}\; R\; \widehat{R}\colon R \to \widehat{R}.
+\]
+
+\begin{construction}[完備化塔 \texttt{completionPowTower}]
+$\widehat{R}$ 上のイデアル $\hat{I} := \iota(I) \cdot \widehat{R}$ に対して，
+\[
+  \texttt{completionPowTower}(I) := \texttt{idealPowTower}(\hat{I})\colon
+  \texttt{StructureTower}\; \mathbb{N}^{\mathrm{op}}\; \widehat{R}
+\]
+を Level 5 の \texttt{idealPowTower} パターンをそのまま $\widehat{R}$ に適用して構成する．
+\end{construction}
+
+\subsection{埋め込み $\iota$ が誘導する塔準同型}
+
+\begin{theorem}[塔準同型の誘導]\label{thm:tower-hom}
+埋め込み $\iota\colon R \to \widehat{R}$ は，
+\texttt{StructureTower} の準同型
+\[
+  \texttt{completion\_towerHom}(I)\colon \texttt{idealPowTower}(I) \to \texttt{completionPowTower}(I)
+\]
+を誘導する．
+\end{theorem}
+
+\begin{proof}
+Level 5 で確立した \texttt{ringHom\_towerHom} の canonical な適用である：
+$\phi = \iota$，$J = \hat{I}$，条件 $\hat{I} \le \hat{I}$（恒等的）より直ちに従う．
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=5em, row sep=4em]
+  \texttt{idealPowTower}(I) \ar[r, "\texttt{completion\_towerHom}", "\iota"'] \ar[dr, "\phi"', bend right=20]
+  & \texttt{completionPowTower}(I) \ar[d, "\exists!\, \bar{\phi}", dashed] \\
+  & \texttt{idealPowTower}(J) \quad (S \text{ が完備})
+\end{tikzcd}
+\caption{完備化の普遍性：任意の塔準同型 $\phi$ は $\iota$ を経由して一意分解する}
+\label{fig:univ-prop}
+\end{figure}
+
+\begin{proposition}[合成の互換性]\label{prop:comp-compat}
+$\phi\colon S \to R$ が環準同型，$J \subseteq S$ がイデアルで $\phi(J) \subseteq I$ を満たすとき，
+\[
+  \texttt{completion\_towerHom}(I) \circ \texttt{ringHom\_towerHom}(\phi, J, I)
+  = \texttt{ringHom\_towerHom}(\iota \circ \phi,\, J,\, \hat{I})
+\]
+が成り立つ．
+\end{proposition}
+
+\begin{proof}
+両辺の \texttt{toFun} を比べると，どちらも $\iota \circ \phi$ に等しい．
+\texttt{Hom.ext rfl} で終わる．
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=4em, row sep=3.5em]
+  \texttt{idealPowTower}(J)
+    \ar[r, "\texttt{ringHom\_towerHom}(\phi)"]
+    \ar[rr, bend left=30, "\texttt{ringHom\_towerHom}(\iota \circ \phi)"]
+  & \texttt{idealPowTower}(I)
+    \ar[r, "\texttt{completion\_towerHom}"]
+  & \texttt{completionPowTower}(I)
+\end{tikzcd}
+\caption{合成の可換性：命題 \ref{prop:comp-compat} の図式的表現}
+\end{figure}
+
+\subsection{分離条件下での単射性}
+
+\begin{theorem}[$\iota$ の単射性]\label{thm:injective}
+$I$ が分離的であるならば，$\iota\colon R \to \widehat{R}$ は単射である：
+\[
+  \texttt{IsSeparated}(I) \implies \texttt{Function.Injective}(\iota).
+\]
+\end{theorem}
+
+\begin{proof}
+\texttt{isHausdorff\_of\_isSeparated} により $R$ は $I$-adic Hausdorff となる．
+Mathlib の \texttt{AdicCompletion.of\_inj} を使うと，
+\texttt{AdicCompletion.of} $I\, R$ が単射であることが分かる．
+\texttt{completionMap} と \texttt{AdicCompletion.of} は同じ埋め込みであるから，結論を得る．
+\end{proof}
+
+\begin{mathinsight}
+分離条件 $\bigcap_n I^n = 0$ は「$I$-adic フィルトレーションが $R$ の元を十分区別できる」ことを意味し，
+それが $\iota$ の単射性を保証する．
+図式的に：
+\begin{center}
+\begin{tikzcd}
+  R \ar[rr, "\iota", hook] \ar[dr, "\text{商}"']
+  & & \widehat{R} \\
+  & R/(I^n) \ar[ur, "\varprojlim"']
+\end{tikzcd}
+\end{center}
+\end{mathinsight}
+
+\begin{leancode}[caption={L6-3b: 完備化塔準同型と単射性}]
+-- L6-3b: iota が tower hom を誘導する（ringHom_towerHom の直接適用）
+noncomputable def completion_towerHom :
+    Hom (idealPowTower I) (completionPowTower I) :=
+  ringHom_towerHom (completionMap I) I (completionIdeal I) le_rfl
+
+-- L6-3e: 分離条件下での iota の単射性
+theorem completion_towerHom_injective_of_separated
+    (hI : IsSeparated I) :
+    Function.Injective (completionMap I) := by
+  let _ : IsHausdorff I R := isHausdorff_of_isSeparated I hI
+  intro x y hxy
+  have hxy' : AdicCompletion.of I R x = AdicCompletion.of I R y := by
+    simpa only [completionMap, completionRing] using hxy
+  exact (AdicCompletion.of_inj (I := I) (M := R)).mp hxy'
+\end{leancode}
+
+% =============================================================================
+\section{\S L6-4：完備塔と ClosedTower}
+% =============================================================================
+
+\subsection{完備化塔の ClosedTower 構造}
+
+Level 5 では \texttt{idealPowTower}$(I)$ が \texttt{idealClosure}（$= $ イデアルの Span 作用素）に関する ClosedTower であることを示した．
+Level 6 では，この結果を $\widehat{R}$ に「コピー」する：
+
+\begin{theorem}[完備化塔は ClosedTower]
+\[
+  \texttt{completionPowTower}(I) = \texttt{idealPowTower}(\hat{I})
+\]
+は，$\widehat{R}$ 上の \texttt{idealClosure} に関する ClosedTower である．
+\end{theorem}
+
+\begin{proof}
+Level 5 の \texttt{idealPowTower\_closedTower} を $\hat{I}$ に適用するだけである：
+各 $n$ に対して $\hat{I}^n$ はイデアルなので，その \texttt{Ideal.span} は自分自身に等しい．
+\end{proof}
+
+\subsection{完備化の分離性}
+
+\begin{theorem}[完備化は自動的に分離的]\label{thm:completion-sep}
+\[
+  \texttt{IsSeparated}(\hat{I}),
+  \quad\text{すなわち}\quad
+  \bigcap_{n \in \mathbb{N}} \hat{I}^n = 0 \;\text{ in }\; \widehat{R}.
+\]
+\end{theorem}
+
+\begin{proof}
+Mathlib は $\widehat{R}$ に対して $\hat{I}$-adic Hausdorff 性を付与している
+（\texttt{IsHausdorff.map\_algebraMap\_iff} と \texttt{inferInstance}）．
+これより \texttt{isSeparated\_of\_isHausdorff} を適用して分離性を得る．
+\end{proof}
+
+\begin{corollary}[完備化の global は $\{0\}$]
+\[
+  \texttt{global}(\texttt{completionPowTower}(I)) = \{0\} \subseteq \widehat{R}.
+\]
+\end{corollary}
+
+\begin{proof}
+定理 \ref{thm:completion-sep} と Level 5 の \texttt{isSeparated\_iff\_global\_eq} より直ちに従う．
+\end{proof}
+
+\subsection{完備化版・脱出定理}
+
+\begin{theorem}[脱出定理（完備化版）]\label{thm:escape}
+$x \in \widehat{R}$ が $x \neq 0$ ならば，
+\[
+  \exists n \in \mathbb{N},\quad x \notin \hat{I}^n.
+\]
+すなわち，零でない元は有限段で $\hat{I}$-adic tower から脱出する．
+\end{theorem}
+
+\begin{proof}
+定理 \ref{thm:completion-sep} と Level 5 の \texttt{escape\_of\_isSeparated} の直接適用：
+\texttt{escape\_of\_isSeparated} $(\hat{I})$ (\texttt{completionPowTower\_isSeparated} $I$) $hx$．
+\end{proof}
+
+\subsection{global の閉性}
+
+\begin{theorem}[global の閉性]\label{thm:global-closed}
+\[
+  \texttt{idealClosure}(\texttt{global}(\texttt{completionPowTower}(I)))
+  \subseteq \texttt{global}(\texttt{completionPowTower}(I)).
+\]
+\end{theorem}
+
+\begin{proof}
+\texttt{completionPowTower} が ClosedTower であることから，
+Level 3 の \texttt{ClosedTower.cl\_global\_subset} を直接適用する．
+\end{proof}
+
+\begin{remark}
+定理 \ref{thm:global-closed} と系（global $= \{0\}$）を合わせると，
+\texttt{idealClosure} $\{0\} \subseteq \{0\}$，
+すなわち $\{0\}$ が \texttt{idealClosure} の不動点であることが確認できる（自明だが枠組みの整合性の検証）．
+\end{remark}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=5em, row sep=3.5em]
+  R \ar[r, "\iota", hook] \ar[d, "\texttt{idealPowTower}(I)"']
+  & \widehat{R} \ar[d, "\texttt{completionPowTower}(I)"] \\
+  \texttt{StructureTower}\; \mathbb{N}^{\mathrm{op}}\; R
+    \ar[r, "\texttt{completion\_towerHom}"]
+    \ar[d, "\text{ClosedTower (L5)}"']
+  & \texttt{StructureTower}\; \mathbb{N}^{\mathrm{op}}\; \widehat{R}
+    \ar[d, "\text{ClosedTower (L6)}"] \\
+  \texttt{global} = \{0\} \text{ iff Separated}
+    \ar[r, "\text{自動的に成立}"]
+  & \texttt{global} = \{0\} \text{ （常に）}
+\end{tikzcd}
+\caption{L5 と L6 の対応：$R$ の構造が $\widehat{R}$ に「自動改善」される}
+\label{fig:l5-l6-compare}
+\end{figure}
+
+\begin{leancode}[caption={L6-4: 完備塔の ClosedTower と分離性}]
+-- L6-4a: 完備化塔は ClosedTower
+noncomputable def completionPowTower_closedTower :
+    ClosedTower (idealClosure (R := completionRing I)) Nod :=
+  idealPowTower_closedTower (completionIdeal I)
+
+-- L6-4b: 完備化は自動的に分離的
+theorem completionPowTower_isSeparated :
+    IsSeparated (completionIdeal I) := by
+  let _ : IsHausdorff (completionIdeal I) (completionRing I) :=
+    (IsHausdorff.map_algebraMap_iff (I := I) (S := completionRing I)).2
+      (inferInstance : IsHausdorff I (completionRing I))
+  exact isSeparated_of_isHausdorff (completionIdeal I)
+
+-- L6-4e: global の閉性
+theorem completionPow_global_closed :
+    idealClosure (R := completionRing I) (completionPowTower I).global
+      subseteq (completionPowTower I).global :=
+  (completionPowTower_closedTower I).cl_global_subset
+\end{leancode}
+
+% =============================================================================
+\section{Level 6 の全体像：L1--L6 の合流}
+% =============================================================================
+
+\subsection{各レベルの対応表}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{概念} & \textbf{L5 での確認} & \textbf{L6 での発展} \\
+\midrule
+\texttt{StructureTower} & \texttt{idealPowTower}$(R)$ & Cauchy 塔$(\mathbb{N} \to R)$, 完備化塔$(\widehat{R})$ \\
+乗法互換性 & \texttt{mul\_mem} & 加法・スカラー閉性 \\
+\texttt{ClosedTower} & L5-2c & 完備化版（L6-4a） \\
+\texttt{cl\_global\_subset} & L5-2d & 完備化版（L6-4e） \\
+環準同型 $\to$ Hom & \texttt{ringHom\_towerHom} & $\iota$ による塔準同型（L6-3b） \\
+分離条件 & \texttt{IsSeparated} 検証 & $\widehat{R}$ では自動成立（L6-4b） \\
+脱出定理 & \texttt{escape\_of\_isSeparated} & 完備化版（L6-4d） \\
+\texttt{global} $= \{0\}$ & 仮定として要求 & 完備化で常に成立（L6-4c） \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{完備化の「最良性」}
+
+\begin{mathinsight}
+Bourbaki の完備化の普遍性：$\widehat{R}$ は
+\begin{enumerate}
+  \item \textbf{StructureTower}：$\hat{I}$-adic フィルトレーションを持つ；
+  \item \textbf{ClosedTower}：各 $\hat{I}^n$ が \texttt{idealClosure} の不動点；
+  \item \textbf{分離的}：$\bigcap_n \hat{I}^n = 0$（自動的に成立）；
+  \item \textbf{完備的}：Cauchy 列が収束する；
+\end{enumerate}
+を同時に満たす $R$ の「最小拡大」である．
+Level 1--5 で蓄積した全条件が，完備化において初めて一斉に実現される．
+\end{mathinsight}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node/.style={draw, rounded corners=5pt, minimum width=4.5cm, minimum height=1cm, align=center, font=\small},
+  arrow/.style={-Stealth, thick, leanblue},
+  label/.style={font=\footnotesize, midway, above},
+]
+  \node[node, fill=leanbg] (L1) at (0, 8) {L1: \texttt{StructureTower}\\基本定義・圏構造};
+  \node[node, fill=leanbg] (L2) at (0, 6.3) {L2: \texttt{Hom}・合成・自然性};
+  \node[node, fill=leanbg] (L3) at (0, 4.6) {L3: \texttt{ClosedTower}\\閉包作用素};
+  \node[node, fill=leanbg] (L4) at (0, 2.9) {L4: \texttt{NatInclusion}\\自然な包含関係};
+  \node[node, fill=warningcolor] (L5) at (0, 1.2) {L5: \texttt{idealPowTower}\\$I$-adic canonical 例};
+  \node[node, fill=cauchycolor, minimum width=5.5cm] (L6) at (0, -0.8)
+    {L6: $I$-adic 完備化\\Cauchy 列・普遍性・ClosedTower};
+  \draw[arrow] (L1) -- (L2);
+  \draw[arrow] (L2) -- (L3);
+  \draw[arrow] (L3) -- (L4);
+  \draw[arrow] (L4) -- (L5);
+  \draw[arrow] (L5) -- (L6) node[label] {};
+  \node[font=\footnotesize, right] at (0.75, 0.2) {全構造が合流};
+\end{tikzpicture}
+\caption{Level 1--6 の積み上げ構造}
+\end{figure}
+
+\subsection{次のステップ候補（Level 7 以降）}
+
+\begin{enumerate}
+  \item \textbf{Cauchy 列の収束と完備性}：
+    \texttt{cauchySeqTower} の元が $\widehat{R}$ 上で収束することを示す．
+    逆極限 $\varprojlim R/I^n$ との同型を構成し，
+    \texttt{StructureTower} としての同値性を確認する．
+
+  \item \textbf{Rees 代数と次数付き構造}：
+    $\bigoplus_n I^n t^n$ を \texttt{StructureTower} の直和として記述する．
+    次数環 (graded ring) と \texttt{StructureTower} の「次数付き射」の関係を形式化する．
+
+  \item \textbf{Mathlib \texttt{CategoryTheory.Monad} との正式接続}：
+    \texttt{idealClosure} の \texttt{ClosedTower} が
+    \texttt{CategoryTheory.Monad.Algebra} と同型であることを形式証明する．
+    Level 3 のモナド法則の圏論版への橋渡し．
+\end{enumerate}
+
+% =============================================================================
+\section*{まとめ}
+% =============================================================================
+\addcontentsline{toc}{section}{まとめ}
+
+本稿では，Structure Tower 演習 Level 6 として $I$-adic 完備化を \texttt{StructureTower} の言語で記述した Lean 4 ファイルを数学的に解説した．
+
+\begin{itemize}
+  \item \S L6-1 では Cauchy 列の「速さ」を階層化した \texttt{cauchySeqTower} を構成し，加法・スカラー倍の閉性を確認した．
+  \item \S L6-2 では null 列の代数的閉性から $I$-adic Setoid を構成し，分離条件下で定数 null 列が零列のみであることを示した．
+  \item \S L6-3 では Mathlib の \texttt{AdicCompletion} を利用して完備化塔を構成し，埋め込み $\iota$ が塔準同型を誘導することを確認した（Level 5 の \texttt{ringHom\_towerHom} の canonical 適用）．
+  \item \S L6-4 では完備化塔が \texttt{ClosedTower} であり，自動的に分離的かつ global $= \{0\}$ を満たすことを示した．
+\end{itemize}
+
+Bourbaki の母構造論的な視点——順序・代数・位相の三位一体——が，\texttt{StructureTower} という単一の枠組みに統合される過程を，Lean 4 の形式的証明として明示できた．
+
+% =============================================================================
+\end{document}
