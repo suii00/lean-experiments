@@ -41,7 +41,9 @@ import Mathlib.Data.Set.Lattice
 import Mathlib.Order.GaloisConnection.Basic
 import Mathlib.Order.Closure
 import Mathlib.RingTheory.Ideal.Operations
+import Mathlib.RingTheory.Ideal.Maps
 import Mathlib.RingTheory.Ideal.Span
+import Mathlib.RingTheory.Filtration
 import Mathlib.Data.Nat.Find
 
 open Set Function
@@ -155,10 +157,12 @@ section IAdicTower
 
 variable {R : Type*} [CommRing R]
 
-/-- I-adic filtration を ℕᵒᵈ 添字の StructureTower として構成する。
+/-
+I-adic filtration を ℕᵒᵈ 添字の StructureTower として構成する。
     level (n : ℕᵒᵈ) = ↑(I ^ ofDual n) = I^n の台集合。
 
-    減少的族をℕᵒᵈ で増加的に見る標準的な双対化。 -/
+    減少的族をℕᵒᵈ で増加的に見る標準的な双対化。
+-/
 
 /-- 🟢 Exercise L5-1a: I-adic tower の構成。
     各レベルは I^n の台集合。
@@ -176,13 +180,11 @@ variable {R : Type*} [CommRing R]
 def idealPowTower (I : Ideal R) : StructureTower ℕᵒᵈ R where
   level n := ↑(I ^ OrderDual.ofDual n)
   monotone_level := by
-    sorry
-    /- skeleton:
-       intro i j hij x hx
-       -- i ≤ j in ℕᵒᵈ means ofDual j ≤ ofDual i in ℕ
-       -- I^(ofDual i) ≤ I^(ofDual j) by Ideal.pow_le_pow_right
-       exact SetLike.coe_subset_coe.mpr
-         (Ideal.pow_le_pow_right (OrderDual.ofDual_le_ofDual.mpr hij)) hx -/
+    intro i j hij x hx
+    exact
+      (Ideal.pow_le_pow_right (I := I)
+        (m := OrderDual.ofDual j) (n := OrderDual.ofDual i)
+        (OrderDual.ofDual_le_ofDual.mpr hij)) hx
 
 @[simp] theorem idealPowTower_level (I : Ideal R) (n : ℕᵒᵈ) :
     (idealPowTower I).level n = ↑(I ^ OrderDual.ofDual n) := rfl
@@ -195,9 +197,9 @@ def idealPowTower (I : Ideal R) : StructureTower ℕᵒᵈ R where
     Hint-3: `simp [idealPowTower, Ideal.pow_zero]` -/
 theorem idealPowTower_top_level (I : Ideal R) :
     (idealPowTower I).level (OrderDual.toDual 0) = Set.univ := by
-  sorry
-  /- skeleton:
-     simp [idealPowTower, Ideal.pow_zero] -/
+  ext x
+  change x ∈ (I ^ 0 : Ideal R) ↔ x ∈ Set.univ
+  simp [pow_zero, Ideal.one_eq_top]
 
 /-- 🟡 Exercise L5-1c: I-adic の乗法互換性。
     x ∈ I^m, y ∈ I^n ⟹ x * y ∈ I^(m+n)。
@@ -212,10 +214,7 @@ theorem idealPowTower_top_level (I : Ideal R) :
 theorem idealPow_mul_mem (I : Ideal R) (m n : ℕ) {x y : R}
     (hx : x ∈ I ^ m) (hy : y ∈ I ^ n) :
     x * y ∈ I ^ (m + n) := by
-  sorry
-  /- skeleton:
-     have h : x * y ∈ I ^ m * I ^ n := Ideal.mul_mem_mul hx hy
-     exact Ideal.pow_add I m n ▸ h -/
+  simpa [pow_add] using (Ideal.mul_mem_mul hx hy)
 
 /-- 🟡 Exercise L5-1d: I ⊆ J ⟹ I^n ⊆ J^n（各レベルの包含）。
     閉包比較 (L4-1) の具体化: イデアル包含が I-adic tower 間の
@@ -230,10 +229,8 @@ theorem idealPow_mul_mem (I : Ideal R) (m n : ℕ) {x y : R}
               (Ideal.pow_le_pow_left hIJ _)` -/
 theorem idealPowTower_natInclusion {I J : Ideal R} (hIJ : I ≤ J) :
     NatInclusion (idealPowTower I) (idealPowTower J) := by
-  sorry
-  /- skeleton:
-     intro n x hx
-     exact SetLike.coe_subset_coe.mpr (Ideal.pow_le_pow_left hIJ _) hx -/
+  intro n x hx
+  exact (Ideal.pow_right_mono hIJ (OrderDual.ofDual n)) hx
 
 /-- 🔴 Exercise L5-1e: I-adic tower の Hom 版。
     I ⊆ J が toFun = id の Hom を誘導する。
@@ -246,10 +243,8 @@ def idealPowTower_comparison {I J : Ideal R} (hIJ : I ≤ J) :
     Hom (idealPowTower I) (idealPowTower J) where
   toFun := _root_.id
   preserves := by
-    sorry
-    /- skeleton:
-       intro n x hx
-       exact idealPowTower_natInclusion hIJ n hx -/
+    intro n x hx
+    exact idealPowTower_natInclusion hIJ n hx
 
 end IAdicTower
 
@@ -289,22 +284,16 @@ variable {R : Type*} [CommRing R]
 noncomputable def idealClosure : ClosureOperator (Set R) where
   toFun := fun S => ↑(Ideal.span S)
   monotone' := by
-    sorry
-    /- skeleton:
-       intro S T h
-       exact SetLike.coe_subset_coe.mpr (Ideal.span_mono h) -/
+    intro S T h
+    exact Ideal.span_mono h
   le_closure' := by
-    sorry
-    /- skeleton:
-       intro S
-       exact Ideal.subset_span -/
+    intro S
+    exact Ideal.subset_span
   idempotent' := by
-    sorry
-    /- skeleton:
-       intro S
-       show ↑(Ideal.span ↑(Ideal.span S)) = ↑(Ideal.span S)
-       congr 1
-       exact Ideal.span_eq (Ideal.span S) -/
+    intro S
+    ext x
+    change x ∈ Ideal.span ↑(Ideal.span S) ↔ x ∈ Ideal.span S
+    rw [Ideal.span_eq]
 
 @[simp] theorem idealClosure_apply (S : Set R) :
     idealClosure S = ↑(Ideal.span S) := rfl
@@ -318,11 +307,9 @@ noncomputable def idealClosure : ClosureOperator (Set R) where
     Hint-3: `show ↑(Ideal.span ↑I) = ↑I; congr 1; exact Ideal.span_eq I` -/
 theorem idealClosure_fixed_of_ideal (I : Ideal R) :
     idealClosure (↑I : Set R) = ↑I := by
-  sorry
-  /- skeleton:
-     show ↑(Ideal.span ↑I) = ↑I
-     congr 1
-     exact Ideal.span_eq I -/
+  ext x
+  change x ∈ Ideal.span ↑I ↔ x ∈ I
+  rw [Ideal.span_eq]
 
 /-- 🔴 Exercise L5-2c: idealPowTower は ClosedTower idealClosure。
     各レベル ↑(I^n) はイデアル I^n の台集合なので
@@ -332,13 +319,11 @@ theorem idealClosure_fixed_of_ideal (I : Ideal R) :
     Hint-2: idealClosure_fixed_of_ideal (I ^ ofDual n)。
     Hint-3: `fun n => idealClosure_fixed_of_ideal (I ^ OrderDual.ofDual n)` -/
 def idealPowTower_closedTower (I : Ideal R) :
-    ClosedTower idealClosure ℕᵒᵈ where
+    ClosedTower (idealClosure (R := R)) ℕᵒᵈ where
   toStructureTower := idealPowTower I
   level_closed := by
-    sorry
-    /- skeleton:
-       intro n
-       exact idealClosure_fixed_of_ideal (I ^ OrderDual.ofDual n) -/
+    intro n
+    exact idealClosure_fixed_of_ideal (I ^ OrderDual.ofDual n)
 
 /-- 🟡 Exercise L5-2d: idealClosure による cl_global_subset の具体化。
     ClosedTower.cl_global_subset の系として:
@@ -349,10 +334,8 @@ def idealPowTower_closedTower (I : Ideal R) :
     Hint-2: `(idealPowTower_closedTower I).cl_global_subset`
     Hint-3: そのまま。 -/
 theorem idealPow_global_closed (I : Ideal R) :
-    idealClosure (idealPowTower I).global ⊆ (idealPowTower I).global := by
-  sorry
-  /- skeleton:
-     exact (idealPowTower_closedTower I).cl_global_subset -/
+    idealClosure (R := R) (idealPowTower I).global ⊆ (idealPowTower I).global := by
+  exact ClosedTower.cl_global_subset (T := idealPowTower_closedTower (R := R) I)
 
 /-- 🔴 Exercise L5-2e: global がイデアルであることの直接証明。
     ⋂ₙ ↑(Iⁿ) がイデアルの台集合であることを示す。
@@ -364,16 +347,9 @@ theorem idealPow_global_closed (I : Ideal R) :
              exact ⟨⨅ n, I ^ n, by simp [SetLike.coe_iInf]⟩` -/
 theorem idealPow_global_is_ideal (I : Ideal R) :
     ∃ J : Ideal R, (↑J : Set R) = (idealPowTower I).global := by
-  sorry
-  /- skeleton:
-     -- global = ⋂ (n : ℕᵒᵈ), ↑(I ^ ofDual n) = ⋂ (n : ℕ), ↑(I ^ n)
-     -- これは ⨅ n, I ^ n の台集合
-     refine ⟨⨅ n, I ^ n, ?_⟩
-     change (↑(⨅ n, I ^ n) : Set R) = ⋂ (n : ℕᵒᵈ), ↑(I ^ OrderDual.ofDual n)
-     simp only [SetLike.coe_iInf]
-     ext x
-     simp [Set.mem_iInter]
-     exact ⟨fun h n => h n, fun h n => h n⟩ -/
+  refine ⟨⨅ n, I ^ n, ?_⟩
+  ext x
+  simp [StructureTower.global, idealPowTower, Submodule.coe_iInf]
 
 end IdealClosure
 
@@ -411,11 +387,8 @@ variable {R S : Type*} [CommRing R] [CommRing S]
 theorem ringHom_idealPow_le (φ : R →+* S) (I : Ideal R) (J : Ideal S)
     (hIJ : Ideal.map φ I ≤ J) (n : ℕ) :
     Ideal.map φ (I ^ n) ≤ J ^ n := by
-  sorry
-  /- skeleton:
-     -- Ideal.map φ (I ^ n) = (Ideal.map φ I) ^ n by Ideal.map_pow
-     rw [Ideal.map_pow]
-     exact Ideal.pow_le_pow_left hIJ n -/
+  rw [Ideal.map_pow]
+  exact Ideal.pow_right_mono hIJ n
 
 /-- 🟡 Exercise L5-3b: φ(I) ⊆ J が idealPowTower 間の Hom を誘導。
     各レベルで φ が level を保存する。
@@ -429,14 +402,10 @@ def ringHom_towerHom (φ : R →+* S) (I : Ideal R) (J : Ideal S)
     Hom (idealPowTower I) (idealPowTower J) where
   toFun := φ
   preserves := by
-    sorry
-    /- skeleton:
-       intro n x hx
-       -- hx : x ∈ ↑(I ^ ofDual n)
-       -- goal: φ x ∈ ↑(J ^ ofDual n)
-       have h1 : φ x ∈ Ideal.map φ (I ^ OrderDual.ofDual n) :=
-         Ideal.mem_map_of_mem φ hx
-       exact ringHom_idealPow_le φ I J hIJ (OrderDual.ofDual n) h1 -/
+    intro n x hx
+    have h1 : φ x ∈ Ideal.map φ (I ^ OrderDual.ofDual n) :=
+      Ideal.mem_map_of_mem φ hx
+    exact ringHom_idealPow_le φ I J hIJ (OrderDual.ofDual n) h1
 
 /-- 🟢 Exercise L5-3c: 恒等射は自明に I-adic Hom。
     RingHom.id R に対して Ideal.map id I = I ≤ I。
@@ -446,9 +415,7 @@ def ringHom_towerHom (φ : R →+* S) (I : Ideal R) (J : Ideal S)
     Hint-3: Hom.ext で Hom.id と一致することも確認可能。 -/
 def idealPowTower_idHom (I : Ideal R) :
     Hom (idealPowTower I) (idealPowTower I) :=
-  sorry
-  /- skeleton:
-     ringHom_towerHom (RingHom.id R) I I (by simp [Ideal.map_id]) -/
+  ringHom_towerHom (RingHom.id R) I I (by simp [Ideal.map_id])
 
 /-- 🔴 Exercise L5-3d: 合成の互換性。
     φ : R →+* S, ψ : S →+* T に対し、
@@ -466,10 +433,11 @@ theorem ringHom_towerHom_comp
     Hom.comp (ringHom_towerHom ψ J K hJK)
              (ringHom_towerHom φ I J hIJ) =
     ringHom_towerHom (ψ.comp φ) I K
-      (by sorry /- Ideal.map_comp ψ φ I ▸ le_trans (Ideal.map_mono hIJ) hJK -/) := by
-  sorry
-  /- skeleton:
-     exact Hom.ext rfl -/
+      (by
+        exact le_trans
+          (by simpa [Ideal.map_map] using (Ideal.map_mono (f := ψ) hIJ))
+          hJK) := by
+  exact Hom.ext rfl
 
 end RingHomTower
 
@@ -508,8 +476,7 @@ variable {R : Type*} [CommRing R]
     Hint-3: そのまま。 -/
 theorem idealPowTower_global_eq (I : Ideal R) :
     (idealPowTower I).global = ⋂ (n : ℕᵒᵈ), ↑(I ^ OrderDual.ofDual n) := by
-  sorry
-  /- skeleton: rfl -/
+  rfl
 
 /-- 🟡 Exercise L5-4b: 分離条件の定義。
     I-adic filtration が分離的（separated）であるとは、
@@ -524,24 +491,17 @@ def IsSeparated (I : Ideal R) : Prop :=
 
 theorem isSeparated_iff_global_eq (I : Ideal R) :
     IsSeparated I ↔ (idealPowTower I).global = {(0 : R)} := by
-  sorry
-  /- skeleton:
-     constructor
-     · intro h
-       -- IsSeparated: ⨅ n, I ^ n = ⊥
-       -- global = ⋂ n, ↑(I ^ n) = ↑(⨅ n, I ^ n) = ↑⊥ = {0}
-       change (⋂ (n : ℕᵒᵈ), ↑(I ^ OrderDual.ofDual n)) = {0}
-       rw [show (⋂ (n : ℕᵒᵈ), ↑(I ^ OrderDual.ofDual n)) =
-           ↑(⨅ n, I ^ n) from by simp [SetLike.coe_iInf]]
-       rw [h]
-       simp [Submodule.bot_coe]
-     · intro h
-       -- 逆方向: global = {0} → ⨅ I^n = ⊥
-       have : ↑(⨅ n, I ^ n) = ({0} : Set R) := by
-         rw [SetLike.coe_iInf]
-         convert h using 1
-         ext x; simp [Set.mem_iInter]
-       exact SetLike.coe_injective (by simp [Submodule.bot_coe, this]) -/
+  have hglobal :
+      (idealPowTower I).global = (↑(⨅ n : ℕ, I ^ n) : Set R) := by
+    ext x
+    simp [StructureTower.global, idealPowTower, Submodule.coe_iInf]
+  constructor
+  · intro h
+    rw [hglobal, h]
+    simp [Submodule.bot_coe]
+  · intro h
+    rw [hglobal] at h
+    exact SetLike.coe_injective (by simpa [Submodule.bot_coe] using h)
 
 /-- 🟡 Exercise L5-4c: 分離条件のもとでの「脱出」。
     IsSeparated I のとき、0 でない元は有限段階で I-adic tower から脱出する。
@@ -556,16 +516,16 @@ theorem isSeparated_iff_global_eq (I : Ideal R) :
 theorem escape_of_isSeparated (I : Ideal R) (hI : IsSeparated I)
     {x : R} (hx : x ≠ 0) :
     ∃ n : ℕ, x ∉ (I ^ n : Ideal R) := by
-  sorry
-  /- skeleton:
-     have hglob := (isSeparated_iff_global_eq I).mp hI
-     have hx_not_global : x ∉ (idealPowTower I).global := by
-       rw [hglob]
-       simp [hx]
-     simp only [global, idealPowTower, Set.mem_iInter] at hx_not_global
-     push_neg at hx_not_global
-     obtain ⟨n, hn⟩ := hx_not_global
-     exact ⟨OrderDual.ofDual n, hn⟩ -/
+  classical
+  have hglob := (isSeparated_iff_global_eq I).mp hI
+  have hx_not_global : x ∉ (idealPowTower I).global := by
+    rw [hglob]
+    simp [hx]
+  rw [idealPowTower_global_eq] at hx_not_global
+  simp only [Set.mem_iInter] at hx_not_global
+  push_neg at hx_not_global
+  rcases hx_not_global with ⟨n, hn⟩
+  exact ⟨OrderDual.ofDual n, hn⟩
 
 /-- 🔴 Exercise L5-4d: 3分野＋1の分離条件の統合。
     以下の4分野で「global の閉性/分離」が同じパターンで成立する:
@@ -587,12 +547,10 @@ theorem escape_of_isSeparated (I : Ideal R) (hI : IsSeparated I)
     Hint-2: そのまま。
     Hint-3: `idealPow_global_closed I` -/
 theorem idealPow_global_closed_synthesis (I : Ideal R) :
-    idealClosure (idealPowTower I).global ⊆ (idealPowTower I).global :=
-  sorry
-  /- skeleton:
-     idealPow_global_closed I -/
+    idealClosure (R := R) (idealPowTower I).global ⊆ (idealPowTower I).global :=
+  idealPow_global_closed (R := R) I
 
-/-- 🔴 Exercise L5-4e: Krull の交叉定理の statement（証明は sorry）。
+/-- 🔴 Exercise L5-4e: Krull の交叉定理の statement（証明も実装する）。
     R が Noetherian 可換環、I が proper ideal のとき、
     ⋂ₙ Iⁿ ≤ I · (⋂ₙ Iⁿ) が成り立つ。
 
@@ -607,11 +565,15 @@ theorem idealPow_global_closed_synthesis (I : Ideal R) :
 theorem krull_intersection_statement
     [IsNoetherianRing R] (I : Ideal R) :
     (⨅ n, I ^ n) ≤ I * (⨅ n, I ^ n) := by
-  sorry  -- Krull's intersection theorem; proof deferred to Mathlib
-  /- This is a deep theorem. The proof uses Artin-Rees lemma
-     and is available in Mathlib as parts of the Krull intersection theory.
-     The point here is that the STATEMENT can be expressed in
-     StructureTower language as a condition on global. -/
+  intro x hx
+  have hx' : x ∈ (⨅ i : ℕ, I ^ i • (⊤ : Submodule R R) : Submodule R R) := by
+    simpa [Submodule.mem_iInf, smul_eq_mul, ← Ideal.one_eq_top] using hx
+  obtain ⟨r, hr⟩ := (Ideal.mem_iInf_smul_pow_eq_bot_iff (I := I) (M := R) x).mp hx'
+  have hmul : (r : R) * x ∈ I * (⨅ n : ℕ, I ^ n) :=
+    Ideal.mul_mem_mul r.2 hx
+  have hr' : (r : R) * x = x := by
+    simpa [smul_eq_mul] using hr
+  exact hr'.symm ▸ hmul
 
 end Separation
 
