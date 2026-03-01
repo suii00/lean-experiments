@@ -1,0 +1,927 @@
+% =============================================================================
+% Structure Tower 発展演習 Level 4
+% LuaLaTeX + ltjsarticle
+% =============================================================================
+\documentclass[a4paper,11pt]{ltjsarticle}
+
+% --- Core packages ---
+\usepackage{luatexja-fontspec}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz-cd}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{booktabs}
+
+% --- Page geometry ---
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+
+% --- Fonts ---
+\setmainjfont{Noto Serif JP}
+\setsansjfont{Noto Sans JP}
+
+% --- Colors ---
+\definecolor{leanblue}{HTML}{2563EB}
+\definecolor{leanbg}{HTML}{F8FAFC}
+\definecolor{leancomment}{HTML}{6B7280}
+\definecolor{leankeyword}{HTML}{7C3AED}
+\definecolor{leanstring}{HTML}{059669}
+\definecolor{accentcolor}{HTML}{1E40AF}
+\definecolor{theoremcolor}{HTML}{EFF6FF}
+\definecolor{definitioncolor}{HTML}{F0FDF4}
+\definecolor{remarkcolor}{HTML}{FFF7ED}
+\definecolor{warningcolor}{HTML}{FEF3C7}
+
+% --- Hyperref ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentcolor,
+  urlcolor=leanblue,
+  citecolor=accentcolor,
+  pdftitle={Structure Tower 発展演習 Level 4},
+  pdfauthor={su},
+}
+
+% --- Theorem environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{注意}
+
+% --- Lean code listing environment ---
+\lstdefinelanguage{lean4}{
+  morekeywords={def,theorem,lemma,example,instance,class,structure,
+    where,let,in,do,if,then,else,match,with,fun,return,
+    import,open,namespace,section,end,variable,
+    inductive,abbrev,noncomputable,private,protected,
+    sorry,have,show,suffices,calc,by,exact,
+    apply,intro,intros,constructor,cases,induction,
+    simp,rw,rfl,ext,ring,linarith,omega,
+    decide,trivial,assumption,contradiction,
+    Type,Prop,Sort,Set,true,false,
+    attribute,deriving,refine,change,congr,
+    funext,positivity,norm_num},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+  literate=
+    {α}{{\(\alpha\)}}1
+    {β}{{\(\beta\)}}1
+    {γ}{{\(\gamma\)}}1
+    {ι}{{\(\iota\)}}1
+    {→}{{\(\to\)}}1
+    {←}{{\(\leftarrow\)}}1
+    {↔}{{\(\leftrightarrow\)}}1
+    {≤}{{\(\leq\)}}1
+    {≥}{{\(\geq\)}}1
+    {≠}{{\(\neq\)}}1
+    {∀}{{\(\forall\)}}1
+    {∃}{{\(\exists\)}}1
+    {∧}{{\(\wedge\)}}1
+    {∨}{{\(\vee\)}}1
+    {¬}{{\(\neg\)}}1
+    {∈}{{\(\in\)}}1
+    {∉}{{\(\notin\)}}1
+    {⊆}{{\(\subseteq\)}}1
+    {⊂}{{\(\subset\)}}1
+    {∩}{{\(\cap\)}}1
+    {∅}{{\(\emptyset\)}}1
+    {ℕ}{{\(\mathbb{N}\)}}1
+    {ℤ}{{\(\mathbb{Z}\)}}1
+    {:=}{{:=}}2,
+}
+
+\lstnewenvironment{leancode}[1][]{%
+  \lstset{
+    language=lean4,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{leankeyword}\bfseries,
+    commentstyle=\color{leancomment}\itshape,
+    stringstyle=\color{leanstring},
+    backgroundcolor=\color{leanbg},
+    frame=single,
+    rulecolor=\color{leanblue!30},
+    framesep=8pt,
+    xleftmargin=12pt,
+    xrightmargin=12pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{leancomment},
+    numbersep=8pt,
+    aboveskip=1em,
+    belowskip=1em,
+    #1
+  }%
+}{}
+
+% --- Tcolorbox styles ---
+\newtcolorbox{proofstrategy}{
+  colback=remarkcolor,
+  colframe=orange!60!black,
+  title={\textbf{証明戦略}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{mathinsight}{
+  colback=theoremcolor,
+  colframe=accentcolor,
+  title={\textbf{数学的洞察}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+% --- Header / Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\sffamily\nouppercase{\leftmark}}
+\fancyhead[R]{\small\sffamily Structure Tower Level 4}
+\fancyfoot[C]{\thepage}
+
+% =============================================================================
+\begin{document}
+% =============================================================================
+
+% --- Title ---
+\title{%
+  {\LARGE\sffamily\bfseries Structure Tower 発展演習 Level 4}\\[0.5em]
+  {\large\sffamily 閉包演算子の比較・σ-代数・rank 一意性・反射的部分圏}\\[0.3em]
+  {\normalsize\sffamily Lean 4 / Mathlib4 による形式化とその数学的解説}%
+}
+\author{su}
+\date{\today}
+\maketitle
+
+% --- AI Disclosure ---
+\begin{center}
+\small
+\textit{AI assistance disclosure:}\\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。\\
+\TeX{} 文書は Claude Code (Anthropic) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\vspace{1em}
+
+% --- Abstract ---
+\begin{abstract}
+本稿は Lean 4 / Mathlib4 による Structure Tower 発展演習（Level 4）の形式化を数学的に解説する。
+Level 3 で構築した閉包モナドの理論を基盤として、以下の4方向に発展させる：
+（1）閉包演算子の順序 $\mathrm{cl}_1 \leq \mathrm{cl}_2$（$\forall S,\ \mathrm{cl}_1(S) \subseteq \mathrm{cl}_2(S)$）が
+\texttt{liftCl} 間の自然な射を誘導すること；
+（2）可測空間（$\sigma$-代数）を第3の接地例として \texttt{ClosedTower} の枠組みで捉えること；
+（3）網羅的塔（\texttt{ExhaustiveTower}）における rank 関数の一意性定理（Theorem B）の証明；
+（4）\texttt{ClosedTower} が \texttt{StructureTower} の反射的部分圏をなすこと（unit の普遍性）。
+これにより、位相・群論・測度論の3分野を統一するインターフェースとしての
+Structure Tower の完成形を示す。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{はじめに}
+% =============================================================================
+
+Structure Tower プロジェクトは、集合 $\alpha$ 上の添字付き集合族
+$\{T_i\}_{i \in \iota}$（$i \leq j \Rightarrow T_i \subseteq T_j$）を「塔」と呼び、
+異なる数学分野に共通する「閉包」「単調性」「普遍性」の構造を統一的に扱う枠組みである。
+
+Level 1--3 では以下を構築した：
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{L1}: \texttt{StructureTower} の公理・射・圏論的な基礎
+  \item \textbf{L2}: \texttt{union}, \texttt{global} など基本演算の性質
+  \item \textbf{L3}: 閉包モナド $(\mathrm{liftCl},\ \mathrm{unit},\ \mathrm{join})$、
+        \texttt{ClosedTower}（不動点の塔）の理論；
+        位相的閉包と部分群生成による接地
+\end{itemize}
+
+Level 4 では4方向に理論を拡張する：
+
+\begin{description}
+  \item[\S\ref{sec:clparametric}\ \textbf{cl-parametric 比較}]
+    異なる閉包演算子の比較が liftCl 間の射を誘導する。
+
+  \item[\S\ref{sec:sigma}\ \textbf{$\sigma$-代数の接地}]
+    \texttt{MeasurableTower} として可測空間を統合し、3分野統合を完成させる。
+
+  \item[\S\ref{sec:rank}\ \textbf{Rank uniqueness}]
+    網羅的塔における rank 関数の一意性定理（Theorem B）を証明する。
+
+  \item[\S\ref{sec:cat}\ \textbf{ClosedTower の圏}]
+    liftCl が reflector となり、ClosedTower は反射的部分圏をなす。
+\end{description}
+
+% =============================================================================
+\section{準備：基本定義の再掲}
+\label{sec:prelim}
+% =============================================================================
+
+本節では Level 1--3 で構築した定義を簡潔に再掲する。
+
+\begin{definition}[\texttt{StructureTower}]
+前順序集合 $(\iota, \leq)$ と集合 $\alpha$ に対し、\textbf{構造塔}（\texttt{StructureTower}）とは
+単調な集合族 $T = (T_i)_{i \in \iota}$ である：
+\[
+  i \leq j \implies T_i \subseteq T_j.
+\]
+
+\begin{leancode}
+structure StructureTower (i a : Type*) [Preorder i] : Type _ where
+  level : i -> Set a
+  monotone_level : forall (i j : i), i <= j -> level i <= level j
+\end{leancode}
+\end{definition}
+
+\begin{definition}[\texttt{Hom}]
+$T_1,\ T_2 : \mathrm{StructureTower}\ \iota\ \alpha$ に対し、\textbf{射}（\texttt{Hom}）とは
+各レベルを保つ関数 $f : \alpha \to \alpha$：
+$\forall i,\ f(T_1^i) \subseteq T_2^i$。
+恒等射 $\mathrm{id}$ と合成 $g \circ f$ は通常の関数の合成。
+\end{definition}
+
+\begin{definition}[\texttt{liftCl}, \texttt{unit}, \texttt{join}]
+閉包演算子 $\mathrm{cl} : \mathcal{P}(\alpha) \to \mathcal{P}(\alpha)$ に対し、
+\[
+  (\mathrm{liftCl}\ \mathrm{cl}\ T)_i := \mathrm{cl}(T_i).
+\]
+自然変換として
+$\mathrm{unit}_T : T \to \mathrm{liftCl}\ \mathrm{cl}\ T$（恒等写像）、
+$\mathrm{join}_T : \mathrm{liftCl}\ \mathrm{cl}\ (\mathrm{liftCl}\ \mathrm{cl}\ T)
+               \to \mathrm{liftCl}\ \mathrm{cl}\ T$（恒等写像）
+を定義する。これらは閉包演算子上の（冪等）モナドの単位と乗法に対応する。
+\end{definition}
+
+\begin{definition}[\texttt{ClosedTower}]
+$T$ が $\mathrm{cl}$-\textbf{閉塔}（\texttt{ClosedTower}）であるとは，各レベルが $\mathrm{cl}$ の不動点：
+\[
+  \forall i,\quad \mathrm{cl}(T_i) = T_i.
+\]
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=3cm, row sep=2cm]
+  T
+    \arrow[r, "\mathrm{unit}_T"]
+  & \mathrm{liftCl}\ \mathrm{cl}\ T
+    \arrow[r, "\mathrm{unit}_{\mathrm{liftCl}\ T}"]
+  & \mathrm{liftCl}^2\ \mathrm{cl}\ T
+    \arrow[l, bend right=20, "\mathrm{join}_T"']
+\end{tikzcd}
+\caption{モナドの単位律：$\mathrm{join} \circ \mathrm{unit}_{\mathrm{liftCl}} = \mathrm{id}$（冪等性の表れ）。}
+\label{fig:monad}
+\end{figure}
+
+% =============================================================================
+\section{cl-parametric な構造比較}
+\label{sec:clparametric}
+% =============================================================================
+
+\subsection{動機}
+
+Level 3 では「固定した閉包演算子 $\mathrm{cl}$」について塔を研究した。
+Level 4 では視点を変え、「異なる閉包演算子 $\mathrm{cl}_1,\ \mathrm{cl}_2$ を
+同一の塔 $T$ に適用する」比較に着目する。
+
+直感的には、$\mathrm{cl}_1 \leq \mathrm{cl}_2$（弱い順から強い順）のとき
+$\mathrm{cl}_1(T_i) \subseteq \mathrm{cl}_2(T_i)$ が各レベルで成立し、
+自然な射 $\mathrm{liftCl}\ \mathrm{cl}_1\ T \to \mathrm{liftCl}\ \mathrm{cl}_2\ T$
+が得られる。
+
+\subsection{定義と主要定理}
+
+\begin{definition}[\texttt{ClLeq}]
+\[
+  \mathrm{cl}_1 \leq \mathrm{cl}_2 \quad:\Longleftrightarrow\quad
+  \forall S \subseteq \alpha,\quad \mathrm{cl}_1(S) \subseteq \mathrm{cl}_2(S).
+\]
+\end{definition}
+
+\begin{proposition}[比較射の存在, L4-1a]
+$\mathrm{cl}_1 \leq \mathrm{cl}_2$ かつ $T : \mathrm{StructureTower}\ \iota\ \alpha$ のとき、
+\[
+  \mathrm{liftCl\_comparison} :
+  \mathrm{Hom}(\mathrm{liftCl}\ \mathrm{cl}_1\ T,\ \mathrm{liftCl}\ \mathrm{cl}_2\ T)
+\]
+が存在する（$\mathrm{toFun} = \mathrm{id}$）。
+\end{proposition}
+
+\begin{proofstrategy}
+$\mathrm{preserves}$：$x \in \mathrm{cl}_1(T_i)$ を仮定し、
+仮定 $\mathrm{cl}_1 \leq \mathrm{cl}_2$ を集合 $S = T_i$ に適用して
+$x \in \mathrm{cl}_2(T_i)$ を得る。
+\begin{leancode}
+def liftCl_comparison {cl1 cl2 : ClosureOperator (Set a)}
+    (hle : ClLeq cl1 cl2) (T : StructureTower i a) :
+    Hom (liftCl cl1 T) (liftCl cl2 T) where
+  toFun := id
+  preserves := fun i x hx => hle (T.level i) hx
+\end{leancode}
+\end{proofstrategy}
+
+\begin{proposition}[比較射の推移性, L4-1b]
+\label{prop:trans}
+$\mathrm{cl}_1 \leq \mathrm{cl}_2 \leq \mathrm{cl}_3$ のとき、
+\[
+  \mathrm{comparison}_{23} \circ \mathrm{comparison}_{12}
+  = \mathrm{comparison}_{13}.
+\]
+\end{proposition}
+
+\begin{proof}
+両辺の $\mathrm{toFun}$ がいずれも $\mathrm{id} \circ \mathrm{id} = \mathrm{id}$ なので
+$\mathrm{Hom.ext\ rfl}$ により等しい。
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=3cm, row sep=2.5cm]
+  \mathrm{liftCl}\ \mathrm{cl}_1\ T
+    \arrow[r, "\mathrm{comparison}_{12}"]
+    \arrow[dr, "\mathrm{comparison}_{13}"', bend right=10]
+  & \mathrm{liftCl}\ \mathrm{cl}_2\ T
+    \arrow[d, "\mathrm{comparison}_{23}"] \\
+  & \mathrm{liftCl}\ \mathrm{cl}_3\ T
+\end{tikzcd}
+\caption{$\mathrm{cl}_1 \leq \mathrm{cl}_2 \leq \mathrm{cl}_3$ のとき、
+比較射の合成は推移的（命題~\ref{prop:trans}）。}
+\label{fig:comparison}
+\end{figure}
+
+\begin{proposition}[弱化（Weakening）, L4-1c]
+\label{prop:weaken}
+$\mathrm{cl}_1 \leq \mathrm{cl}_2$ のとき、
+\[
+  T \in \mathrm{ClosedTower}_{\mathrm{cl}_2} \implies T \in \mathrm{ClosedTower}_{\mathrm{cl}_1}.
+\]
+\emph{すなわち「強い閉包の不動点は弱い閉包の不動点でもある」。}
+\end{proposition}
+
+\begin{proof}
+各 $i$ で $\mathrm{cl}_1(T_i) = T_i$ を示す。
+\begin{align*}
+  \mathrm{cl}_1(T_i) &\subseteq \mathrm{cl}_2(T_i) = T_i
+    && \text{（$\mathrm{cl}_1 \leq \mathrm{cl}_2$ と $T$ の閉性）} \\
+  T_i &\subseteq \mathrm{cl}_1(T_i)
+    && \text{（閉包の拡大性）}
+\end{align*}
+よって反対称性から $\mathrm{cl}_1(T_i) = T_i$。
+Lean では \texttt{Set.Subset.antisymm} と \texttt{cl.le\_closure} を組み合わせる。
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=3.5cm, row sep=1.5cm]
+  \mathrm{ClosedTower}_{\mathrm{cl}_2}
+    \arrow[r, hook, "\text{弱化（命題~\ref{prop:weaken}）}"]
+  & \mathrm{ClosedTower}_{\mathrm{cl}_1}
+    \arrow[r, hook]
+  & \mathrm{StructureTower}
+\end{tikzcd}
+\caption{$\mathrm{cl}_1 \leq \mathrm{cl}_2$ のとき、
+$\mathrm{cl}_2$-ClosedTower $\subseteq$ $\mathrm{cl}_1$-ClosedTower（強い閉包ほど不動点が少ない）。}
+\label{fig:weaken-incl}
+\end{figure}
+
+\begin{proposition}[吸収条件, L4-1d/e]
+\label{prop:absorb}
+\begin{enumerate}[label=(\roman*)]
+  \item $\forall S,\ \mathrm{cl}_2(\mathrm{cl}_1(S)) = \mathrm{cl}_2(S)$ のとき、
+        \[
+          \mathrm{liftCl}\ \mathrm{cl}_2\ (\mathrm{liftCl}\ \mathrm{cl}_1\ T)
+          = \mathrm{liftCl}\ \mathrm{cl}_2\ T.
+        \]
+  \item 特に $\mathrm{cl}_1 = \mathrm{cl}_2 = \mathrm{cl}$（冪等性 $\mathrm{cl}(\mathrm{cl}(S)) = \mathrm{cl}(S)$）では
+        \[
+          \mathrm{liftCl}\ \mathrm{cl}\ (\mathrm{liftCl}\ \mathrm{cl}\ T) = \mathrm{liftCl}\ \mathrm{cl}\ T.
+        \]
+\end{enumerate}
+\end{proposition}
+
+\begin{mathinsight}
+命題~\ref{prop:absorb}(ii) は Level 3 で構築した \texttt{join} が同型射であることの別表現である。
+集合のモナドとしての冪等性 $\mu \circ T\mu = \mu \circ \mu T = \mathrm{id}$ に相当し、
+liftCl が「べき等モナド」として振る舞うことを示している。
+\end{mathinsight}
+
+% =============================================================================
+\section{$\sigma$-代数への第3の接地}
+\label{sec:sigma}
+% =============================================================================
+
+\subsection{設計方針}
+
+Level 3 では閉包演算子 $\mathrm{cl}$ を介した2つの接地を行った：
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  分野 & 閉包演算子 & 不動点条件 \\
+  \midrule
+  位相空間論 & \texttt{topClosure} $S = \overline{S}$ & $S$ が閉集合 \\
+  群論       & \texttt{subgroupClosure} $S = \langle S\rangle$ & $S$ が部分群の台 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+$\sigma$-代数の場合、Mathlib の \texttt{MeasurableSet} は
+$\texttt{MeasurableSet}\ S : \mathtt{Prop}$ であり、
+$\mathtt{Set}\ \alpha \to \mathtt{Set}\ \alpha$ 型の閉包演算子として直接表現しにくい
+（生成 $\sigma$-代数は存在するが、Lean 上で \texttt{ClosureOperator} として扱うための
+型クラスの調整が煩雑）。
+そのため、\texttt{ClosureOperator} を経由せず、各レベルへの可測性条件を
+直接付与する構造体 \texttt{MeasurableTower} を定義する。
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=5pt, fill=theoremcolor,
+              minimum width=3.8cm, minimum height=1.4cm,
+              align=center, font=\small\sffamily},
+  cbox/.style={draw, rounded corners=5pt, fill=definitioncolor,
+               minimum width=3.8cm, minimum height=1.4cm,
+               align=center, font=\small\sffamily},
+  arr/.style={-{Stealth[length=7pt]}, thick, accentcolor},
+  label/.style={font=\footnotesize\itshape, fill=white, inner sep=2pt}
+]
+  \node[box] (ST) at (0,3.5) {StructureTower\\$T_i \subseteq T_{i+1}$};
+  \node[cbox] (top) at (-4.5,0) {ClosedTower\\[2pt] $\overline{T_i} = T_i$\\{\tiny (topClosure)}};
+  \node[cbox] (grp) at (0,0) {ClosedTower\\[2pt] $\langle T_i\rangle = T_i$\\{\tiny (subgroupClosure)}};
+  \node[cbox] (meas) at (4.5,0) {MeasurableTower\\[2pt] $T_i \in \mathcal{M}$\\{\tiny (直接定義)}};
+
+  \draw[arr] (ST) -- node[label, left]{位相空間論} (top);
+  \draw[arr] (ST) -- node[label, right]{群論} (grp);
+  \draw[arr] (ST) -- node[label, right]{測度論} (meas);
+\end{tikzpicture}
+\caption{StructureTower を中心とした3分野の接地。
+各分野で「各レベルが性質 $P$ を持つ塔の global も $P$ を持つ」が成立する（定理~\ref{thm:three-fields}）。}
+\label{fig:three-groundings}
+\end{figure}
+
+\subsection{MeasurableTower の定義と性質}
+
+\begin{definition}[\texttt{MeasurableTower}]
+可測空間 $(\alpha, \mathcal{M})$ と前順序集合 $(\iota, \leq)$ に対し、
+\textbf{可測塔}（\texttt{MeasurableTower}）とは StructureTower $T$ であって
+各レベルが可測集合であるもの：
+\[
+  \forall i \in \iota,\quad T_i \in \mathcal{M}.
+\]
+
+\begin{leancode}
+structure MeasurableTower (i : Type*) [Preorder i]
+    extends StructureTower i a where
+  level_measurable : forall i, MeasurableSet (level i)
+\end{leancode}
+\end{definition}
+
+\begin{proposition}[基本構成, L4-2a/b]
+\begin{enumerate}[label=(\roman*)]
+  \item 任意の可測集合 $S \in \mathcal{M}$ に対し、定数塔 $T_i := S$ は \texttt{MeasurableTower}。
+  \item $T_i := \alpha$（\texttt{univTower}）と $T_i := \emptyset$（\texttt{emptyTower}）はいずれも
+        \texttt{MeasurableTower}。
+        Lean では \texttt{MeasurableSet.univ}, \texttt{MeasurableSet.empty} を使う。
+\end{enumerate}
+\end{proposition}
+
+\begin{proposition}[演算の閉性, L4-2c/d/e]
+\label{prop:meas-ops}
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{交叉}（L4-2c）: $T_1,\ T_2$ が \texttt{MeasurableTower} ならば
+        $(T_1 \cap T_2)_i := T_1^i \cap T_2^i$ も \texttt{MeasurableTower}。
+  \item \textbf{補集合の可測性}（L4-2d）: $T$ が \texttt{MeasurableTower} ならば
+        $\forall i,\ (T_i)^c \in \mathcal{M}$。
+        ただし $(T_i)^c$ は単調減少なので \texttt{StructureTower} にはならない。
+  \item \textbf{global の可測性}（L4-2e）: $\iota$ が可算（\texttt{Countable}）なら
+        \[
+          T.\mathrm{global} := \bigcap_{i \in \iota} T_i \in \mathcal{M}.
+        \]
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}[(iii) の証明]
+$T.\mathrm{global} = \bigcap_{i \in \iota} T_i$ であり、
+$\iota$ が可算のとき Mathlib の \texttt{MeasurableSet.iInter} を用いる：
+
+\begin{leancode}
+theorem global_measurable [Countable i] (T : MeasurableTower i) :
+    MeasurableSet T.global := by
+  change MeasurableSet (Set.iInter T.level)
+  exact MeasurableSet.iInter (fun i => T.level_measurable i)
+\end{leancode}
+
+可算性条件は実質的であり、非可算添字集合 $\iota$ に対しては一般に成立しない
+（Vitali 集合など）。
+\end{proof}
+
+\begin{theorem}[3分野統合定理, L4-2f]
+\label{thm:three-fields}
+以下の3分野で「各レベルが性質 $P$ を持つ塔の global も $P$ を持つ」が成立する：
+
+\begin{center}
+\begin{tabular}{lcl}
+  \toprule
+  分野 & 性質 $P$ & global の閉性 \\
+  \midrule
+  位相空間論 & $T_i$ が閉集合 & $\bigcap_i T_i$ も閉集合 \\
+  群論       & $T_i$ が部分群の台 & $\bigcap_i T_i$ も部分群の台 \\
+  測度論     & $T_i \in \mathcal{M}$ & $\bigcap_i T_i \in \mathcal{M}$（$\iota$ 可算） \\
+  \bottomrule
+\end{tabular}
+\end{center}
+\end{theorem}
+
+\begin{mathinsight}
+$\sigma$-代数は「可算交叉に閉じた集合族」という公理から出発しており、
+定理~\ref{thm:three-fields}(測度論) はまさにその公理の反映である。
+位相的閉集合の可算交叉が閉じることも同様の直感を持つ。
+Structure Tower の枠組みはこの共通構造を抽象的に捉えている。
+\end{mathinsight}
+
+% =============================================================================
+\section{Rank uniqueness（Theorem B）}
+\label{sec:rank}
+% =============================================================================
+
+\subsection{設定}
+
+\begin{definition}[\texttt{ExhaustiveTower}]
+$T : \mathrm{ExhaustiveTower}\ \mathbb{N}\ \alpha$ とは、
+各 $x \in \alpha$ が何らかのレベルに属する StructureTower：
+\[
+  \forall x \in \alpha,\quad \exists i \in \mathbb{N},\quad x \in T_i.
+\]
+このとき、$x$ の \textbf{rank} を
+\[
+  \mathrm{rank}(x) := \min\bigl\{i \in \mathbb{N} \mid x \in T_i\bigr\}
+\]
+と定義する（Lean では \texttt{Nat.find} を用いる）。
+\end{definition}
+
+\begin{definition}[\texttt{HasCharRank}]
+\label{def:charrank}
+関数 $r : \alpha \to \mathbb{N}$ が $T$ の \textbf{特徴付け rank}（\texttt{HasCharRank}）であるとは、
+\[
+  \forall x \in \alpha,\ \forall i \in \mathbb{N},\quad
+  x \in T_i \iff r(x) \leq i.
+\]
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.9]
+  % Level boxes
+  \foreach \i in {0,1,2,3,4} {
+    \draw[fill=theoremcolor!60, draw=accentcolor!70, rounded corners=2pt]
+      (\i*2.2, 0) rectangle (\i*2.2+1.9, 0.9);
+    \node[font=\small] at (\i*2.2+0.95, 0.45) {$T_{\i}$};
+  }
+
+  % Element x
+  \node[circle, fill=leanblue!80, draw=leanblue, thick,
+        inner sep=3pt, label=above:{$x$}] (x) at (4.95+0.95, 2.2) {};
+
+  % Dashed lines showing membership
+  \foreach \i in {2,3,4} {
+    \draw[dashed, leanblue!60, thin] (x) -- (\i*2.2+0.95, 0.9);
+  }
+  % Cross marks for non-membership
+  \foreach \i in {0,1} {
+    \node[red!70, font=\Large] at (\i*2.2+0.95, -0.4) {$\times$};
+  }
+  % Check marks for membership
+  \foreach \i in {2,3,4} {
+    \node[leanblue!80, font=\normalsize] at (\i*2.2+0.95, -0.4) {$\checkmark$};
+  }
+
+  % rank arrow
+  \draw[{Stealth[length=5pt]}-{Stealth[length=5pt]}, orange!80!black, thick]
+    (0, -0.85) -- (4.4, -0.85)
+    node[midway, below, font=\small\sffamily] {$r(x) = 2$};
+
+  % Annotation
+  \node[font=\footnotesize, align=left] at (10.5, 1.1)
+    {$x \in T_i \iff r(x) \leq i$\\[2pt]
+     HasCharRank の条件};
+\end{tikzpicture}
+\caption{$r(x) = 2$ のとき、$x \in T_i$ $\iff$ $2 \leq i$。
+HasCharRank は「塔のレベルが $\mathrm{Iic}(r(x))$ の逆像」であることを意味する。}
+\label{fig:rank}
+\end{figure}
+
+\subsection{補題と主定理}
+
+\begin{lemma}[rank と HasCharRank の対応, L4-3a/b/c]
+\label{lem:rank-char}
+任意の $T : \mathrm{ExhaustiveTower}\ \mathbb{N}\ \alpha$ に対し、
+$\mathrm{rank}$ は HasCharRank を満たす：
+\[
+  \forall x,\ \forall i,\quad x \in T_i \iff \mathrm{rank}(x) \leq i.
+\]
+\end{lemma}
+
+\begin{proof}
+\begin{itemize}
+  \item[$(\Rightarrow)$] $x \in T_i$ ならば rank の最小性（\texttt{rank\_le}）より
+        $\mathrm{rank}(x) \leq i$。
+  \item[$(\Leftarrow)$] $\mathrm{rank}(x) \leq i$ ならば $x \in T_{\mathrm{rank}(x)}$（\texttt{rank\_spec}）
+        と単調性より $x \in T_i$。
+\end{itemize}
+\end{proof}
+
+\begin{theorem}[Rank uniqueness（Theorem B）, L4-3d]
+\label{thm:rank-unique}
+$T : \mathrm{ExhaustiveTower}\ \mathbb{N}\ \alpha$ に対し、
+HasCharRank $T\ r$ を満たす $r : \alpha \to \mathbb{N}$ は一意である：
+\[
+  \mathrm{HasCharRank}\ T\ r \implies r = T.\mathrm{rank}.
+\]
+\end{theorem}
+
+\begin{proof}
+任意の $x$ に対して $r(x) = \mathrm{rank}(x)$ を、$\mathbb{N}$ の反対称性を使って示す。
+
+\medskip
+\noindent
+\textbf{$r(x) \leq \mathrm{rank}(x)$}:
+\texttt{rank\_spec} より $x \in T_{\mathrm{rank}(x)}$ であり、
+HasCharRank の $\Rightarrow$ 方向 $(\mathrm{hchar}\ x\ (\mathrm{rank}\ x)).1$ を適用。
+
+\medskip
+\noindent
+\textbf{$\mathrm{rank}(x) \leq r(x)$}:
+HasCharRank の $\Leftarrow$ 方向で $r(x) \leq r(x)$（$\mathrm{le\_refl}$）から
+$x \in T_{r(x)}$ を得て、rank の最小性 $\mathrm{rank\_le}$ を適用。
+
+\begin{leancode}
+theorem rank_unique (T : ExhaustiveTower N a)
+    (r : a -> N) (hchar : HasCharRank T r) : r = T.rank := by
+  funext x
+  apply Nat.le_antisymm
+  · exact (hchar x (T.rank x)).1 (T.rank_spec x)
+  · exact T.rank_le x (r x) ((hchar x (r x)).2 le_rfl)
+\end{leancode}
+\end{proof}
+
+\begin{corollary}[Iic-表示, L4-3e]
+HasCharRank $T\ r$ のとき、
+\[
+  T_i = \{x \in \alpha \mid r(x) \leq i\}
+  \quad \bigl(= r^{-1}(\mathrm{Iic}(i))\bigr).
+\]
+\end{corollary}
+
+\begin{remark}[前順序では一意性が崩れる, L4-3f]
+添字集合 $\iota$ が前順序（PartialOrder でない）の場合、
+rank の一意性は一般に成立しない。
+
+Lean では $\iota = \mathrm{Bool}$（全ての元が $\leq$-同値な「離散前順序」
+\texttt{indiscreteBoolPreorder}）上の定数塔
+$T_b := \alpha$ を反例として構成した：
+$r_1 \equiv \mathrm{false}$ と $r_2 \equiv \mathrm{true}$ の両方が HasCharRank を満たすが、
+$r_1 \neq r_2$ である。
+
+直感的には、前順序では「$r(x) \leq b$」が全ての $b \in \mathrm{Bool}$ で
+恒に真（または偽）になりうるため、$r(x)$ の値が区別できなくなる。
+PartialOrder の反対称性が一意性に本質的に必要である。
+\end{remark}
+
+% =============================================================================
+\section{ClosedTower の圏と反射的部分圏}
+\label{sec:cat}
+% =============================================================================
+
+\subsection{充満部分圏としての ClosedTower}
+
+$\mathrm{ClosedTower}_{\mathrm{cl}}$ は $\mathrm{StructureTower}$ の\textbf{充満部分圏}をなす：
+\begin{itemize}
+  \item \textbf{対象}：$\mathrm{ClosedTower}\ \mathrm{cl}\ \iota$
+  \item \textbf{射}：$\mathrm{StructureTower.Hom}$ をそのまま制限（追加条件なし）
+\end{itemize}
+
+「充満」とは、$T_1,\ T_2 \in \mathrm{ClosedTower}$ のとき
+$\mathrm{Hom}(T_1, T_2)$ として \texttt{StructureTower.Hom} の全体をそのまま使える、
+ということであり、Lean では恒等関数 $\mathrm{homRestrict}(f) := f$（L4-4b）で確認できる。
+
+\subsection{liftCl は ClosedTower を生成する}
+
+\begin{proposition}[\texttt{liftCl\_closedTower}, L4-4a]
+\label{prop:liftcl-closed}
+任意の $T : \mathrm{StructureTower}\ \iota\ \alpha$ に対し、
+$\mathrm{liftCl}\ \mathrm{cl}\ T$ は \texttt{ClosedTower} である。
+\end{proposition}
+
+\begin{proof}
+各 $i$ で
+$\mathrm{cl}((\mathrm{liftCl}\ \mathrm{cl}\ T)_i)
+= \mathrm{cl}(\mathrm{cl}(T_i))
+= \mathrm{cl}(T_i)$（冪等性 \texttt{cl.idempotent}）より。
+
+\begin{leancode}
+def liftCl_closedTower (T : StructureTower i a) :
+    ClosedTower cl i where
+  toStructureTower := liftCl cl T
+  level_closed := fun i => cl.idempotent (T.level i)
+\end{leancode}
+\end{proof}
+
+\subsection{unit の普遍性（Reflector）}
+
+\begin{theorem}[unit の普遍性（存在）, L4-4c]
+\label{thm:unit-universal}
+$T : \mathrm{StructureTower}\ \iota\ \alpha$、
+$S : \mathrm{ClosedTower}\ \mathrm{cl}\ \iota$、
+$f : \mathrm{Hom}(T, S)$（$\mathrm{toFun} = \mathrm{id}$ と仮定）とする。
+このとき、射 $\bar{f} : \mathrm{Hom}(\mathrm{liftCl}\ \mathrm{cl}\ T,\ S)$ であって
+\[
+  \bar{f} \circ \mathrm{unit}_T = f, \quad \bar{f}.\mathrm{toFun} = \mathrm{id}
+\]
+を満たすものが存在する。
+\end{theorem}
+
+\begin{proof}
+$\bar{f}.\mathrm{toFun} := \mathrm{id}$ とする。
+$x \in \mathrm{cl}(T_i)$ のとき：
+\begin{align*}
+  \mathrm{cl}(T_i)
+  &\subseteq \mathrm{cl}(S_i)
+    && \text{（$f$ の preserves と $\mathrm{cl}$ の単調性）} \\
+  \mathrm{cl}(S_i)
+  &= S_i
+    && \text{（$S$ が ClosedTower: \texttt{S.level\_closed i}）}
+\end{align*}
+より $x \in S_i$。
+
+合成条件 $\bar{f} \circ \mathrm{unit}_T = f$ は
+$\mathrm{toFun}$ がいずれも $\mathrm{id}$ であることから
+$\mathrm{Hom.ext}$ で確認できる。
+\end{proof}
+
+\begin{theorem}[unit の普遍性（一意性）, L4-4d]
+定理~\ref{thm:unit-universal} における $\bar{f}$ は一意である。
+\end{theorem}
+
+\begin{proof}
+$\bar{f}_1,\ \bar{f}_2$ がいずれも $\mathrm{toFun} = \mathrm{id}$ を満たすならば、
+$\mathrm{Hom.ext\ (by\ rw\ [hf_1,\ hf_2])}$ で $\bar{f}_1 = \bar{f}_2$。
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=4cm, row sep=3cm]
+  T
+    \arrow[r, "\mathrm{unit}_T"]
+    \arrow[dr, "f"', bend right=20]
+  & \mathrm{liftCl}\ \mathrm{cl}\ T
+    \arrow[d, "\bar{f}", dashed, "{\exists !}"']
+  \\
+  & S \quad (S \in \mathrm{ClosedTower}_{\mathrm{cl}})
+\end{tikzcd}
+\caption{unit の普遍性（reflector の図式, 定理~\ref{thm:unit-universal}）。
+$\mathrm{ClosedTower}$ への任意の射 $f$ は、
+$\bar{f} \circ \mathrm{unit}_T = f$ を満たす一意な射 $\bar{f}$ に持ち上がる。
+これは $\mathrm{ClosedTower}$ が $\mathrm{StructureTower}$ の反射的部分圏をなすことを意味する。}
+\label{fig:reflector}
+\end{figure}
+
+\begin{mathinsight}
+この普遍性は圏論的な \textbf{反射的部分圏}（reflective subcategory）の定義そのものである。
+$\mathrm{liftCl}\ \mathrm{cl}$ は包含関手 $\iota : \mathrm{ClosedTower} \hookrightarrow \mathrm{StructureTower}$
+の左随伴として振る舞い、unit はその単位（unit of adjunction）に対応する：
+\[
+  \mathrm{liftCl}\ \mathrm{cl} \dashv \iota.
+\]
+ただし本証明では $\mathrm{toFun} = \mathrm{id}$ の制限下のみを扱った。
+$\mathrm{toFun} \neq \mathrm{id}$ の一般的な Kleisli 合成（自然性条件の公理化）は
+Level 5 以降の課題である。
+\end{mathinsight}
+
+% =============================================================================
+\section{全体のまとめ}
+\label{sec:summary}
+% =============================================================================
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  sbox/.style={draw, rounded corners=5pt, fill=definitioncolor,
+               minimum width=4.2cm, minimum height=1.3cm,
+               align=center, font=\small\sffamily},
+  cbox/.style={draw, rounded corners=5pt, fill=theoremcolor,
+               minimum width=4.2cm, minimum height=1.3cm,
+               align=center, font=\small\sffamily},
+  rbox/.style={draw, rounded corners=5pt, fill=remarkcolor,
+               minimum width=4.2cm, minimum height=1.3cm,
+               align=center, font=\small\sffamily},
+  arr/.style={-{Stealth[length=7pt]}, thick, accentcolor},
+  darr/.style={-{Stealth[length=7pt]}, thick, accentcolor, dashed},
+  label/.style={font=\footnotesize\sffamily, fill=white, inner sep=2pt},
+]
+  \node[sbox] (ST) at (0,6)
+    {StructureTower\\$T = (T_i)_{i \in \iota}$};
+
+  \node[cbox] (CT) at (-3,3)
+    {ClosedTower cl\\$\mathrm{cl}(T_i) = T_i$};
+
+  \node[rbox] (liftT) at (3,3)
+    {liftCl cl T\\$(\mathrm{cl}(T_i))_{i \in \iota}$};
+
+  \node[cbox] (MT) at (-3,0)
+    {MeasurableTower\\$T_i \in \mathcal{M}$};
+
+  \draw[arr] (ST) -- node[label, left]{$\mathrm{unit}_T$} (CT);
+  \draw[arr] (ST) -- node[label, right]{liftCl cl} (liftT);
+  \draw[arr] (liftT) -- node[label, right]{命題~\ref{prop:liftcl-closed}} (CT);
+  \draw[darr] (ST) -- node[label, left]{測度論的接地} (MT);
+
+  \node[font=\footnotesize\sffamily, align=center, text=accentcolor] at (0,1.5)
+    {普遍性（定理~\ref{thm:unit-universal}）：\\
+     $f : T \to S\ (S \in \mathrm{ClosedTower})$\\
+     $\Longrightarrow \exists!\,\bar{f} : \mathrm{liftCl}\ T \to S$};
+\end{tikzpicture}
+\caption{Level 4 の全体像。liftCl が ClosedTower を生成し（冪等性）、
+unit が反射的部分圏の普遍性を与える。MeasurableTower は ClosureOperator を経由せずに
+第3の接地として追加される。}
+\label{fig:summary}
+\end{figure}
+
+Level 4 で達成した内容を整理する：
+
+\begin{description}
+  \item[\S\ref{sec:clparametric}\ \textbf{cl-parametric 比較}]
+    閉包演算子の順序 $\mathrm{cl}_1 \leq \mathrm{cl}_2$ が
+    liftCl 間の自然な比較射を誘導することを確認した（L4-1a）。
+    推移性（L4-1b）、弱化（L4-1c）、吸収条件（L4-1d）を証明し、
+    冪等性を吸収の特殊ケースとして再発見した（L4-1e）。
+
+  \item[\S\ref{sec:sigma}\ \textbf{$\sigma$-代数の接地}]
+    \texttt{MeasurableTower} を \texttt{ClosureOperator} を経由せずに定義し、
+    交叉・補集合の可測性（L4-2c/d）と global の可測性（L4-2e）を確認した。
+    位相・群論・測度論の3分野で「global の閉性定理」が成立することを示した
+    （定理~\ref{thm:three-fields}）。
+
+  \item[\S\ref{sec:rank}\ \textbf{Rank uniqueness}]
+    HasCharRank $T\ r \Rightarrow r = T.\mathrm{rank}$（定理~\ref{thm:rank-unique}）を証明した。
+    rank は常に HasCharRank を満たし（補題~\ref{lem:rank-char}）、かつ一意である。
+    前順序では一意性が崩れることを Bool 上の反例で確認した（L4-3f）。
+
+  \item[\S\ref{sec:cat}\ \textbf{ClosedTower の圏}]
+    liftCl cl T は冪等性により ClosedTower であり（命題~\ref{prop:liftcl-closed}）、
+    unit : $T \to \mathrm{liftCl}\ \mathrm{cl}\ T$ が reflector の普遍性を持つことを証明した
+    （定理~\ref{thm:unit-universal}）。
+    これにより $\mathrm{ClosedTower}$ が $\mathrm{StructureTower}$ の
+    反射的部分圏をなすことが示された。
+\end{description}
+
+\subsection*{達成状況}
+
+\begin{description}[leftmargin=10em, style=nextline]
+  \item[非自明な主定理 3本以上]
+    \texttt{rank\_unique}（L4-3d），
+    \texttt{unit\_universal\_id}（L4-4c），
+    3分野統合（L4-2f），
+    EM代数 $\iff$ ClosedTower（L3 M6e）
+  \item[ケーススタディ 3分野以上]
+    位相空間論・群論・測度論・順序論
+  \item[再利用可能なライブラリ]
+    cl-parametric 比較，ClosedTower の圏構造
+\end{description}
+
+\subsection*{次のステップ（Level 5 以降）}
+\begin{itemize}
+  \item $\mathrm{toFun} \neq \mathrm{id}$ の一般 Kleisli 合成（naturality 条件の公理化）
+  \item Mathlib \texttt{CategoryTheory.Monad} との正式接続
+  \item I-adic filtration: \texttt{FilteredRing} + \texttt{ClosedTower} の統合
+  \item Enriched hom から 2-圏的構造へ
+\end{itemize}
+
+% =============================================================================
+\end{document}
