@@ -56,3 +56,4 @@
 - `liftCl_mapId` は常に `Hom (liftCl cl T₁) (liftCl cl T₂)` を返すので、モナド法則で使うときは `T₁`,`T₂` を先に固定して型を確認する。
 - `ClosureOperator` の具体例（`topClosure` など）で固定点等式を扱うときは `simp [def]` の過展開を避け、`change` で `closure ... = ...` などに明示的に落としてから証明する。
 - `Ideal.map` / `Ideal.map_pow` / `Ideal.mem_map_of_mem` を使うときは `Mathlib.RingTheory.Ideal.Maps` を import する。
+- `AdicCompletion` を環として使うときは `Mathlib.RingTheory.AdicCompletion.Algebra` を import し、埋め込みは `algebraMap` を使う（`Ideal.AdicCompletion.of` は現行 API にない）。

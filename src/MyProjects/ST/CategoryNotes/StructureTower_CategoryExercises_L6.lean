@@ -42,7 +42,7 @@ import Mathlib.RingTheory.Ideal.Operations
 import Mathlib.RingTheory.Ideal.Maps
 import Mathlib.RingTheory.Ideal.Span
 import Mathlib.RingTheory.Filtration
-import Mathlib.RingTheory.AdicCompletion.Basic
+import Mathlib.RingTheory.AdicCompletion.Algebra
 import Mathlib.Data.Nat.Find
 
 open Set Function
@@ -140,15 +140,14 @@ noncomputable def idealClosure : ClosureOperator (Set R) where
   le_closure' := by intro S; exact Ideal.subset_span
   idempotent' := by
     intro S
-    show ↑(Ideal.span (↑(Ideal.span S) : Set R)) = ↑(Ideal.span S)
-    congr 1
-    exact Ideal.span_eq (Ideal.span S)
+    exact
+      congrArg (fun J : Ideal R => (J : Set R)) (Ideal.span_eq (Ideal.span S))
 
 theorem idealClosure_fixed_of_ideal (J : Ideal R) :
     idealClosure (R := R) (↑J : Set R) = ↑J := by
-  show ↑(Ideal.span (↑J : Set R)) = ↑J
-  congr 1
-  exact Ideal.span_eq J
+  change (↑(Ideal.span (↑J : Set R)) : Set R) = ↑J
+  exact
+    congrArg (fun K : Ideal R => (K : Set R)) (Ideal.span_eq J)
 
 def idealPowTower_closedTower (I : Ideal R) :
     ClosedTower (idealClosure (R := R)) ℕᵒᵈ where
@@ -179,6 +178,42 @@ def ringHom_towerHom {S : Type*} [CommRing S]
 def IsSeparated (I : Ideal R) : Prop :=
   ⨅ n, I ^ n = ⊥
 
+theorem isSeparated_iff_global_eq (I : Ideal R) :
+    IsSeparated I ↔ (idealPowTower I).global = {(0 : R)} := by
+  have hglobal :
+      (idealPowTower I).global = (↑(⨅ n : ℕ, I ^ n) : Set R) := by
+    ext x
+    simp [StructureTower.global, idealPowTower, Submodule.coe_iInf]
+  constructor
+  · intro h
+    rw [hglobal, h]
+    simp [Submodule.bot_coe]
+  · intro h
+    rw [hglobal] at h
+    exact SetLike.coe_injective (by simpa [Submodule.bot_coe] using h)
+
+theorem isHausdorff_of_isSeparated (I : Ideal R) (hI : IsSeparated I) :
+    IsHausdorff I R := by
+  rw [isHausdorff_iff]
+  intro x hx
+  by_contra hne
+  have hx' : x ∈ (⨅ n : ℕ, I ^ n : Ideal R) := by
+    rw [Submodule.mem_iInf]
+    intro n
+    simpa [SModEq.zero, smul_eq_mul, Ideal.mul_top] using hx n
+  rw [hI] at hx'
+  exact hne (by simpa using hx')
+
+theorem isSeparated_of_isHausdorff (I : Ideal R) [hI : IsHausdorff I R] :
+    IsSeparated I := by
+  refine eq_bot_iff.2 ?_
+  intro x hx
+  change x = 0
+  apply IsHausdorff.haus hI x
+  intro n
+  rw [Submodule.mem_iInf] at hx
+  simpa [SModEq.zero, smul_eq_mul, Ideal.mul_top] using hx n
+
 theorem escape_of_isSeparated (I : Ideal R) (hI : IsSeparated I)
     {x : R} (hx : x ≠ 0) :
     ∃ n : ℕ, x ∉ (I ^ n : Ideal R) := by
@@ -188,7 +223,7 @@ theorem escape_of_isSeparated (I : Ideal R) (hI : IsSeparated I)
   have : x ∈ (⨅ n, I ^ n : Ideal R) := by
     rw [Submodule.mem_iInf]; exact h
   rw [hI] at this
-  exact hx (Submodule.mem_bot.mp this)
+  exact hx (by simpa using this)
 
 -- ════════════════════════════════════════════════════════════
 -- §L6-1. Cauchy 列の塔的定義  🟢🟡🔴
@@ -275,7 +310,7 @@ theorem cauchySeqTower_level_zero :
 theorem const_mem_cauchySeqTower (r : R) (k : ℕᵒᵈ) :
     (fun _ : ℕ => r) ∈ (cauchySeqTower I).level k := by
   intro m n
-  simp [Ideal.zero_mem]
+  simp
 
 /-- 🟡 Exercise L6-1e: Cauchy 列の和は Cauchy。
     x, y ∈ level k ⟹ x + y ∈ level k。
@@ -295,8 +330,11 @@ theorem cauchySeqTower_add_mem (k : ℕᵒᵈ) {x y : ℕ → R}
     (x + y) ∈ (cauchySeqTower I).level k := by
   intro m n
   show (x + y) m - (x + y) n ∈ _
-  have : (x + y) m - (x + y) n = (x m - x n) + (y m - y n) := by ring
-  rw [this]
+  have hxy : (x + y) m - (x + y) n = (x m - x n) + (y m - y n) := by
+    calc
+      (x + y) m - (x + y) n = (x m + y m) - (x n + y n) := by rfl
+      _ = (x m - x n) + (y m - y n) := by ring
+  rw [hxy]
   exact Ideal.add_mem _ (hx m n) (hy m n)
 
 /-- 🔴 Exercise L6-1f: Cauchy 列に定数を掛けても Cauchy。
@@ -398,7 +436,9 @@ theorem isIAdicNull_neg {x : ℕ → R}
     IsIAdicNull I (-x) := by
   intro k
   obtain ⟨N, hN⟩ := hx k
-  exact ⟨N, fun n hn => by show -x n ∈ _; exact Ideal.neg_mem_iff.mpr (hN n hn)⟩
+  exact ⟨N, fun n hn => by
+    show -x n ∈ _
+    exact (I ^ k).neg_mem (hN n hn)⟩
 
 /-- 🟡 Exercise L6-2e: I-adic Setoid の構成。
     二つの列 x, y が同値 ⟺ x - y が null。
@@ -461,8 +501,8 @@ end NullSequences
 
 /-!
   Mathlib の I-adic 完備化:
-    R̂ := Ideal.AdicCompletion I R
-    ι := Ideal.AdicCompletion.of I R : R →+* R̂
+    R̂ := AdicCompletion I R
+    ι := algebraMap R R̂ : R →+* R̂
 
   完備化 R̂ にも idealPowTower を適用できる:
     R̂ 上のイデアル J := Ideal.map ι I に対し、
@@ -484,11 +524,13 @@ variable {R : Type*} [CommRing R] (I : Ideal R)
 
 -- 便利な略記
 -- noncomputable は AdicCompletion が逆極限構成で定義されるため
-noncomputable abbrev R̂ := Ideal.AdicCompletion I R
-noncomputable abbrev ι_map := Ideal.AdicCompletion.of I R
+noncomputable abbrev completionRing := AdicCompletion I R
+noncomputable abbrev completionMap : R →+* completionRing I :=
+  algebraMap R (completionRing I)
 
 -- 完備化上のイデアル: I の ι による像
-noncomputable abbrev Î := Ideal.map (ι_map I) I
+noncomputable abbrev completionIdeal : Ideal (completionRing I) :=
+  Ideal.map (completionMap I) I
 
 /-- 🟢 Exercise L6-3a: 完備化塔の構成。
     R̂ 上の idealPowTower (Î) を構成する。
@@ -496,11 +538,12 @@ noncomputable abbrev Î := Ideal.map (ι_map I) I
 
     L5-1a と同じ定義パターン。型が変わるだけ。 -/
 noncomputable def completionPowTower :
-    StructureTower ℕᵒᵈ (R̂ I) :=
-  idealPowTower (Î I)
+    StructureTower ℕᵒᵈ (completionRing I) :=
+  idealPowTower (completionIdeal I)
 
 @[simp] theorem completionPowTower_level (n : ℕᵒᵈ) :
-    (completionPowTower I).level n = ↑((Î I) ^ OrderDual.ofDual n) := rfl
+    (completionPowTower I).level n =
+      ↑((completionIdeal I) ^ OrderDual.ofDual n) := rfl
 
 /-- 🟡 Exercise L6-3b: ι が tower hom を誘導する。
     ι : R →+* R̂ は idealPowTower I → completionPowTower I の Hom。
@@ -508,12 +551,12 @@ noncomputable def completionPowTower :
 
     条件: Ideal.map ι I ≤ Î = Ideal.map ι I なので le_refl。
 
-    Hint-1: ringHom_towerHom (ι_map I) I (Î I) le_rfl。
+    Hint-1: ringHom_towerHom (completionMap I) I (completionIdeal I) le_rfl。
     Hint-2: そのまま。
-    Hint-3: `ringHom_towerHom (ι_map I) I (Î I) le_rfl` -/
+    Hint-3: `ringHom_towerHom (completionMap I) I (completionIdeal I) le_rfl` -/
 noncomputable def completion_towerHom :
     Hom (idealPowTower I) (completionPowTower I) :=
-  ringHom_towerHom (ι_map I) I (Î I) le_rfl
+  ringHom_towerHom (completionMap I) I (completionIdeal I) le_rfl
 
 /-- 🟢 Exercise L6-3c: completion_towerHom の toFun は ι そのもの。
     構成から明らかだが、明示的に確認する。
@@ -521,7 +564,7 @@ noncomputable def completion_towerHom :
     Hint-1: 定義の展開のみ。
     Hint-2: rfl。 -/
 theorem completion_towerHom_toFun :
-    (completion_towerHom I).toFun = ι_map I := rfl
+    (completion_towerHom I).toFun = completionMap I := rfl
 
 /-- 🟡 Exercise L6-3d: 合成の互換性（L5-3d の拡張）。
     φ : R →+* S, ψ : S →+* R̂ に対して、
@@ -532,16 +575,16 @@ theorem completion_towerHom_toFun :
     完備化写像 ι を経由する合成が自然に commute する。
 
     Hint-1: Hom.ext で toFun に帰着。
-    Hint-2: 両辺の toFun は (ι_map I) ∘ φ。
+    Hint-2: 両辺の toFun は (completionMap I) ∘ φ。
     Hint-3: `Hom.ext rfl` -/
 theorem completion_towerHom_comp {S : Type*} [CommRing S]
     (φ : S →+* R) (J : Ideal S) (hIJ : Ideal.map φ J ≤ I) :
     Hom.comp (completion_towerHom I) (ringHom_towerHom φ J I hIJ) =
-    ringHom_towerHom ((ι_map I).comp φ) J (Î I)
+    ringHom_towerHom ((completionMap I).comp φ) J (completionIdeal I)
       (by
-        calc Ideal.map ((ι_map I).comp φ) J
-            = Ideal.map (ι_map I) (Ideal.map φ J) := by rw [Ideal.map_map]
-          _ ≤ Ideal.map (ι_map I) I := Ideal.map_mono hIJ) := by
+        calc Ideal.map ((completionMap I).comp φ) J
+            = Ideal.map (completionMap I) (Ideal.map φ J) := by rw [Ideal.map_map]
+          _ ≤ Ideal.map (completionMap I) I := Ideal.map_mono hIJ) := by
   exact Hom.ext rfl
 
 /-- 🔴 Exercise L6-3e: 分離条件下での ι の単射性（statement）。
@@ -552,17 +595,19 @@ theorem completion_towerHom_comp {S : Type*} [CommRing S]
     これは L5-4c（escape_of_isSeparated）の帰結:
     分離的 ⟺ ker ι = ⋂ Iⁿ = {0} ⟺ ι 単射。
 
-    注: 証明は Mathlib の AdicCompletion API に依存するため statement のみ。
+    注: `IsSeparated` から `IsHausdorff` を作り、Mathlib の標準定理を使う。
 
-    Hint-1: Ideal.AdicCompletion.of_injective_of_isSeparated（あれば）。
-    Hint-2: ker ι = ⋂ Iⁿ = ⊥ from IsSeparated。
-    Hint-3: 現時点では sorry。 -/
+    Hint-1: `isHausdorff_of_isSeparated`。
+    Hint-2: `AdicCompletion.of_injective`。
+    Hint-3: `completionMap` と `AdicCompletion.of` は同じ埋め込み。 -/
 theorem completion_towerHom_injective_of_separated
     (hI : IsSeparated I) :
-    Function.Injective (ι_map I) := by
-  -- Hint: ker(ι) = ⋂ₙ Iⁿ = ⊥ under IsSeparated
-  -- This follows from the definition of AdicCompletion as an inverse limit
-  sorry -- TODO: 証明を埋める
+    Function.Injective (completionMap I) := by
+  let _ : IsHausdorff I R := isHausdorff_of_isSeparated I hI
+  intro x y hxy
+  have hxy' : AdicCompletion.of I R x = AdicCompletion.of I R y := by
+    simpa only [completionMap, completionRing] using hxy
+  exact (AdicCompletion.of_inj (I := I) (M := R)).mp hxy'
 
 end Completion
 
@@ -597,12 +642,8 @@ variable {R : Type*} [CommRing R] (I : Ideal R)
     Hint-1: idealPowTower_closedTower (Î I) を使う。
     Hint-2: そのまま。 -/
 noncomputable def completionPowTower_closedTower :
-    ClosedTower (idealClosure (R := R̂ I)) ℕᵒᵈ where
-  level := (completionPowTower I).level
-  monotone_level := (completionPowTower I).monotone_level
-  level_closed := by
-    intro n
-    exact idealClosure_fixed_of_ideal ((Î I) ^ OrderDual.ofDual n)
+    ClosedTower (idealClosure (R := completionRing I)) ℕᵒᵈ :=
+  idealPowTower_closedTower (completionIdeal I)
 
 /-- 🟡 Exercise L6-4b: 完備化の分離性（statement）。
     R̂ は Î-adic に分離的: ⋂ₙ (Î)ⁿ = ⊥。
@@ -610,16 +651,17 @@ noncomputable def completionPowTower_closedTower :
     直感: 完備化は「十分に分離している」ことが保証される。
     L5-4b の IsSeparated が完備化側で自動的に成立する。
 
-    注: 証明は Mathlib の逆極限構成に依存するため statement のみ。
+    注: Mathlib は `AdicCompletion` に対し Hausdorff 性を既に与えている。
 
-    Hint-1: Ideal.AdicCompletion は逆極限 lim R/Iⁿ として構成される。
-    Hint-2: ⋂ₙ (Î)ⁿ ⊆ ker(R̂ → R/Iⁿ) for each n → ⋂ = ⊥。
-    Hint-3: sorry。 -/
+    Hint-1: `IsHausdorff.map_algebraMap_iff`。
+    Hint-2: `isSeparated_of_isHausdorff`。
+    Hint-3: completion ideal にそのまま適用。 -/
 theorem completionPowTower_isSeparated :
-    IsSeparated (Î I) := by
-  -- Hint: ⋂ₙ (Î)ⁿ = ⊥ follows from the inverse limit construction
-  -- of AdicCompletion: an element in ⋂ₙ (Î)ⁿ maps to 0 in each R/Iⁿ
-  sorry -- TODO: 証明を埋める
+    IsSeparated (completionIdeal I) := by
+  let _ : IsHausdorff (completionIdeal I) (completionRing I) :=
+    (IsHausdorff.map_algebraMap_iff (I := I) (S := completionRing I)).2
+      (inferInstance : IsHausdorff I (completionRing I))
+  exact isSeparated_of_isHausdorff (completionIdeal I)
 
 /-- 🟡 Exercise L6-4c: 完備化の global は {0}。
     completionPowTower_isSeparated から直ちに従う。
@@ -627,11 +669,12 @@ theorem completionPowTower_isSeparated :
 
     Hint-1: IsSeparated → global = {0} は L5-4b と同じ論理。
     Hint-2: completionPowTower_isSeparated を使う。
-    Hint-3: sorry（completionPowTower_isSeparated に依存）。 -/
+    Hint-3: `isSeparated_iff_global_eq` に帰着。 -/
 theorem completionPowTower_global_singleton :
-    (completionPowTower I).global = {(0 : R̂ I)} := by
-  -- Depends on completionPowTower_isSeparated
-  sorry -- TODO: 証明を埋める
+    (completionPowTower I).global = {(0 : completionRing I)} := by
+  simpa [completionPowTower] using
+    (isSeparated_iff_global_eq (completionIdeal I)).mp
+      (completionPowTower_isSeparated I)
 
 /-- 🔴 Exercise L6-4d: 非零元の完備化版脱出定理。
     R̂ で x ≠ 0 ⟹ ∃ n, x ∉ (Î)ⁿ。
@@ -641,12 +684,11 @@ theorem completionPowTower_global_singleton :
     零でない元は有限段で I-adic tower から脱出する。
 
     Hint-1: completionPowTower_isSeparated + escape_of_isSeparated。
-    Hint-2: `escape_of_isSeparated (Î I) (completionPowTower_isSeparated I) hx`
-    Hint-3: sorry（completionPowTower_isSeparated に依存）。 -/
-theorem escape_of_completion {x : R̂ I} (hx : x ≠ 0) :
-    ∃ n : ℕ, x ∉ ((Î I) ^ n : Ideal (R̂ I)) := by
-  -- Hint: direct application of escape_of_isSeparated to R̂
-  sorry -- TODO: 証明を埋める
+    Hint-2: `escape_of_isSeparated (completionIdeal I) (completionPowTower_isSeparated I) hx`
+    Hint-3: 直接適用で終わる。 -/
+theorem escape_of_completion {x : completionRing I} (hx : x ≠ 0) :
+    ∃ n : ℕ, x ∉ ((completionIdeal I) ^ n : Ideal (completionRing I)) := by
+  exact escape_of_isSeparated (completionIdeal I) (completionPowTower_isSeparated I) hx
 
 /-- 🔴 Exercise L6-4e: 完備化の ClosedTower global の閉性。
     completionPowTower が ClosedTower であることから、
@@ -661,7 +703,7 @@ theorem escape_of_completion {x : R̂ I} (hx : x ≠ 0) :
     Hint-2: `(completionPowTower_closedTower I).cl_global_subset`
     Hint-3: そのまま。 -/
 theorem completionPow_global_closed :
-    idealClosure (R := R̂ I) (completionPowTower I).global ⊆
+    idealClosure (R := completionRing I) (completionPowTower I).global ⊆
       (completionPowTower I).global :=
   (completionPowTower_closedTower I).cl_global_subset
 
