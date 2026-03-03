@@ -49,6 +49,7 @@
 - ` /-- ... -/ ` の doc コメントは必ず直後に宣言を置く（説明だけ残す場合は `/- ... -/` にする）。
 - CI の `sorry` 検出はコメントやコメントアウト行の文字列にも反応するため、`.lean` 内に `sorry` という語を残さない。
 - `ST/SuitTests` で rank や `HasCharRank` を使う新規ファイルは、まず `StructureTower_CategoryExercises_L4` を import して既存の `ExhaustiveTower` 定義を再利用する。
+- `Ordinal` で「`o < ω` なら自然数に戻す」必要があるときは、`Ordinal.toNat` を探さず `Ordinal.lt_omega0` と `Classical.choose` で witness を取り出す。
 - `Nat.find` / `Nat.find_spec` / `Nat.find_min'` を使うときは `Mathlib.Data.Nat.Find` を import し、必要に応じて `classical` で `DecidablePred` を供給する。
 - ゴールが `let T := ...; ...` の形なら `intro` 前に `dsimp` で `let` を展開し、変数取り違えを防ぐ。
 - `CovariantClass` や `add_le_add` を使うときは `Mathlib.Algebra.Order.Monoid.Unbundled.Basic` を import する。

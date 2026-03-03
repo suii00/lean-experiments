@@ -1,5 +1,7 @@
 import MyProjects.ST.CategoryNotes.StructureTower_CategoryExercises_L4
 import Mathlib.Algebra.Ring.Int.Parity
+import Mathlib.RingTheory.Ideal.Operations
+import Mathlib.SetTheory.Ordinal.Arithmetic
 import Mathlib.Tactic
 
 open Set Function
@@ -66,6 +68,51 @@ theorem natExhaustive_rank_eq (x : ℕ) :
     natExhaustive.rank x = x := by
   have h := congrFun (rank_unique natExhaustive id natExhaustive_hasCharRank) x
   simpa using h.symm
+
+noncomputable def ordinalNatBound (o : Ordinal) (h : o < Ordinal.omega0) : ℕ :=
+  Classical.choose (Ordinal.lt_omega0.mp h)
+
+theorem ordinalNatBound_spec (o : Ordinal) (h : o < Ordinal.omega0) :
+    o = (ordinalNatBound o h : Ordinal) := by
+  exact Classical.choose_spec (Ordinal.lt_omega0.mp h)
+
+noncomputable def ordinalTower : StructureTower Ordinal ℕ where
+  level o := if h : o < Ordinal.omega0 then {n | n ≤ ordinalNatBound o h} else Set.univ
+  monotone_level := by
+    intro i j hij x hx
+    by_cases hi : i < Ordinal.omega0
+    · by_cases hj : j < Ordinal.omega0
+      · simp [hi, hj] at hx ⊢
+        have hi_eq : i = (ordinalNatBound i hi : Ordinal) := ordinalNatBound_spec i hi
+        have hj_eq : j = (ordinalNatBound j hj : Ordinal) := ordinalNatBound_spec j hj
+        have hij_ord :
+            ((ordinalNatBound i hi : ℕ) : Ordinal) ≤ ((ordinalNatBound j hj : ℕ) : Ordinal) := by
+          have hij' := hij
+          rw [hi_eq, hj_eq] at hij'
+          exact hij'
+        have hij_nat : ordinalNatBound i hi ≤ ordinalNatBound j hj := by
+          exact_mod_cast hij_ord
+        exact le_trans hx hij_nat
+      · simp [hj]
+    · by_cases hj : j < Ordinal.omega0
+      · exact False.elim (hi (lt_of_le_of_lt hij hj))
+      · simp [hi, hj] at hx ⊢
+
+theorem ordinalTower_union_eq_univ :
+    ordinalTower.union = Set.univ := by
+  apply Set.eq_univ_of_forall
+  intro x
+  refine Set.mem_iUnion.mpr ?_
+  refine ⟨(x : Ordinal), ?_⟩
+  have hx_lt : (x : Ordinal) < Ordinal.omega0 := Ordinal.nat_lt_omega0 x
+  have hbound_eq : ordinalNatBound (x : Ordinal) hx_lt = x := by
+    exact_mod_cast (ordinalNatBound_spec (x : Ordinal) hx_lt).symm
+  change x ∈
+    (if h : (x : Ordinal) < Ordinal.omega0 then {n | n ≤ ordinalNatBound (x : Ordinal) h}
+      else Set.univ)
+  rw [dif_pos hx_lt]
+  change x ≤ ordinalNatBound (x : Ordinal) hx_lt
+  simp [hbound_eq]
 
 structure FakeTower (ι α : Type*) [Preorder ι] where
   level : ι → Set α
@@ -134,6 +181,34 @@ theorem rank_not_unique_preorder :
   intro h
   have : TwoPoint.a = TwoPoint.b := congrFun h 0
   cases this
+
+section DualSection
+
+variable {R : Type*} [CommRing R]
+
+noncomputable def idealPowTower (I : Ideal R) : StructureTower ℕᵒᵈ R where
+  level n := ↑(I ^ OrderDual.ofDual n)
+  monotone_level := by
+    intro i j hij x hx
+    exact (Ideal.pow_le_pow_right (I := I)
+      (m := OrderDual.ofDual j) (n := OrderDual.ofDual i)
+      (OrderDual.ofDual_le_ofDual.mpr hij)) hx
+
+def idealPowAntitone (I : Ideal R) : ℕ → Set R :=
+  fun n => ↑(I ^ n)
+
+theorem idealPowAntitone_antitone (I : Ideal R) :
+    Antitone (idealPowAntitone I) := by
+  intro m n hmn x hx
+  exact (Ideal.pow_le_pow_right (I := I) (m := m) (n := n) hmn) hx
+
+theorem idealPowTower_eq_ofAntitone (I : Ideal R) :
+    idealPowTower I = StructureTower.ofAntitone (idealPowAntitone I)
+      (idealPowAntitone_antitone I) := by
+  ext i x
+  simp [idealPowTower, StructureTower.ofAntitone, idealPowAntitone]
+
+end DualSection
 
 def singletonTowerFails : ℕ → Set ℕ := fun n => {x | x = n}
 
@@ -237,15 +312,15 @@ theorem thresholdTower_exhaustive {ι α : Type*} [Preorder ι]
   intro x
   exact ⟨w x, le_rfl⟩
 
-theorem thresholdTower_add_closed {ι α : Type*} [LinearOrder ι] [AddCommMonoid α]
+theorem thresholdTower_add_mem {ι α : Type*} [SemilatticeSup ι] [AddCommMonoid α]
     (w : α → ι)
-    (hadd : ∀ x y, w (x + y) ≤ max (w x) (w y))
+    (hadd : ∀ x y, w (x + y) ≤ w x ⊔ w y)
     {i : ι} {x y : α}
     (hx : x ∈ (thresholdTower w).level i)
     (hy : y ∈ (thresholdTower w).level i) :
     x + y ∈ (thresholdTower w).level i := by
   show w (x + y) ≤ i
-  exact le_trans (hadd x y) (max_le_iff.mpr ⟨hx, hy⟩)
+  exact le_trans (hadd x y) (sup_le hx hy)
 
 def finTower1 : StructureTower (Fin 3) (Fin 5) where
   level i := {x | x.1 ≤ 2 * i.1 + 1}
