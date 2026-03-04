@@ -259,7 +259,7 @@ theorem reesDegreeTower_add_mem (n : ℕ) {p q : R[X]}
     Hint-2: Ideal.zero_mem。 -/
 theorem zero_mem_reesDegreeTower (n : ℕ) :
     (0 : R[X]) ∈ (reesDegreeTower I).level n := by
-  exact ⟨fun k => by simp [Ideal.zero_mem], fun k _ => by simp⟩
+  exact ⟨fun k => by simp, fun k _ => by simp⟩
 
 end ReesTower
 
@@ -448,7 +448,7 @@ theorem coeff_reesElement_mem {p : R[X]} (hp : IsReesElement I p) (n : ℕ) :
 
     Hint-1: Rees 元条件 hp.1 の k 成分。 -/
 theorem coeff_reesDegreeTower_mem {m : ℕ} {p : R[X]}
-    (hp : p ∈ (reesDegreeTower I).level m) (k : ℕ) (hk : k ≤ m) :
+    (hp : p ∈ (reesDegreeTower I).level m) (k : ℕ) (_hk : k ≤ m) :
     p.coeff k ∈ I ^ k :=
   hp.1 k
 
@@ -474,7 +474,7 @@ theorem monomial_embed_preserves {n : ℕ} {r : R} (hr : r ∈ I ^ n) :
     Hint-2: `simp [Polynomial.coeff_C_mul_X_pow]` -/
 theorem coeff_monomial_embed (n : ℕ) (r : R) :
     (Polynomial.C r * X ^ n).coeff n = r := by
-  simp [Polynomial.coeff_C_mul_X_pow]
+  simp
 
 /-- 🔴 Exercise L7-3e: 双対性の本質 ── 次数付き分解。
     p ∈ reesDegreeTower I の level n ⟹
@@ -498,17 +498,24 @@ theorem rees_graded_decomposition {n : ℕ} {p : R[X]}
   · -- m ≤ n: 和の中の m 番目の項だけが生き残る
     rw [Finset.sum_eq_single m]
     · simp
-    · intro k _ hkm; simp [hkm]
-    · intro hm'; simp at hm'; omega
+    · intro k _ hkm
+      have hmk : m ≠ k := by
+        exact fun h => hkm h.symm
+      simp [hmk]
+    · intro hm'
+      simp only [Finset.mem_range] at hm'
+      omega
   · -- m > n: p.coeff m = 0 かつ和の全項も 0
     push_neg at hm
     rw [hD m hm]
+    symm
     apply Finset.sum_eq_zero
     intro k hk
     simp only [Finset.mem_range] at hk
-    split_ifs with hkm
-    · subst hkm; omega
-    · rfl
+    by_cases hkm : m = k
+    · subst hkm
+      omega
+    · simp [hkm]
 
 end Duality
 
@@ -629,28 +636,28 @@ theorem reesDegreeTower_level_not_mul_closed :
   · -- C 2 * X ∈ level 1
     constructor
     · intro k
-      simp only [Polynomial.coeff_C_mul_X_pow]
+      simp only [Polynomial.coeff_C_mul_X]
       split_ifs with hk
       · subst hk
         simp only [pow_one]
         exact Ideal.subset_span (Set.mem_singleton 2)
       · exact Ideal.zero_mem _
     · intro k hk
-      simp only [Polynomial.coeff_C_mul_X_pow]
+      simp only [Polynomial.coeff_C_mul_X]
       split_ifs with hk'
       · omega
       · rfl
   · -- same
     constructor
     · intro k
-      simp only [Polynomial.coeff_C_mul_X_pow]
+      simp only [Polynomial.coeff_C_mul_X]
       split_ifs with hk
       · subst hk
         simp only [pow_one]
         exact Ideal.subset_span (Set.mem_singleton 2)
       · exact Ideal.zero_mem _
     · intro k hk
-      simp only [Polynomial.coeff_C_mul_X_pow]
+      simp only [Polynomial.coeff_C_mul_X]
       split_ifs with hk'
       · omega
       · rfl
@@ -660,11 +667,11 @@ theorem reesDegreeTower_level_not_mul_closed :
     -- But degree bound says coeff 2 = 0 (since 2 > 1)
     have h2 : ((Polynomial.C (2 : ℤ) * X) * (Polynomial.C 2 * X)).coeff 2 = 0 :=
       hD 2 (by norm_num)
-    -- Compute the actual coefficient
-    have hsimp : Polynomial.C (2 : ℤ) * X * (Polynomial.C 2 * X) =
-        Polynomial.C 4 * X ^ 2 := by ring
-    rw [hsimp, Polynomial.coeff_C_mul_X_pow] at h2
-    simp at h2
+    have h4 : ((Polynomial.C (2 : ℤ) * X) * (Polynomial.C 2 * X)).coeff 2 = 4 := by
+      rw [Polynomial.C_mul_X_eq_monomial, Polynomial.monomial_mul_monomial]
+      norm_num
+    rw [h4] at h2
+    norm_num at h2
 
 /-- 🔴 Exercise L7-4e: Rees 塔の乗法互換性は「level 間」で成立。
     level n 内での乗法閉性は成立しないが（L7-4d）、
@@ -682,8 +689,9 @@ theorem reesDegreeTower_is_filtered_mul :
     ∀ (m n : ℕ) {p q : R[X]},
       p ∈ (reesDegreeTower I).level m →
       q ∈ (reesDegreeTower I).level n →
-      p * q ∈ (reesDegreeTower I).level (m + n) :=
-  fun m n hp hq => reesDegreeTower_mul_mem I m n hp hq
+      p * q ∈ (reesDegreeTower I).level (m + n) := by
+  intro m n p q hp hq
+  exact reesDegreeTower_mul_mem I m n hp hq
 
 end MathlibConnection
 
