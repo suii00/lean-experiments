@@ -1,0 +1,661 @@
+%!TEX program = lualatex
+% ─────────────────────────────────────────────────────────────────────────
+% ReesTower_L7.tex
+% Rees 代数の StructureTower による形式化（Level 7）
+% ─────────────────────────────────────────────────────────────────────────
+\documentclass[a4paper,12pt]{article}
+
+% ──────────────────────────────── パッケージ ────────────────────────────────
+\usepackage{fontspec}
+\usepackage{luatexja}
+\usepackage{luatexja-fontspec}
+
+\setmainfont{Latin Modern Roman}
+\setmainjfont{Harano Aji Mincho}
+\setsansjfont{Harano Aji Gothic}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz-cd}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,
+            linkcolor=blue!60!black,
+            urlcolor=teal,
+            citecolor=green!50!black,
+            pdftitle={Rees代数のStructureTowerによる形式化（Level 7）},
+            pdfauthor={su}]{hyperref}
+
+\usetikzlibrary{cd,arrows.meta}
+
+\geometry{top=25mm,bottom=25mm,left=25mm,right=25mm,headheight=14pt}
+
+% ──────────────────────────────── 定理環境 ────────────────────────────────
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+\newtheorem{remark}[definition]{注意}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+% ──────────────────────────────── 色 ────────────────────────────────────
+\definecolor{leanblue}{HTML}{1F3A5F}
+\definecolor{leangreen}{HTML}{2ECC71}
+\definecolor{leancyan}{HTML}{4ECDC4}
+\definecolor{codebackground}{HTML}{F5F5F5}
+\definecolor{idealbg}{HTML}{EBF5FB}
+\definecolor{reesbg}{HTML}{EAFAF1}
+
+% ──────────────────────────────── tcolorbox ──────────────────────────────
+\tcbuselibrary{skins,breakable}
+
+\newtcolorbox{leanbox}[1][]{
+  colback=codebackground, colframe=leanblue,
+  fonttitle=\small\bfseries, title={Lean 4 コード},
+  breakable, before skip=6pt, after skip=6pt, #1
+}
+
+\newtcolorbox{insightbox}[1][]{
+  colback=reesbg, colframe=leangreen!70!black,
+  fonttitle=\bfseries, title={核心的洞察},
+  before skip=6pt, after skip=6pt, #1
+}
+
+\newtcolorbox{dualbox}[2][]{
+  colback=idealbg, colframe=leancyan!70!black,
+  fonttitle=\bfseries, title={#2},
+  before skip=6pt, after skip=6pt, #1
+}
+
+% ──────────────────────────────── Lean コード書式 ─────────────────────────
+\lstdefinelanguage{Lean4}{
+  keywords={def,theorem,lemma,example,structure,namespace,end,import,
+            open,variable,section,intro,exact,apply,simp,rfl,by,fun,
+            have,obtain,refine,constructor,ext,push_neg,by_cases,omega,
+            subst,rw,calc,where,instance,class,abbrev,if,then,else,match,with},
+  keywordstyle=\color{leanblue}\bfseries,
+  comment=[l]{--},
+  commentstyle=\color{gray}\itshape,
+  morecomment=[s]{/-}{-/},
+  basicstyle=\small\ttfamily,
+  breaklines=true,
+  tabsize=2,
+  showstringspaces=false
+}
+
+\lstset{
+  language=Lean4,
+  backgroundcolor=\color{codebackground},
+  frame=single, framesep=4pt,
+  rulecolor=\color{leanblue!40},
+  xleftmargin=8pt, xrightmargin=4pt
+}
+
+% ──────────────────────────────── 図キャプション ─────────────────────────
+\newcommand{\figcap}[1]{\begin{center}\small\textit{#1}\end{center}}
+
+% ──────────────────────────────── 数学マクロ ─────────────────────────────
+\newcommand{\Ipower}[1]{I^{#1}}
+\newcommand{\reesdeg}{\mathrm{reesDegreeTower}}
+\newcommand{\idealpow}{\mathrm{idealPowTower}}
+\newcommand{\lev}[1]{\ell_{#1}}
+\newcommand{\IsRees}{\mathrm{IsReesElement}}
+\newcommand{\STower}{\mathrm{StructureTower}}
+\newcommand{\natDeg}{\mathrm{natDeg}}
+\newcommand{\unionop}{\mathrm{union}}
+\newcommand{\globalop}{\mathrm{global}}
+
+% ─────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ──────────────────────────────── タイトル ───────────────────────────────
+\begin{center}
+  {\LARGE\bfseries Rees 代数の StructureTower による形式化}\\[6pt]
+  {\Large Level 7: Rees 塔・乗法互換性・双対性}\\[12pt]
+  {\large su}\\[4pt]
+  {\normalsize 2026年3月}
+\end{center}
+
+\bigskip
+\begin{center}
+\small
+\textit{AI assistance disclosure:}
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。
+\TeX{} 文書は Claude Code (Anthropic) で生成した。
+著者による加筆・修正は行っていない。
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\bigskip
+\begin{abstract}
+可換環 $R$ とイデアル $I \trianglelefteq R$ に対する
+Rees 代数 $R[It] = \bigoplus_{n \geq 0} I^n t^n$ を、
+StructureTower フレームワークの言語で形式化する試みを解説する。
+Level~5 で構成した $I$-進フィルタ
+（$\idealpow\,I : \STower\,\mathbb{N}^{\mathrm{op}}\,R$、縮小族）に対し、
+Level~7 では同じ $I$-進構造の「外部的」表示として
+$\reesdeg\,I : \STower\,\mathbb{N}\,(R[X])$（拡大族）を構成する。
+両者の双対性を係数抽出写像と単項式埋め込みで明示し、
+Mathlib の \texttt{reesAlgebra} との一致を形式的に確認する。
+さらに、各レベルが ClosedTower の性質を持たないことを具体的な反例で示し、
+FilteredRing の乗法互換性との構造的区別を論じる。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{序論と動機}
+% ─────────────────────────────────────────────────────────────────────────
+
+\subsection{Level 5--7 の流れ}
+
+StructureTower プロジェクトにおける Level~5--7 は、
+可換環 $R$ とイデアル $I$ を通じて $I$-進フィルタ構造を段階的に深める。
+
+\begin{center}
+\begin{tikzcd}[column sep=55pt, row sep=38pt]
+  R
+  \arrow[r, "\text{Level 5}", "\text{内部的}"']
+  &
+  \idealpow\,I : \STower\,\mathbb{N}^{\mathrm{op}}\,R
+  \\
+  R[X]
+  \arrow[u, "\pi_0"', "\text{定数項抽出}"]
+  &
+  \reesdeg\,I : \STower\,\mathbb{N}\,(R[X])
+  \arrow[u, "\mathrm{ev}_n"', "{(\text{係数抽出})}"]
+  \arrow[lu, "\text{双対}", dashed]
+\end{tikzcd}
+\end{center}
+\figcap{図~1: Level~5 と Level~7 の関係。同一の $I$-進構造が内部的（縮小族）と外部的（拡大族）に対応する。}
+
+\medskip
+Level~5 では、$R$ 内でイデアルが縮小していく列
+\[
+  R = \Ipower{0} \supseteq \Ipower{1} \supseteq \Ipower{2} \supseteq \cdots
+\]
+を $\mathbb{N}^{\mathrm{op}}$ 添字の StructureTower として捉えた。
+Level~7 では、同じ情報を多項式環 $R[X]$ の「次数ごとの切断」として再パッケージする。
+
+\subsection{Rees 代数の古典的定義}
+
+\begin{definition}[Rees 代数]
+可換環 $R$ とイデアル $I \trianglelefteq R$ に対し、\textbf{Rees 代数}を
+\[
+  R[It] \;\coloneqq\; \bigoplus_{n \geq 0} \Ipower{n} t^n
+  \;=\; \left\{ \sum_{k \geq 0} a_k t^k \;\middle|\; a_k \in \Ipower{k},\quad \text{有限和} \right\}
+  \;\subset\; R[t]
+\]
+と定義する。これは $R$ 上の代数（$R[t]$ の Subalgebra）をなす。
+\end{definition}
+
+この代数の重要性は以下にある：
+\begin{itemize}[noitemsep]
+  \item 代数幾何学では $\mathrm{Proj}(R[It])$ が
+        $\mathrm{Spec}\,R$ の $I$ に沿った blow-up を与える。
+  \item 交換代数では $I$-進フィルタの「外部化」として
+        associated graded ring の構成に使われる。
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{\S{}L7-1: Rees 塔の基盤}
+% ─────────────────────────────────────────────────────────────────────────
+
+\subsection{Rees 元の定義}
+
+\begin{definition}[Rees 元 (\texttt{IsReesElement})]
+多項式 $p \in R[X]$ が\textbf{Rees 元}であるとは、
+各次数 $k$ の係数が $\Ipower{k}$ に属することをいう：
+\[
+  \IsRees_I(p) \;\coloneqq\; \forall k \in \mathbb{N},\; p_k \in \Ipower{k}.
+\]
+ここで $p_k$ は $p$ の $k$ 次係数を表す。
+\end{definition}
+
+直感的には、$p = a_0 + a_1 X + a_2 X^2 + \cdots$ に対し、
+$a_0 \in R = I^0$、$a_1 \in I$、$a_2 \in I^2$、\ldots{}という条件である。
+
+\begin{leanbox}
+\begin{lstlisting}
+def IsReesElement (p : R[X]) : Prop :=
+  forall k : Nat, p.coeff k ∈ I ^ k
+\end{lstlisting}
+\end{leanbox}
+
+\subsection{Rees 塔の構成}
+
+次数による切断を導入することで、増加族の StructureTower を得る。
+
+\begin{definition}[Rees 塔 (\texttt{reesDegreeTower})]
+$\mathbb{N}$ 添字の StructureTower $\reesdeg\,I : \STower\,\mathbb{N}\,(R[X])$ を
+\[
+  (\reesdeg\,I).\lev{n} \;\coloneqq\;
+  \left\{ p \in R[X] \;\middle|\;
+    \IsRees_I(p) \;\text{かつ}\; \forall k > n,\; p_k = 0
+  \right\}
+\]
+と定義する。単調性は次数制限の緩和による：$n \leq m$ ならば
+「$\forall k > n,\, p_k = 0$」は「$\forall k > m,\, p_k = 0$」を含意する。
+\end{definition}
+
+\begin{leanbox}
+\begin{lstlisting}
+def reesDegreeTower : StructureTower Nat (R[X]) where
+  level n := {p : R[X] | IsReesElement I p ∧
+                          forall k, n < k -> p.coeff k = 0}
+  monotone_level := by
+    intro i j hij p ⟨hR, hD⟩
+    exact ⟨hR, fun k hk => hD k (lt_of_le_of_lt hij hk)⟩
+\end{lstlisting}
+\end{leanbox}
+
+\subsection{各レベルの具体例}
+
+\begin{proposition}
+$\reesdeg\,I$ の各レベルの元は次のように特徴付けられる：
+\begin{align*}
+  \lev{0} &= \{ C(r) \mid r \in R \}
+    && \text{（定数多項式全体）,} \\
+  \lev{1} &= \{ a_0 + a_1 X \mid a_0 \in R,\, a_1 \in I \}
+    && \text{（1次以下の Rees 元）,} \\
+  \lev{n} &= \Bigl\{ \textstyle\sum_{k=0}^{n} a_k X^k
+    \;\Big|\; a_k \in \Ipower{k} \Bigr\}
+    && \text{（$n$ 次以下の Rees 元）.}
+\end{align*}
+\end{proposition}
+
+\begin{center}
+\begin{tikzcd}[column sep=32pt, row sep=20pt]
+  \lev{0}
+  \arrow[r, hook]
+  &
+  \lev{1}
+  \arrow[r, hook]
+  &
+  \lev{2}
+  \arrow[r, hook]
+  &
+  \cdots
+  \arrow[r, hook]
+  &
+  \displaystyle\bigcup_n \lev{n}
+\end{tikzcd}
+\end{center}
+\figcap{図~2: Rees 塔の各レベルの包含関係（増加族）。次数制限の緩和により各レベルが拡大する。}
+
+\begin{theorem}[\texttt{reesDegreeTower\_level\_zero}]
+$(\reesdeg\,I).\lev{0} = \{ C(r) \mid r \in R \}$.
+\end{theorem}
+\begin{proof}
+($\Rightarrow$) $p \in \lev{0}$ のとき、$k > 0$ ならば $p_k = 0$ より $p = C(p_0)$。
+
+\noindent($\Leftarrow$) $p = C(r)$ に対し、$p_0 = r \in R = \Ipower{0}$、
+$p_k = 0 \in \Ipower{k}$（$k > 0$）。
+\end{proof}
+
+\begin{proposition}[\texttt{monomial\_mem\_reesDegreeTower}]
+$r \in \Ipower{n}$ ならば $C(r) \cdot X^n \in (\reesdeg\,I).\lev{n}$。
+\end{proposition}
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{\S{}L7-2: 乗法互換性と次数付き構造}
+% ─────────────────────────────────────────────────────────────────────────
+
+\subsection{Rees 元の積は Rees 元}
+
+\begin{insightbox}
+多項式の積の $k$ 次係数は畳み込みで与えられる：
+\[
+  (pq)_k = \sum_{i+j=k} p_i \cdot q_j.
+\]
+$p_i \in \Ipower{i}$、$q_j \in \Ipower{j}$ ならば
+$p_i q_j \in \Ipower{i} \cdot \Ipower{j} \subseteq \Ipower{i+j} = \Ipower{k}$。
+イデアルの加法閉性から $(pq)_k \in \Ipower{k}$。
+\end{insightbox}
+
+\begin{theorem}[\texttt{isReesElement\_mul}]
+$p, q \in R[X]$ が Rees 元ならば $pq$ も Rees 元である。
+\end{theorem}
+\begin{proof}
+$k \in \mathbb{N}$ を固定する。畳み込み公式より
+$\displaystyle(pq)_k = \sum_{\substack{i,j \geq 0 \\ i+j=k}} p_i q_j$.
+各 $(i,j)$ に対して $p_i q_j \in \Ipower{i} \cdot \Ipower{j} \subseteq \Ipower{k}$。
+$\Ipower{k}$ の加法閉性から $(pq)_k \in \Ipower{k}$。
+\end{proof}
+
+\begin{leanbox}
+\begin{lstlisting}
+theorem isReesElement_mul {p q : R[X]}
+    (hp : IsReesElement I p) (hq : IsReesElement I q) :
+    IsReesElement I (p * q) := by
+  intro k
+  rw [Polynomial.coeff_mul]
+  apply Submodule.sum_mem
+  intro ⟨i, j⟩ hij
+  have hij' : i + j = k := Finset.mem_antidiagonal.mp hij
+  rw [← hij']
+  exact idealPow_mul_mem I i j (hp i) (hq j)
+\end{lstlisting}
+\end{leanbox}
+
+\subsection{FilteredRing としての乗法互換性}
+
+\begin{theorem}[\texttt{reesDegreeTower\_mul\_mem}]\label{thm:filteredmul}
+$p \in (\reesdeg\,I).\lev{m}$、$q \in (\reesdeg\,I).\lev{n}$ ならば
+$pq \in (\reesdeg\,I).\lev{m+n}$。
+\end{theorem}
+\begin{proof}
+Rees 元条件は \texttt{isReesElement\_mul} による。
+次数条件：$k > m+n$ のとき $i+j=k$ を満たす各 $(i,j)$ について
+$i > m$ または $j > n$（鳩の巣原理）。
+いずれの場合も $p_i = 0$ または $q_j = 0$ となり $(pq)_k = 0$。
+\end{proof}
+
+\begin{center}
+\begin{tikzcd}[column sep=60pt, row sep=40pt]
+  \lev{m} \times \lev{n}
+  \arrow[r, "\times"]
+  \arrow[d, hook]
+  &
+  \lev{m+n}
+  \arrow[d, hook]
+  \\
+  \lev{m'} \times \lev{n'}
+  \arrow[r, "\times"']
+  &
+  \lev{m'+n'}
+\end{tikzcd}
+\end{center}
+\figcap{図~3: FilteredRing の乗法互換性。$m \leq m'$、$n \leq n'$ のとき包含と乗法が可換。}
+
+\subsection{代数的閉性の一覧}
+
+\begin{proposition}
+以下が成立する：
+\begin{enumerate}[label=(\arabic*),noitemsep]
+  \item $0 \in (\reesdeg\,I).\lev{n}$
+  \item $p \in \lev{n} \Rightarrow -p \in \lev{n}$
+  \item $p,q \in \lev{n} \Rightarrow p+q \in \lev{n}$
+  \item $r \in R,\; p \in \lev{n} \Rightarrow C(r) \cdot p \in \lev{n}$
+  \item $1 = C(1) \in (\reesdeg\,I).\lev{0}$
+\end{enumerate}
+\end{proposition}
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{\S{}L7-3: idealPowTower との双対性}
+% ─────────────────────────────────────────────────────────────────────────
+
+\subsection{係数抽出と単項式埋め込み}
+
+\begin{definition}
+$n \in \mathbb{N}$ に対し、以下の写像を定義する：
+\begin{align*}
+  \mathrm{ev}_n &: R[X] \to R,\quad p \mapsto p_n
+    \quad(\text{係数抽出}), \\
+  \iota_n &: R \to R[X],\quad r \mapsto C(r) \cdot X^n
+    \quad(\text{単項式埋め込み}).
+\end{align*}
+\end{definition}
+
+\begin{center}
+\begin{tikzcd}[column sep=80pt, row sep=40pt]
+  (\reesdeg\,I).\lev{n}
+  \arrow[r, "\mathrm{ev}_n", bend left=15]
+  \arrow[d, hook]
+  &
+  \Ipower{n}
+  \arrow[l, "\iota_n", bend left=15]
+  \arrow[d, hook]
+  \\
+  R[X]
+  \arrow[r, "p \mapsto p_n"']
+  &
+  R
+\end{tikzcd}
+\end{center}
+\figcap{図~4: 係数抽出 $\mathrm{ev}_n$ と単項式埋め込み $\iota_n$ の対応関係。}
+
+\begin{theorem}[\texttt{coeff\_monomial\_embed}: Section-Retraction]
+任意の $r \in R$、$n \in \mathbb{N}$ に対し
+\[
+  \mathrm{ev}_n(\iota_n(r)) = (C(r) \cdot X^n)_n = r,
+  \quad\text{すなわち}\quad
+  \mathrm{ev}_n \circ \iota_n = \mathrm{id}_R.
+\]
+\end{theorem}
+
+\begin{center}
+\begin{tikzcd}[column sep=55pt, row sep=30pt]
+  \Ipower{n}
+  \arrow[r, "\iota_n"]
+  \arrow[rr, bend right=22, "\mathrm{id}"']
+  &
+  (\reesdeg\,I).\lev{n}
+  \arrow[r, "\mathrm{ev}_n"]
+  &
+  \Ipower{n}
+\end{tikzcd}
+\end{center}
+\figcap{図~5: Section-Retraction の関係。$\mathrm{ev}_n \circ \iota_n = \mathrm{id}_{\Ipower{n}}$。}
+
+\subsection{次数付き分解}
+
+\begin{theorem}[\texttt{rees\_graded\_decomposition}]
+$p \in (\reesdeg\,I).\lev{n}$ ならば
+\[
+  p = \sum_{k=0}^{n} C(p_k) \cdot X^k.
+\]
+各成分 $C(p_k) \cdot X^k$ は $(\reesdeg\,I).\lev{k}$ の元である。
+\end{theorem}
+\begin{proof}
+多項式の等式を係数比較で示す。
+$m \leq n$ のとき、和の $m$ 番目の項だけが生き残り $p_m$ を与える。
+$m > n$ のとき、$p_m = 0$（次数条件）かつ和の全項も $0$。
+\end{proof}
+
+この定理は $(\reesdeg\,I).\lev{n}$ が加法群として
+$\bigoplus_{k=0}^{n} I^k$ に同型であることを示す。
+各 $I^k$ が $\idealpow\,I$ の「$k$ 番目のレベル」に対応し、
+二つの塔の双対関係の核心をなす。
+
+\subsection{二つの塔の対比}
+
+\begin{dualbox}{idealPowTower と reesDegreeTower の比較}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+観点 & $\idealpow\,I$ & $\reesdeg\,I$ \\
+\midrule
+添字 & $\mathbb{N}^{\mathrm{op}}$（減少族） & $\mathbb{N}$（増加族） \\
+空間 & $R$ & $R[X]$ \\
+$\lev{n}$ & $\Ipower{n} \subseteq R$ & $\{p \in \IsRees_I \mid \deg p \leq n\}$ \\
+global & $\bigcap_n I^n$ & $\lev{0} \cong R$ \\
+union & $\lev{0} = R$ & $\mathrm{reesAlgebra}\,I$ \\
+次数 $k$ 成分 & $\Ipower{k}$ & $\{C(r) X^k \mid r \in \Ipower{k}\}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{dualbox}
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{\S{}L7-4: Mathlib の reesAlgebra との接続}
+% ─────────────────────────────────────────────────────────────────────────
+
+\subsection{union と reesAlgebra の一致}
+
+\begin{theorem}[\texttt{reesDegreeTower\_union}]
+\[
+  (\reesdeg\,I).\unionop
+  = \bigcup_{n \in \mathbb{N}} (\reesdeg\,I).\lev{n}
+  = \{ p \in R[X] \mid \IsRees_I(p) \}.
+\]
+\end{theorem}
+\begin{proof}
+($\supseteq$) $\IsRees_I(p)$ ならば $n = \natDeg(p)$ に対して $p \in \lev{n}$。
+
+\noindent($\subseteq$) $\lev{n}$ の元は Rees 元条件（第一成分）を満たす。
+\end{proof}
+
+\begin{theorem}[\texttt{reesDegreeTower\_union\_eq\_reesAlgebra}]
+Mathlib の \texttt{reesAlgebra} の台集合と一致する：
+\[
+  (\reesdeg\,I).\unionop = \bigl\uparrow(\mathrm{reesAlgebra}\,I).
+\]
+\end{theorem}
+
+\begin{center}
+\begin{tikzcd}[column sep=50pt, row sep=30pt]
+  \bigcup_n \lev{n}
+  \arrow[r, equal]
+  \arrow[d, equal]
+  &
+  \bigl\uparrow(\mathrm{reesAlgebra}\,I)
+  \arrow[d, hook, "\text{Subalgebra}"]
+  \\
+  \{ p \mid \IsRees_I(p) \}
+  \arrow[r, equal]
+  &
+  \{ p \mid \forall k,\, p_k \in I^k \}
+\end{tikzcd}
+\end{center}
+\figcap{図~6: union と Mathlib の reesAlgebra の一致。両者は定義の展開で等しい。}
+
+\subsection{global の特徴付け}
+
+\begin{theorem}[\texttt{reesDegreeTower\_global}]
+\[
+  (\reesdeg\,I).\globalop
+  = \bigcap_{n \in \mathbb{N}} (\reesdeg\,I).\lev{n}
+  = (\reesdeg\,I).\lev{0}.
+\]
+\end{theorem}
+
+$\idealpow\,I$（減少族）の $\globalop = \bigcap_n \Ipower{n}$
+は、Noether 環・真のイデアルでは Krull の交差定理より $\{0\}$ となりうる。
+これに対し、Rees 塔の global は常に $\lev{0} \cong R$ であり、本質的に異なる。
+
+\subsection{ClosedTower でないことの反例}
+
+\begin{theorem}[\texttt{reesDegreeTower\_level\_not\_mul\_closed}]
+$R = \mathbb{Z}$、$I = (2)$ とすると、
+$p \coloneqq 2X \in (\reesdeg\,(2)).\lev{1}$ だが
+$p^2 = 4X^2 \notin (\reesdeg\,(2)).\lev{1}$。
+\end{theorem}
+\begin{proof}
+$p_0 = 0 \in \mathbb{Z}$、$p_1 = 2 \in (2) = I^1$、$p_k = 0$（$k > 1$）より $p \in \lev{1}$。
+一方 $(p^2)_2 = 4 \neq 0$ だが、$\lev{1}$ の次数条件は $k > 1$ で係数 $= 0$ を要求するから
+$p^2 \notin \lev{1}$。
+\end{proof}
+
+\begin{center}
+\begin{tikzcd}[column sep=50pt, row sep=38pt]
+  \underbrace{2X}_{\in\,\lev{1}}
+  \times
+  \underbrace{2X}_{\in\,\lev{1}}
+  \arrow[r, "\times"]
+  &
+  \underbrace{4X^2}_{\notin\,\lev{1},\ \in\,\lev{2}}
+  \\
+  \lev{1}
+  \arrow[u, hook]
+  \arrow[r, hookrightarrow, "\subsetneq"']
+  &
+  \lev{2}
+  \arrow[u, hook]
+\end{tikzcd}
+\end{center}
+\figcap{図~7: $\lev{1}$ は乗法で閉じていないが $\lev{1} \times \lev{1} \to \lev{2}$ は成立する（FilteredRing 的互換性）。}
+
+\begin{dualbox}{ClosedTower vs.\ FilteredRing の区別}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+性質 & $\idealpow\,I$ & $\reesdeg\,I$ \\
+\midrule
+各 level はイデアル & あり & なし \\
+ClosedTower & あり & なし \\
+FilteredRing 型互換性 & $I^m \cdot I^n \subseteq I^{m+n}$ & $\lev{m} \cdot \lev{n} \subseteq \lev{m+n}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{dualbox}
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{全体像と今後の展望}
+% ─────────────────────────────────────────────────────────────────────────
+
+\subsection{双対構造の図式}
+
+\begin{center}
+\begin{tikzcd}[column sep=8pt, row sep=45pt]
+  &
+  I\text{-adic filtration}
+  \arrow[dl, "\text{内部的}"', bend right=10]
+  \arrow[dr, "\text{外部的}", bend left=10]
+  \\
+  \idealpow\,I : \STower\,\mathbb{N}^{\mathrm{op}}\,R
+  \arrow[rr, "\iota_n", bend right=10]
+  &&
+  \reesdeg\,I : \STower\,\mathbb{N}\,(R[X])
+  \arrow[ll, "\mathrm{ev}_n"', bend right=10]
+\end{tikzcd}
+\end{center}
+\figcap{図~8: 同一の $I$-進フィルタ構造を二つの StructureTower が記述する。$\mathrm{ev}_n \circ \iota_n = \mathrm{id}$（Section-Retraction）。}
+
+\subsection{今後のステップ（Level 8 以降）}
+
+\begin{enumerate}[label=\textbf{候補\arabic*.},leftmargin=*]
+  \item \textbf{Associated graded ring}:
+    $\mathrm{gr}_I(R) = \bigoplus_{n \geq 0} I^n/I^{n+1}$ を
+    StructureTower の商として記述する。
+  \item \textbf{Rees 代数と blow-up}:
+    $\mathrm{Proj}(R[It])$ は $\mathrm{Spec}\,R$ の $I$ に沿った blow-up であり、
+    StructureTower の代数幾何学的応用への橋渡しとなる。
+  \item \textbf{逆極限との同型}:
+    $\hat{R}_I = \varprojlim R/\Ipower{n}$ の StructureTower 版
+    (\texttt{completionPowTower}) との厳密な同値（Level~6 の延長）。
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────
+\appendix
+\section{主要定理・定義一覧}
+% ─────────────────────────────────────────────────────────────────────────
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+Lean 識別子 & 数学的内容 & 節 \\
+\midrule
+\texttt{IsReesElement} & $\forall k,\; p_k \in I^k$ & \S{}2.1 \\
+\texttt{reesDegreeTower} & $\STower\,\mathbb{N}\,(R[X])$ の構成 & \S{}2.2 \\
+\texttt{reesDegreeTower\_level\_zero} & $\lev{0} = \{C(r)\}$ & \S{}2.3 \\
+\texttt{monomial\_mem\_reesDegreeTower} & $r \in I^n \Rightarrow C(r)X^n \in \lev{n}$ & \S{}2.3 \\
+\texttt{isReesElement\_mul} & Rees 元の積は Rees 元 & \S{}3.1 \\
+\texttt{reesDegreeTower\_mul\_mem} & $\lev{m} \cdot \lev{n} \subseteq \lev{m+n}$ & \S{}3.2 \\
+\texttt{coeff\_monomial\_embed} & $\mathrm{ev}_n \circ \iota_n = \mathrm{id}$ & \S{}4.1 \\
+\texttt{rees\_graded\_decomposition} & $p = \sum C(p_k)X^k$ & \S{}4.2 \\
+\texttt{reesDegreeTower\_union} & $\unionop = \{p \mid \IsRees_I(p)\}$ & \S{}5.1 \\
+\texttt{reesDegreeTower\_union\_eq\_reesAlgebra} & $\unionop = \uparrow(\mathrm{reesAlgebra}\,I)$ & \S{}5.1 \\
+\texttt{reesDegreeTower\_global} & $\globalop = \lev{0}$ & \S{}5.2 \\
+\texttt{reesDegreeTower\_level\_not\_mul\_closed} & $\lev{1}$ 乗法非閉（$2X \cdot 2X = 4X^2$） & \S{}5.3 \\
+\texttt{reesDegreeTower\_is\_filtered\_mul} & FilteredRing 型互換性のまとめ & \S{}5.3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}
