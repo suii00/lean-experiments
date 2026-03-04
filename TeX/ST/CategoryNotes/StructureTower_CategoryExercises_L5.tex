@@ -1,0 +1,899 @@
+% =============================================================================
+% Structure Tower 発展演習 Level 5
+% I-adic フィルトレーションの形式化：Canonical Example の構成
+% LuaLaTeX + ltjsarticle
+% =============================================================================
+\documentclass[a4paper,11pt]{ltjsarticle}
+
+% --- Core packages ---
+\usepackage{luatexja-fontspec}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz-cd}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,decorations.pathmorphing}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+
+% --- Page geometry ---
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+
+% --- Fonts ---
+\setmainjfont{Harano Aji Mincho}[
+  BoldFont = Harano Aji Mincho,
+  BoldFeatures = {FakeBold=2},
+]
+\setsansjfont{Harano Aji Gothic}
+\setmonofont[Scale=0.85]{DejaVu Sans Mono}
+
+% --- Colors ---
+\definecolor{leanblue}{HTML}{2563EB}
+\definecolor{leanbg}{HTML}{F8FAFC}
+\definecolor{leancomment}{HTML}{6B7280}
+\definecolor{leankeyword}{HTML}{7C3AED}
+\definecolor{leanstring}{HTML}{059669}
+\definecolor{accentcolor}{HTML}{1E40AF}
+\definecolor{theoremcolor}{HTML}{EFF6FF}
+\definecolor{definitioncolor}{HTML}{F0FDF4}
+\definecolor{remarkcolor}{HTML}{FFF7ED}
+\definecolor{warningcolor}{HTML}{FEF3C7}
+\definecolor{iadiccolor}{HTML}{FDF4FF}
+
+% --- Hyperref ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentcolor,
+  urlcolor=leanblue,
+  citecolor=accentcolor,
+  pdftitle={Structure Tower 発展演習 Level 5},
+  pdfauthor={su},
+}
+
+% --- Theorem environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+\newtheorem{construction}[definition]{構成}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{注意}
+
+% --- Lean code listing environment ---
+\lstdefinelanguage{lean4}{
+  morekeywords={def,theorem,lemma,example,instance,class,structure,
+    where,let,in,do,if,then,else,match,with,fun,return,
+    import,open,namespace,section,end,variable,
+    inductive,abbrev,noncomputable,private,protected,
+    sorry,have,show,suffices,calc,by,exact,
+    apply,intro,intros,constructor,cases,induction,
+    simp,rw,rfl,ext,ring,linarith,omega,
+    decide,trivial,assumption,contradiction,push_neg,
+    Type,Prop,Sort,Set,true,false,
+    attribute,deriving,refine,change,congr,simpa,
+    funext,positivity,norm_num,rcases,obtain,classical},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+  literate=
+    {alpha}{{\(\alpha\)}}1
+    {beta}{{\(\beta\)}}1
+    {gamma}{{\(\gamma\)}}1
+    {iota}{{\(\iota\)}}1
+    {->}{{\(\to\)}}2
+    {<-}{{\(\leftarrow\)}}2
+    {<->}{{\(\leftrightarrow\)}}3
+    {<=}{{\(\leq\)}}2
+    {>=}{{\(\geq\)}}2
+    {/=}{{\(\neq\)}}2
+    {forall}{{\(\forall\)}}6
+    {exists}{{\(\exists\)}}6
+    {/\\}{{\(\wedge\)}}2
+    {\\/}{{\(\vee\)}}2
+    {~}{{\(\neg\)}}1
+    {elem}{{\(\in\)}}4
+    {subset}{{\(\subseteq\)}}6
+    {cap}{{\(\cap\)}}3
+    {cup}{{\(\cup\)}}3
+    {empty}{{\(\emptyset\)}}5
+    {bot_}{{\(\bot\)}}4
+    {top_}{{\(\top\)}}4,
+}
+
+\lstnewenvironment{leancode}[1][]{%
+  \lstset{
+    language=lean4,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{leankeyword}\bfseries,
+    commentstyle=\color{leancomment}\itshape,
+    stringstyle=\color{leanstring},
+    backgroundcolor=\color{leanbg},
+    frame=single,
+    rulecolor=\color{leanblue!30},
+    framesep=8pt,
+    xleftmargin=12pt,
+    xrightmargin=12pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{leancomment},
+    numbersep=8pt,
+    aboveskip=1em,
+    belowskip=1em,
+    #1
+  }%
+}{}
+
+% --- Tcolorbox styles ---
+\newtcolorbox{proofstrategy}{
+  colback=remarkcolor,
+  colframe=orange!60!black,
+  title={\textbf{証明戦略}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{mathinsight}{
+  colback=theoremcolor,
+  colframe=accentcolor,
+  title={\textbf{数学的洞察}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{iadicsummary}{
+  colback=iadiccolor,
+  colframe=violet!60!black,
+  title={\textbf{I-adic Tower の全体像}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+% --- Header / Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\sffamily\nouppercase{\leftmark}}
+\fancyhead[R]{\small\sffamily Structure Tower Level 5}
+\fancyfoot[C]{\thepage}
+
+% --- Math macros ---
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Nop}{\mathbb{N}^{\mathrm{op}}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\cl}{\mathrm{cl}}
+\newcommand{\iinf}{\widehat{I}}
+\newcommand{\glb}{\mathrm{glb}}
+\newcommand{\levelop}{\mathrm{level}}
+\newcommand{\Hom}{\mathrm{Hom}}
+\newcommand{\liftCl}{\mathrm{liftCl}}
+\newcommand{\idealspan}[1]{\langle #1 \rangle}
+\newcommand{\ST}[2]{\mathrm{ST}(#1,\,#2)}
+\DeclareMathOperator{\iInf}{\bigcap}
+
+% =============================================================================
+\begin{document}
+% =============================================================================
+
+% --- Title ---
+\title{%
+  {\LARGE\sffamily\bfseries Structure Tower 発展演習 Level 5}\\[0.5em]
+  {\large\sffamily I-adic フィルトレーションの形式化：\\[0.2em]
+  L1--L4 の全構造が収束する Canonical Example}\\[0.3em]
+  {\normalsize\sffamily Lean 4 / Mathlib4 による形式化とその数学的解説}%
+}
+\author{su}
+\date{\today}
+\maketitle
+
+% --- AI Disclosure ---
+\begin{center}
+\small
+\textit{AI assistance disclosure:}\\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。\\
+\TeX{} 文書は Claude Code (Anthropic) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\vspace{1em}
+
+% --- Abstract ---
+\begin{abstract}
+本稿は Lean 4 / Mathlib4 による Structure Tower 発展演習（Level 5）の形式化を数学的に解説する。
+Level 1--4 で構築した StructureTower・ClosedTower・ClosureOperator の理論を基盤として、
+可換環論の中核的構成である \textbf{$I$-adic フィルトレーション}を一つの標準例（canonical example）として統合する。
+具体的には以下を形式化する：
+（1）イデアル冪族 $I^0 \supseteq I^1 \supseteq I^2 \supseteq \cdots$ を $\Nop$ 添字の StructureTower として構成する（双対化パターン）；
+（2）イデアル生成 $S \mapsto \sqrt[\mathrm{ideal}]{S} = \langle S \rangle_R$ が ClosureOperator をなし，各レベル $I^n$ はその不動点となることを示す；
+（3）環準同型 $\varphi \colon R \to S$ が条件 $\varphi(I) \subseteq J$ を満たすとき，$\varphi$ が塔の射 $\mathrm{idealPowTower}(I) \to \mathrm{idealPowTower}(J)$ を誘導することを確認する；
+（4）分離条件 $\bigcap_n I^n = 0$ と Krull の交叉定理を StructureTower の語彙で定式化する。
+これにより，Level 1--4 で展開した一般理論が一つの代数的例に合流することを実証する。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{はじめに：一般理論を一点に束ねる}
+% =============================================================================
+
+\subsection{Level 1--4 の振り返り}
+
+Structure Tower の形式化プロジェクトは，以下の段階的発展をたどってきた。
+
+\begin{itemize}
+  \item \textbf{Level 1--2}：基本定義（\texttt{StructureTower ι α}，単調族 \texttt{Hom}，\texttt{union}，\texttt{glb}）と順序論的例（区間族，上集合族など）。
+  \item \textbf{Level 3}：ClosureOperator による \texttt{liftCl} と \texttt{ClosedTower} の理論。閉包モナドの代数的側面（algebra Hom，Kleisli 合成）。
+  \item \textbf{Level 4}：三分野の接地—位相（\texttt{topClosure}），部分群（\texttt{subgroupClosure}），$\sigma$-代数—を ClosedTower として統一的に記述。閉包演算子の比較順序と rank 一意性。
+  \item \textbf{Level 5（本稿）}：$I$-adic フィルトレーションを StructureTower の枠組みに組み込み，L1--L4 の全構造が一点に収束することを示す。
+\end{itemize}
+
+\subsection{動機：canonical example の必要性}
+
+一般的な数学理論において，抽象的な定義・定理の価値は，具体的な「標準例」によって初めて明確になる。
+Structure Tower の理論も同様であり，Level 5 の目標は次の問いに答えることである：
+
+\begin{center}
+  \textit{「StructureTower・ClosedTower・Hom のすべての条件を同時に満たす最も自然な例は何か？」}
+\end{center}
+
+答えは可換環論の基本的構成，\textbf{$I$-adic フィルトレーション}である。
+
+\begin{iadicsummary}
+$I$-adic Tower \texttt{idealPowTower(I)} は同時に以下を満たす：
+\begin{itemize}[nosep]
+  \item \checkmark \ \textbf{StructureTower} $\Nop$ $R$（$\Nop$ 添字の単調族）
+  \item \checkmark \ \textbf{乗法互換性}（$x \in I^m,\, y \in I^n \Rightarrow xy \in I^{m+n}$）
+  \item \checkmark \ \textbf{ClosedTower}（各レベル $I^n$ は \texttt{idealClosure} の不動点）
+  \item \checkmark \ \textbf{比較射}（$I \subseteq J$ が塔の射を誘導）
+  \item \checkmark \ \textbf{分離条件}（$\bigcap_n I^n = 0$ のとき \texttt{glb} = $\{0\}$）
+\end{itemize}
+\end{iadicsummary}
+
+% =============================================================================
+\section{準備：StructureTower フレームワークの復習}
+% =============================================================================
+
+\subsection{基本定義}
+
+\begin{definition}[StructureTower]
+  前順序集合 $(\iota, \leq)$ と型 $\alpha$ に対し，\textbf{StructureTower} $(\iota, \alpha)$ とは
+  写像 $\levelop \colon \iota \to \mathcal{P}(\alpha)$ であって，単調性
+  \[
+    i \leq j \;\Longrightarrow\; \levelop(i) \subseteq \levelop(j)
+  \]
+  を満たすものである。
+\end{definition}
+
+\begin{definition}[glb, union]
+  StructureTower $T$ に対し，\textbf{glb} および \textbf{union} を
+  \[
+    \glb(T) \;:=\; \bigcap_{i \in \iota} \levelop_i, \qquad
+    \mathrm{union}(T) \;:=\; \bigcup_{i \in \iota} \levelop_i
+  \]
+  と定める。
+\end{definition}
+
+\begin{definition}[Hom]
+  二つの StructureTower $T_1 \colon \iota \to \mathcal{P}(\alpha)$ と $T_2 \colon \iota \to \mathcal{P}(\beta)$ の間の\textbf{射（Hom）}とは，関数 $f \colon \alpha \to \beta$ であって，任意の $i \in \iota$ に対して
+  \[
+    f\bigl(\levelop^{T_1}(i)\bigr) \;\subseteq\; \levelop^{T_2}(i)
+  \]
+  を満たすものである。
+\end{definition}
+
+\begin{definition}[ClosedTower]
+  ClosureOperator $\cl$ と StructureTower $T$ に対し，$T$ が \textbf{$\cl$-ClosedTower} であるとは，任意の $i$ に対して
+  \[
+    \cl\bigl(\levelop(i)\bigr) \;=\; \levelop(i)
+  \]
+  が成立することである。つまり，各レベルが $\cl$ の不動点（閉集合）である。
+\end{definition}
+
+図~\ref{fig:closed-tower} に ClosedTower の構造を示す。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[row sep=2em, column sep=3em]
+    \mathcal{P}(\alpha)
+      \arrow[r, bend left=20, "\cl"]
+      \arrow[loop left, "\cl \circ \cl = \cl"]
+    & \mathcal{P}(\alpha) \\
+    \levelop(i)
+      \arrow[r, phantom, "\ni x"]
+      \arrow[u, hook]
+    & \cl\bigl(\levelop(i)\bigr) = \levelop(i)
+      \arrow[u, hook]
+      \arrow[l, phantom, "\ni x"]
+  \end{tikzcd}
+  \caption{ClosedTower の条件：各レベル $\levelop(i)$ は $\cl$ の不動点}
+  \label{fig:closed-tower}
+\end{figure}
+
+% =============================================================================
+\section{\texorpdfstring{$\S$L5-1: $I$-adic Tower の基盤}{§L5-1: I-adic Tower の基盤}}
+% =============================================================================
+
+\subsection{\texorpdfstring{$\Nop$ 添字と双対化パターン}{ℕᵒᵈ 添字と双対化パターン}}
+
+可換環 $R$ のイデアル $I$ に対する \textbf{$I$-adic フィルトレーション}は，
+\[
+  R = I^0 \;\supseteq\; I^1 = I \;\supseteq\; I^2 \;\supseteq\; I^3 \;\supseteq\; \cdots
+\]
+という\textbf{減少的}なイデアルの族である。一方，StructureTower の単調性条件は\textbf{増加的}（$i \leq j \Rightarrow \levelop(i) \subseteq \levelop(j)$）を要求する。
+
+この矛盾を解消するための標準的手法が「\textbf{双対化}」である。
+$\N$ の順序を逆転した前順序 $\Nop$（順序双対）を添字として用いると：
+\[
+  a \leq b \;\text{ in }\;\Nop \;\iff\; b \leq a \;\text{ in }\;\N
+\]
+したがって $\Nop$ では $\cdots \leq 3 \leq 2 \leq 1 \leq 0$ という順序になる（図~\ref{fig:nop-dual}）。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[row sep=1.5em, column sep=2.5em]
+    \text{in } \N: &
+    0 \ar[r, "\leq"] & 1 \ar[r, "\leq"] & 2 \ar[r, "\leq"] & 3 \ar[r, "\leq"] & \cdots \\
+    \text{in } \Nop: &
+    0 \ar[r, leftarrow, "\leq"] & 1 \ar[r, leftarrow, "\leq"] & 2 \ar[r, leftarrow, "\leq"] & 3 \ar[r, leftarrow, "\leq"] & \cdots \\
+    \levelop: &
+    R \ar[r, hookleftarrow, "\supseteq"] & I \ar[r, hookleftarrow, "\supseteq"] & I^2 \ar[r, hookleftarrow, "\supseteq"] & I^3 \ar[r, hookleftarrow, "\supseteq"] & \cdots
+  \end{tikzcd}
+  \caption{$\Nop$ 添字による双対化：増加方向と減少族の整合}
+  \label{fig:nop-dual}
+\end{figure}
+
+$\Nop$ の添字 $n$ に対して $\levelop(n) := I^n$（正確には $I^{\mathrm{ofDual}(n)}$）と定めると，
+$i \leq j$ in $\Nop$ $\Rightarrow$ $\mathrm{ofDual}(j) \leq \mathrm{ofDual}(i)$ in $\N$ $\Rightarrow$ $I^{\mathrm{ofDual}(i)} \supseteq I^{\mathrm{ofDual}(j)}$，
+つまり $\levelop(i) \subseteq \levelop(j)$ となり，単調性が成立する。
+
+\subsection{\texorpdfstring{$\mathrm{idealPowTower}$ の構成}{idealPowTower の構成}}
+
+\begin{construction}[$\mathrm{idealPowTower}$]
+  可換環 $R$ のイデアル $I$ に対し，$\Nop$ 添字の StructureTower を
+  \[
+    \mathrm{idealPowTower}(I) \;:=\; \bigl(\Nop \to \mathcal{P}(R),\quad n \mapsto \bigl|I^{\mathrm{ofDual}(n)}\bigr|\bigr)
+  \]
+  と定める。ここで $|J|$ はイデアル $J$ の台集合（carrier）を表す。
+\end{construction}
+
+\begin{theorem}[単調性]
+  $\mathrm{idealPowTower}(I)$ は well-defined な StructureTower，すなわち
+  \[
+    i \leq j \;\text{ in }\;\Nop \;\Longrightarrow\; \levelop(i) \subseteq \levelop(j).
+  \]
+\end{theorem}
+
+\begin{proof}
+  $i \leq j$ in $\Nop$ とすると，$\mathrm{ofDual}(j) \leq \mathrm{ofDual}(i)$ in $\N$。
+  Mathlib の補題 \texttt{Ideal.pow\_le\_pow\_right}：$m \leq n \Rightarrow I^n \leq I^m$（大きい冪は小さいイデアル）を適用すると，
+  $I^{\mathrm{ofDual}(i)} \geq I^{\mathrm{ofDual}(j)}$（イデアルとして），
+  したがって台集合として $\levelop(i) = |I^{\mathrm{ofDual}(i)}| \subseteq |I^{\mathrm{ofDual}(j)}| = \levelop(j)$。
+\end{proof}
+
+対応する Lean 定義を以下に示す。
+
+\begin{leancode}[caption={idealPowTower の Lean 定義（L5-1a）}]
+def idealPowTower (I : Ideal R) : StructureTower N_op R where
+  level n := (I ^ OrderDual.ofDual n : Ideal R)  -- carrier set
+  monotone_level := by
+    intro i j hij x hx
+    exact (Ideal.pow_le_pow_right (I := I)
+      (m := OrderDual.ofDual j) (n := OrderDual.ofDual i)
+      (OrderDual.ofDual_le_ofDual.mpr hij)) hx
+-- Note: i <= j in N_op  <->  ofDual j <= ofDual i in N
+--       <->  I^(ofDual i) >= I^(ofDual j) as ideals
+--       <->  level i  subset  level j  as sets
+\end{leancode}
+
+\begin{proposition}[最大レベル]
+  $\mathrm{idealPowTower}(I)$ の「最大レベル」（$\Nop$ の最大元 $0 = \mathrm{toDual}(0)$ に対応）は全体集合である：
+  \[
+    \levelop\bigl(\mathrm{toDual}(0)\bigr) = |I^0| = |R| = R.
+  \]
+\end{proposition}
+
+\begin{proof}
+  $I^0 = \top_R$（環の単元イデアル全体）であるから，その台集合は $R$ 全体。
+\end{proof}
+
+\subsection{乗法互換性}
+
+$I$-adic フィルトレーションは乗法に関して以下の重要な互換性を持つ。
+
+\begin{theorem}[乗法互換性：L5-1c]
+  $x \in I^m$ かつ $y \in I^n$ ならば $xy \in I^{m+n}$。
+\end{theorem}
+
+\begin{proof}
+  $x \in I^m,\, y \in I^n$ より $xy \in I^m \cdot I^n$。
+  Mathlib の \texttt{Ideal.pow\_add}：$I^m \cdot I^n = I^{m+n}$ を用いると，$xy \in I^{m+n}$。
+
+  Lean での証明：\texttt{simpa [pow\_add] using Ideal.mul\_mem\_mul hx hy}
+\end{proof}
+
+\begin{remark}
+  この条件は，フィルタリングされた環（filtered ring）の公理 $F_m \cdot F_n \subseteq F_{m+n}$ そのものであり，
+  $\mathrm{idealPowTower}(I)$ が FilteredRing の構造を持つことを意味する。
+\end{remark}
+
+\subsection{イデアル包含と比較射}
+
+\begin{theorem}[NatInclusion：L5-1d]
+  $I \subseteq J$（イデアルとして）ならば，任意の $n \in \Nop$ に対して
+  \[
+    \levelop^I(n) \;\subseteq\; \levelop^J(n), \quad \text{すなわち}\quad I^n \subseteq J^n.
+  \]
+  これを \texttt{NatInclusion}（levelwise な包含）と呼ぶ。
+\end{theorem}
+
+\begin{proof}
+  \texttt{Ideal.pow\_right\_mono}：$I \leq J \Rightarrow I^n \leq J^n$ の直接適用。
+\end{proof}
+
+\begin{theorem}[比較射：L5-1e]
+  $I \subseteq J$ のとき，恒等関数 $\mathrm{id}_R$ は塔の射 $\mathrm{Hom}(\mathrm{idealPowTower}(I),\, \mathrm{idealPowTower}(J))$ を与える。
+\end{theorem}
+
+図~\ref{fig:comparison-hom} に比較射の構造を示す。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[row sep=2.5em, column sep=4em]
+    \mathrm{idealPowTower}(I) \arrow[r, "\mathrm{id}_R", "\text{(NatInclusion)}"']
+    & \mathrm{idealPowTower}(J) \\
+    I^n \arrow[r, hook, "\subseteq"] \arrow[u, hook]
+    & J^n \arrow[u, hook]
+  \end{tikzcd}
+  \caption{$I \subseteq J$ による比較射：各レベルで $I^n \subseteq J^n$}
+  \label{fig:comparison-hom}
+\end{figure}
+
+% =============================================================================
+\section{\texorpdfstring{$\S$L5-2: idealClosure と ClosedTower}{§L5-2: idealClosure と ClosedTower}}
+% =============================================================================
+
+\subsection{ClosureOperator としての idealClosure}
+
+\begin{definition}[idealClosure]
+  可換環 $R$ に対し，$\mathcal{P}(R)$ 上の\textbf{イデアル生成閉包}を
+  \[
+    \mathrm{idealClosure}(S) \;:=\; \bigl|\,\langle S \rangle_R\,\bigr| \;=\; |\mathrm{Ideal.span}(S)|
+  \]
+  と定める。ここで $\langle S \rangle_R$ は集合 $S$ が生成するイデアルである。
+\end{definition}
+
+\begin{theorem}[ClosureOperator の公理：L5-2a]
+  $\mathrm{idealClosure}$ は $\mathcal{P}(R)$ 上の ClosureOperator である，すなわち：
+  \begin{enumerate}[label=(\roman*)]
+    \item \textbf{拡大性}：$S \subseteq \mathrm{idealClosure}(S)$（\texttt{Ideal.subset\_span}）
+    \item \textbf{単調性}：$S \subseteq T \Rightarrow \mathrm{idealClosure}(S) \subseteq \mathrm{idealClosure}(T)$（\texttt{Ideal.span\_mono}）
+    \item \textbf{冪等性}：$\mathrm{idealClosure}(\mathrm{idealClosure}(S)) = \mathrm{idealClosure}(S)$（\texttt{Ideal.span\_eq}）
+  \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  各公理について：
+  \begin{enumerate}[label=(\roman*)]
+    \item $\mathrm{Ideal.subset\_span}$ が $S \subseteq |\langle S \rangle|$ を与える。
+    \item $\mathrm{Ideal.span\_mono}$：$S \subseteq T$ ならば $\langle S \rangle \leq \langle T \rangle$，したがって台集合も包含。
+    \item $\langle S \rangle$ はイデアルであるから $\langle |\langle S \rangle| \rangle = \langle S \rangle$（\texttt{Ideal.span\_eq}），よって台集合が一致。
+  \end{enumerate}
+\end{proof}
+
+図~\ref{fig:closure-axioms} に三公理の関係を示す。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[row sep=2em, column sep=3em]
+    S
+      \arrow[r, hook, "\text{拡大性}"]
+      \arrow[dr, hook, bend right=10, "\text{拡大性}"']
+    & \langle S \rangle
+      \arrow[r, "\mathrm{span}", bend left=20]
+      \arrow[loop right, "\mathrm{id}\ (\text{冪等性})"]
+    & \langle\langle S \rangle\rangle = \langle S \rangle \\
+    T \supseteq S
+      \arrow[r, hook, "\text{単調性}"']
+    & \langle T \rangle \supseteq \langle S \rangle
+  \end{tikzcd}
+  \caption{ClosureOperator の三公理：idealClosure の場合}
+  \label{fig:closure-axioms}
+\end{figure}
+
+\subsection{イデアルは不動点}
+
+\begin{theorem}[不動点：L5-2b]
+  $I$ が $R$ のイデアルならば，$I$ の台集合は $\mathrm{idealClosure}$ の不動点：
+  \[
+    \mathrm{idealClosure}(|I|) \;=\; |I|, \quad \text{すなわち}\quad |\langle I \rangle| = |I|.
+  \]
+\end{theorem}
+
+\begin{proof}
+  $I$ はすでにイデアルであるから $\langle I \rangle = I$（\texttt{Ideal.span\_eq}）。
+  したがって台集合として $|\langle I \rangle| = |I|$。
+\end{proof}
+
+\subsection{idealPowTower は ClosedTower}
+
+上記の不動点定理を使うと，$I$-adic Tower が ClosedTower であることが直ちに従う。
+
+\begin{theorem}[ClosedTower：L5-2c]
+  $\mathrm{idealPowTower}(I)$ は $\mathrm{idealClosure}$ に関する ClosedTower である：
+  \[
+    \forall n \in \Nop,\quad \mathrm{idealClosure}\bigl(\levelop(n)\bigr) = \levelop(n).
+  \]
+\end{theorem}
+
+\begin{proof}
+  $\levelop(n) = |I^{\mathrm{ofDual}(n)}|$ はイデアル $I^{\mathrm{ofDual}(n)}$ の台集合であるから，
+  補題（不動点）を適用すると $\mathrm{idealClosure}(\levelop(n)) = \levelop(n)$。
+\end{proof}
+
+\begin{leancode}[caption={idealPowTower\_closedTower の Lean 定義（L5-2c）}]
+def idealPowTower_closedTower (I : Ideal R) :
+    ClosedTower (idealClosure (R := R)) N_op where
+  toStructureTower := idealPowTower I
+  level_closed := by
+    intro n
+    -- level n = carrier of I^(ofDual n), which is an ideal
+    -- => idealClosure fixes it (Ideal.span_eq)
+    exact idealClosure_fixed_of_ideal (I ^ OrderDual.ofDual n)
+\end{leancode}
+
+\subsection{glb のイデアル性}
+
+\begin{theorem}[glb はイデアル：L5-2e]
+  $\mathrm{idealPowTower}(I)$ の glb は，イデアルの無限交叉 $\displaystyle\bigcap_{n \geq 0} I^n$ の台集合と一致する：
+  \[
+    \glb\bigl(\mathrm{idealPowTower}(I)\bigr)
+    \;=\; \left|\;\bigcap_{n:\N} I^n\;\right|
+    \;=\; \bigcap_{n \geq 0} |I^n|.
+  \]
+  特に，この集合はイデアル $\displaystyle\bigcap_{n:\N} I^n$ の台集合として環論的意味を持つ。
+\end{theorem}
+
+\begin{proof}
+  Mathlib の \texttt{Submodule.coe\_iInf}（サブモジュールの iInf と台集合の iInter の整合）を使って示す：
+  \[
+    \glb(T) = \bigcap_{n:\Nop} \levelop(n) = \bigcap_{n:\Nop} |I^{\mathrm{ofDual}(n)}| = \bigcap_{m:\N} |I^m| = \left|\bigcap_{m:\N} I^m\right|.
+  \]
+\end{proof}
+
+さらに，ClosedTower の一般定理から以下の系が得られる。
+
+\begin{corollary}[glb の閉性：L5-2d]
+  \[
+    \mathrm{idealClosure}\bigl(\glb(\mathrm{idealPowTower}(I))\bigr) \;\subseteq\; \glb(\mathrm{idealPowTower}(I)).
+  \]
+  すなわち $\glb = \displaystyle\bigcap_n I^n$ はイデアル生成に関して閉じている。
+\end{corollary}
+
+\begin{proof}
+  ClosedTower の一般定理 \texttt{ClosedTower.cl\_glb\_subset} の直接適用。
+  この定理は「ClosedTower ならば $\cl(\glb(T)) \subseteq \glb(T)$」を述べる。
+\end{proof}
+
+% =============================================================================
+\section{\texorpdfstring{$\S$L5-3: 環準同型と塔の射}{§L5-3: 環準同型と塔の射}}
+% =============================================================================
+
+\subsection{環準同型による誘導}
+
+環準同型 $\varphi \colon R \to S$ が $\varphi(I) \subseteq J$ を満たすとき，
+$\varphi$ は各レベルで $I^n$ を $J^n$ に写す。これを形式化する。
+
+\begin{lemma}[冪の保存：L5-3a]
+  環準同型 $\varphi \colon R \to S$ と $\varphi(I) \subseteq J$ を仮定する。
+  このとき任意の $n \in \N$ に対して
+  \[
+    \varphi(I^n) \;\subseteq\; J^n.
+  \]
+\end{lemma}
+
+\begin{proof}
+  Mathlib の \texttt{Ideal.map\_pow}：$\varphi(I^n) = (\varphi(I))^n$ を使う。
+  仮定 $\varphi(I) \subseteq J$ より $(\varphi(I))^n \subseteq J^n$（\texttt{Ideal.pow\_right\_mono}）。
+
+  Lean での証明：
+  \begin{center}
+    \texttt{rw [Ideal.map\_pow]; exact Ideal.pow\_right\_mono hIJ n}
+  \end{center}
+\end{proof}
+
+\begin{theorem}[誘導された塔の射：L5-3b]
+  環準同型 $\varphi \colon R \to S$ と $\varphi(I) \subseteq J$ に対し，$\varphi$ は
+  \[
+    \varphi \colon \mathrm{idealPowTower}(I) \;\to\; \mathrm{idealPowTower}(J)
+  \]
+  という StructureTower の射を誘導する。
+\end{theorem}
+
+\begin{proof}
+  各 $n \in \Nop$ と $x \in \levelop^I(n) = |I^{\mathrm{ofDual}(n)}|$ に対して，
+  $\varphi(x) \in \varphi(I^{\mathrm{ofDual}(n)}) \subseteq J^{\mathrm{ofDual}(n)} = \levelop^J(n)$ を示せばよい。
+  これは補題（冪の保存）の直接的帰結。
+\end{proof}
+
+図~\ref{fig:ring-hom-tower} に環準同型と塔の射の関係を示す。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[row sep=2.5em, column sep=5em]
+    R \arrow[r, "\varphi"] \arrow[d, "\varphi(I) \subseteq J"'] & S \\
+    \mathrm{idealPowTower}(I) \arrow[r, "\varphi", "\text{Hom}"']
+    & \mathrm{idealPowTower}(J) \\
+    I^n \arrow[r, hook, "\varphi(I^n) \subseteq J^n"'] \arrow[u, hook]
+    & J^n \arrow[u, hook]
+  \end{tikzcd}
+  \caption{環準同型 $\varphi \colon R \to S$ が $\varphi(I) \subseteq J$ のとき塔の射を誘導する}
+  \label{fig:ring-hom-tower}
+\end{figure}
+
+\subsection{恒等射と合成の整合性}
+
+\begin{proposition}[恒等射：L5-3c]
+  恒等準同型 $\mathrm{id}_R \colon R \to R$ は $\mathrm{idealPowTower}(I) \to \mathrm{idealPowTower}(I)$ の自明な塔の射を与える。
+\end{proposition}
+
+\begin{theorem}[合成の整合性：L5-3d]
+  $\varphi \colon R \to S$，$\psi \colon S \to T$ とし，$\varphi(I) \subseteq J$，$\psi(J) \subseteq K$ とする。このとき
+  \[
+    \mathrm{Hom}(\psi,J,K) \circ \mathrm{Hom}(\varphi,I,J)
+    \;=\;
+    \mathrm{Hom}(\psi \circ \varphi,\, I,\, K)
+  \]
+  が \textbf{toFun} のレベルで成立する。
+\end{theorem}
+
+\begin{proof}
+  両辺の \texttt{toFun} はいずれも $\psi \circ \varphi$ であるから，
+  Lean では \texttt{Hom.ext rfl} で証明できる。
+\end{proof}
+
+図~\ref{fig:tower-comp} に合成の交換図式を示す。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[row sep=2em, column sep=4em]
+    \mathrm{idealPowTower}(I)
+      \arrow[r, "\varphi"]
+      \arrow[rr, bend right=25, "\psi \circ \varphi"']
+    & \mathrm{idealPowTower}(J)
+      \arrow[r, "\psi"]
+    & \mathrm{idealPowTower}(K) \\
+    I^n \arrow[r, hook] & J^n \arrow[r, hook] & K^n
+  \end{tikzcd}
+  \caption{塔の射の合成：$(\psi \circ \varphi)$ は合成射に等しい}
+  \label{fig:tower-comp}
+\end{figure}
+
+% =============================================================================
+\section{\texorpdfstring{$\S$L5-4: 分離条件と Krull の交叉定理}{§L5-4: 分離条件と Krull の交叉定理}}
+% =============================================================================
+
+\subsection{分離条件の定義と同値}
+
+\begin{definition}[分離条件：L5-4b]
+  イデアル $I$ の $I$-adic フィルトレーションが\textbf{分離的（separated）}であるとは，
+  \[
+    \mathrm{IsSeparated}(I) \;\;:\iff\;\; \bigcap_{n:\N} I^n \;=\; \bot \;\;\text{（零イデアル）}
+  \]
+  が成立することである。台集合の言語では：
+  \[
+    \bigcap_{n:\N} I^n = 0 \;\iff\; \bigcap_{n \geq 0} I^n = \{0\} \;\iff\; \glb\bigl(\mathrm{idealPowTower}(I)\bigr) = \{0\}.
+  \]
+\end{definition}
+
+\begin{theorem}[分離条件の同値：L5-4b]
+  \[
+    \mathrm{IsSeparated}(I) \;\iff\; \glb\bigl(\mathrm{idealPowTower}(I)\bigr) = \{0\}.
+  \]
+\end{theorem}
+
+\begin{proof}
+  glb の定義と iInf の台集合が iInter に一致すること（\texttt{Submodule.coe\_iInf}）を組み合わせることで，
+  $\glb(\mathrm{idealPowTower}(I)) = |\bigcap_n I^n|$ が分かる。
+  $\bigcap_n I^n = \bot$ iff $|\bigcap_n I^n| = \{0\}$（\texttt{Submodule.bot\_coe}）であるから主張を得る。
+\end{proof}
+
+\subsection{「脱出定理」：非零元の有限段階脱出}
+
+\begin{theorem}[脱出定理：L5-4c]
+  $\mathrm{IsSeparated}(I)$ のとき，$x \neq 0$ ならば有限段階で $I$-adic 塔から「脱出」する：
+  \[
+    x \neq 0 \;\Longrightarrow\; \exists\, n \in \N,\; x \notin I^n.
+  \]
+\end{theorem}
+
+\begin{proof}
+  分離条件より $\glb = \{0\}$，すなわち $\bigcap_n I^n = \{0\}$。
+  $x \neq 0$ より $x \notin \{0\} = \bigcap_n I^n$，
+  したがって $\exists\, n,\; x \notin I^n$。
+\end{proof}
+
+\begin{mathinsight}
+  この「脱出定理」は Level 4 の \texttt{EscapeExercises} における
+  \texttt{SeparatedFilteredAddGroup.exists\_not\_mem\_of\_ne\_zero} と同じパターンである。
+  StructureTower の語彙で統一的に述べると：
+  \[
+    \glb(T) = \{e\} \;\Longrightarrow\; \forall x \neq e,\; \exists\, i,\; x \notin \levelop(i).
+  \]
+\end{mathinsight}
+
+\subsection{Krull の交叉定理}
+
+\begin{theorem}[Krull の交叉定理：L5-4e]
+  $R$ が Noetherian 可換環，$I$ がそのイデアルのとき，
+  \[
+    \bigcap_{n:\N} I^n \;\leq\; I \cdot \bigcap_{n:\N} I^n.
+  \]
+  StructureTower の語彙では：「glb は $I$ 倍で不変（のようなもの）」，
+  すなわち $\glb(\mathrm{idealPowTower}(I)) \subseteq I \cdot \glb(\mathrm{idealPowTower}(I))$。
+\end{theorem}
+
+\begin{proof}[証明の概略]
+  Mathlib の \texttt{Ideal.mem\_iInf\_smul\_pow\_eq\_bot\_iff} を使う。
+  $x \in \bigcap_n I^n$ のとき，Noetherian 条件と Nakayama の補題の変種（Krull の交叉定理の本質）により，
+  ある $r \in I$ が存在して $(1 - r) \cdot x = 0$，したがって $x = r \cdot x \in I \cdot (\bigcap_n I^n)$。
+\end{proof}
+
+\begin{corollary}[Jacobson radical 条件]
+  $I$ が Jacobson radical $\mathrm{Jac}(R)$ に含まれるとき（特に $R$ が局所環で $I = \mathfrak{m}$ が極大イデアル），
+  \[
+    \bigcap_{n:\N} I^n = 0
+  \]
+  が成立する，すなわち $\mathrm{IsSeparated}(I)$。
+\end{corollary}
+
+図~\ref{fig:krull} に Krull の交叉定理の構造を示す。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzcd}[row sep=2em, column sep=4em]
+    R \supseteq I \supseteq I^2 \supseteq \cdots \\
+    \displaystyle\bigcap_n I^n
+      \arrow[u, hook, "\text{各 }I^n \text{ に含まれる}"]
+      \arrow[r, hook, "\subseteq"]
+    & I \cdot \displaystyle\bigcap_n I^n
+      \arrow[ul, hook, "\text{Krull: }\leq I\cdot(-)"']
+  \end{tikzcd}
+  \caption{Krull の交叉定理：$\bigcap_n I^n$ は $I$ 倍しても変わらない}
+  \label{fig:krull}
+\end{figure}
+
+% =============================================================================
+\section{統合：4分野を貫く StructureTower}
+% =============================================================================
+
+Level 1--5 の全体を通じて，StructureTower の枠組みは以下の4分野を統一的に記述することが確認された。
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabular}{lllll}
+    \toprule
+    \textbf{分野} & \textbf{添字} $\iota$ & \textbf{ClosureOp} & \textbf{分離条件} & \textbf{Grounding（L4）} \\
+    \midrule
+    位相（Topology）   & 開基族       & \texttt{topClosure}        & $\bigcap_n \overline{U_n} = \{x\}$ & L4-2 \\
+    群論（Group）      & 正規部分群列  & \texttt{subgroupClosure}   & $\bigcap_n G_n = \{e\}$            & L4-3 \\
+    可測論（Measur.）  & $\sigma$-代数 & ---                        & ---                                & L4-4（$\sigma$-代数） \\
+    可換環（Ring）     & $\Nop$（冪）  & \texttt{idealClosure}      & $\bigcap_n I^n = \{0\}$            & \textbf{L5（本稿）} \\
+    \bottomrule
+  \end{tabular}
+  \caption{4分野における StructureTower の統一記述}
+  \label{tab:unification}
+\end{table}
+
+\begin{mathinsight}
+  4分野に共通するパターンは：
+  \begin{enumerate}
+    \item 各レベル $\levelop(n)$ は対応する閉包演算子の\textbf{不動点}（closed set, subgroup, ideal）。
+    \item glb $= \bigcap_n \levelop(n)$ は同じ閉包演算子のもとで閉じている（$\cl(\glb) \subseteq \glb$）。
+    \item 分離条件（glb $= \{e\}$）が成立するとき，非自明な元は有限段階で「塔から脱出」する。
+  \end{enumerate}
+  これが StructureTower 理論の中核的な三段論法である。
+\end{mathinsight}
+
+図~\ref{fig:four-domains} に4分野の統合図式を示す。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance = 2.5cm,
+    fieldbox/.style = {rectangle, rounded corners, draw=accentcolor, fill=theoremcolor,
+                     minimum width=3.5cm, minimum height=1.2cm, align=center, font=\small},
+    center/.style = {ellipse, draw=violet!80!black, fill=iadiccolor,
+                     minimum width=4cm, minimum height=1.5cm, align=center, font=\sffamily\bfseries},
+    arrow/.style  = {-{Stealth[scale=1.2]}, thick, accentcolor}
+  ]
+    \node[center]                           (st)  {StructureTower\\ClosedTower};
+    \node[fieldbox, above left  = of st]      (top) {位相\\topClosure};
+    \node[fieldbox, above right = of st]      (grp) {群論\\subgroupClosure};
+    \node[fieldbox, below left  = of st]      (msr) {可測論\\$\sigma$-代数};
+    \node[fieldbox, below right = of st]      (rng) {\textbf{可換環}\\idealClosure};
+    \draw[arrow] (top) -- (st) node[midway, above left,  font=\tiny] {ClosedTower};
+    \draw[arrow] (grp) -- (st) node[midway, above right, font=\tiny] {ClosedTower};
+    \draw[arrow] (msr) -- (st) node[midway, below left,  font=\tiny] {MeasurableTower};
+    \draw[arrow] (rng) -- (st) node[midway, below right, font=\tiny] {ClosedTower (L5)};
+  \end{tikzpicture}
+  \caption{4分野の統合：StructureTower・ClosedTower が共通フレームワークを提供する}
+  \label{fig:four-domains}
+\end{figure}
+
+% =============================================================================
+\section{おわりに：Level 5 の成果と展望}
+% =============================================================================
+
+\subsection{Level 5 で確立したこと}
+
+以下の表に，本稿（Level 5）で形式化した命題の一覧を示す。
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Lean 識別子} & \textbf{内容} & \textbf{節} \\
+    \midrule
+    \texttt{idealPowTower}               & I-adic tower の StructureTower 構成   & \S3.2 \\
+    \texttt{idealPowTower\_top\_level}   & 最大レベル $= R$                       & \S3.2 \\
+    \texttt{idealPow\_mul\_mem}          & 乗法互換性 $xy \in I^{m+n}$            & \S3.3 \\
+    \texttt{idealPowTower\_natInclusion} & $I \subseteq J \Rightarrow$ NatInclusion & \S3.4 \\
+    \texttt{idealPowTower\_comparison}   & 比較射（Hom）の構成                   & \S3.4 \\
+    \texttt{idealClosure}                & イデアル生成 ClosureOperator           & \S4.1 \\
+    \texttt{idealClosure\_fixed\_of\_ideal} & イデアルは不動点                    & \S4.2 \\
+    \texttt{idealPowTower\_closedTower}  & ClosedTower としての形式化             & \S4.3 \\
+    \texttt{idealPow\_glb\_closed}    & glb の閉性                          & \S4.4 \\
+    \texttt{idealPow\_glb\_is\_ideal} & glb はイデアル                      & \S4.4 \\
+    \texttt{ringHom\_idealPow\_le}       & 環準同型と冪の保存                     & \S5.1 \\
+    \texttt{ringHom\_towerHom}           & 誘導された塔の射                       & \S5.1 \\
+    \texttt{ringHom\_towerHom\_comp}     & 合成の整合性                           & \S5.2 \\
+    \texttt{IsSeparated}                 & 分離条件の定義                         & \S6.1 \\
+    \texttt{isSeparated\_iff\_glb\_eq} & 分離条件 $\iff$ glb $= \{0\}$      & \S6.1 \\
+    \texttt{escape\_of\_isSeparated}     & 非零元の脱出定理                       & \S6.2 \\
+    \texttt{krull\_intersection\_statement} & Krull の交叉定理（Noetherian 環）   & \S6.3 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Level 5 で形式化した命題の一覧}
+\end{table}
+
+\subsection{次のステップの展望}
+
+Level 5 の完成により，Structure Tower プロジェクトの第一フェーズ（L1--L5）が完結した。
+第二フェーズとして以下が考えられる。
+
+\begin{enumerate}
+  \item \textbf{$I$-adic 完備化}：Cauchy 列による完備化 $\hat{R}$ の構成と StructureTower との対応。
+  \item \textbf{Rees 代数}：$\bigoplus_n I^n t^n$ を StructureTower の直和として記述し，次数環との接続。
+  \item \textbf{Kleisli 合成の一般化}：$\varphi \colon R \to S$ が一般の Kleisli 射である場合の naturality 条件の確立。
+  \item \textbf{Mathlib \texttt{CategoryTheory.Monad} との正式接続}：ClosureOperator を Monad として定式化し，\texttt{CategoryTheory.Monad.Algebra} との整合性を示す。
+  \item \textbf{2-圏的構造}：Hom 間の順序から enriched category（豊穣圏）へ，Structure Tower の圏論的精密化。
+\end{enumerate}
+
+% =============================================================================
+\end{document}

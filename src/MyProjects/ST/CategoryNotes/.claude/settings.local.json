@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"\\\\\\\\abel\\\\|\\\\\\\\abel{\" \"c:/Users/swan0/repo/lean-experiments/TeX/ST/CategoryNotes/StructureTower_CategoryNotes.tex\")"
+    ]
+  }
+}
