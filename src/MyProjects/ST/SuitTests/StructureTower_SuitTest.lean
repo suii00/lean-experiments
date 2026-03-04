@@ -1,4 +1,4 @@
-import MyProjects.ST.CategoryNotes.StructureTower_CategoryExercises_L4
+import MyProjects.ST.Exercises.StructureTower_CategoryExercises_L4
 import Mathlib.Algebra.Ring.Int.Parity
 import Mathlib.RingTheory.Ideal.Operations
 import Mathlib.SetTheory.Ordinal.Arithmetic
