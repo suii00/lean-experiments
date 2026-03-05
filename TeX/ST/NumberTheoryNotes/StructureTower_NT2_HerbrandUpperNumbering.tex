@@ -1,0 +1,1144 @@
+% =============================================================================
+% StructureTower 数論シリーズ NT2: Herbrand 関数と上付番号
+% LuaLaTeX document — Lean 4 形式化の数学的解説
+% =============================================================================
+\documentclass[a4paper,11pt]{ltjsarticle}
+
+% --- Core packages ---
+\usepackage{luatexja-fontspec}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usetikzlibrary{cd,arrows,decorations.pathmorphing,matrix,positioning,shapes,calc}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+
+% --- Page geometry ---
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+
+% --- Fonts ---
+\setmainjfont{Noto Serif JP}
+\setsansjfont{Noto Sans JP}
+
+% --- Colors ---
+\definecolor{leanblue}{HTML}{2563EB}
+\definecolor{leanbg}{HTML}{F8FAFC}
+\definecolor{leancomment}{HTML}{6B7280}
+\definecolor{leankeyword}{HTML}{7C3AED}
+\definecolor{leanstring}{HTML}{059669}
+\definecolor{accentcolor}{HTML}{1E40AF}
+\definecolor{theoremcolor}{HTML}{EFF6FF}
+\definecolor{definitioncolor}{HTML}{F0FDF4}
+\definecolor{remarkcolor}{HTML}{FFF7ED}
+
+% --- Hyperref ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentcolor,
+  urlcolor=leanblue,
+  citecolor=accentcolor,
+  pdftitle={StructureTower 数論シリーズ NT2: Herbrand 関数と上付番号},
+  pdfauthor={su},
+}
+
+% --- Theorem environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{注意}
+
+% --- Lean code environment ---
+\lstdefinelanguage{lean4}{
+  morekeywords={def,theorem,lemma,example,instance,class,structure,
+    where,let,in,do,if,then,else,match,with,fun,return,
+    import,open,namespace,section,end,variable,
+    inductive,abbrev,noncomputable,private,protected,
+    sorry,admit,have,show,suffices,calc,by,exact,
+    apply,intro,intros,constructor,cases,induction,
+    simp,rw,rfl,ext,ring,linarith,omega,norm_num,
+    decide,trivial,assumption,contradiction,
+    Type,Prop,Sort,Set,true,false,
+    attribute,deriving},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+}
+
+\lstnewenvironment{leancode}[1][]{%
+  \lstset{
+    language=lean4,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{leankeyword}\bfseries,
+    commentstyle=\color{leancomment}\itshape,
+    stringstyle=\color{leanstring},
+    backgroundcolor=\color{leanbg},
+    frame=single,
+    rulecolor=\color{leanblue!30},
+    framesep=8pt,
+    xleftmargin=12pt,
+    xrightmargin=12pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{leancomment},
+    numbersep=8pt,
+    aboveskip=1em,
+    belowskip=1em,
+    inputencoding=utf8,
+    extendedchars=true,
+    literate=
+      {->}{{\(\to\)}}1
+      {<->}{{\(\leftrightarrow\)}}1
+      {<=}{{\(\leq\)}}1
+      {>=}{{\(\geq\)}}1
+      {/=}{{\(\neq\)}}1
+      {:=}{{:=}}2,
+    #1
+  }%
+}{}
+
+% --- Tcolorbox styles ---
+\tcbuselibrary{skins,breakable}
+
+\newtcolorbox{proofstrategy}{
+  colback=remarkcolor,
+  colframe=orange!60!black,
+  title={\textbf{証明戦略}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{mathinsight}{
+  colback=theoremcolor,
+  colframe=accentcolor,
+  title={\textbf{数学的洞察}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{keyidea}{
+  colback=definitioncolor,
+  colframe=green!50!black,
+  title={\textbf{核心的アイデア}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+% --- Math macros ---
+\newcommand{\ST}{\mathsf{ST}}
+\newcommand{\Hom}{\mathrm{Hom}}
+\newcommand{\id}{\mathrm{id}}
+\newcommand{\op}{\mathrm{op}}
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\Gal}{\mathrm{Gal}}
+\newcommand{\Aut}{\mathrm{Aut}}
+\newcommand{\ord}{\mathbb{N}^{\mathrm{op}}}
+\newcommand{\iInf}{\displaystyle\bigcap}
+\newcommand{\Phi}{\varPhi}
+\newcommand{\varph}{\varphi}
+
+% --- Header/Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\sffamily\nouppercase{\leftmark}}
+\fancyhead[R]{\small\sffamily Lean 4 形式化 --- NT2}
+\fancyfoot[C]{\thepage}
+
+% =============================================================================
+\begin{document}
+
+% --- Title ---
+\title{%
+  {\LARGE\sffamily\bfseries StructureTower 数論シリーズ NT2}\\[0.5em]
+  {\large\sffamily Herbrand 関数と上付番号：reindex の数論的具体化}\\[0.3em]
+  {\normalsize\sffamily Lean 4 / Mathlib4 による形式化とその数学的解説}%
+}
+\author{su}
+\date{\today}
+\maketitle
+\thispagestyle{fancy}
+
+% --- AI Disclosure ---
+\begin{center}
+\small
+\textit{AI assistance disclosure:}\\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。\\
+\TeX\ 文書は Claude Code (Anthropic) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\vspace{1em}
+
+% --- Abstract ---
+\begin{abstract}
+本稿は Lean 4 / Mathlib4 による形式化ファイル
+\texttt{StructureTower\_NT2\_HerbrandUpperNumbering.lean} の数学的解説である。
+NT1 で構築した分岐塔 $\mathrm{ramificationTower}(\mathrm{rd}) \in
+\textsc{StructureTower}\,\mathbb{N}^{\mathrm{op}}\,G$
+（下付番号フィルトレーション $G_0 \supseteq G_1 \supseteq G_2 \supseteq \cdots$）に対し、
+\textbf{Herbrand 関数} $\varPhi\colon \mathbb{N} \to \mathbb{N}$
+による添字の変換（上付番号）を導入する。
+上付番号は下付番号の致命的欠陥
+—「部分群への制限と非整合」—を解消し、$H^u = H \cap G^u$ という基本性質を持つ。
+\textsc{StructureTower} の視点では、上付番号塔は
+$\mathrm{reindex}\,(\text{herbrandReindex})\,(\mathrm{ramificationTower})$
+であり、L1 で定義した抽象的 \texttt{reindex} 操作の\textbf{最初の数論的インスタンス}となる。
+さらに次数付き塔（Graded Tower）理論、ジャンプ集合の定義、
+および Hasse-Arf 定理（アーベル拡大における上付番号ジャンプの整数性）の
+定式化を行う。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{はじめに：下付番号の欠陥と上付番号の動機}
+% =============================================================================
+
+\subsection{NT1 の振り返り}
+
+NT1 では局所体 $L/K$，ガロア群 $G = \mathrm{Gal}(L/K)$，
+均一化元 $\pi$，付値 $v_L$ に対する\textbf{下付番号分岐フィルトレーション}
+\[
+  G_i = \bigl\{\,\sigma \in G \;\big|\; v_L(\sigma(\pi) - \pi) \geq i + 1\,\bigr\}
+\]
+を $\textsc{StructureTower}\,\mathbb{N}^{\mathrm{op}}\,G$ として形式化した。
+これは正規部分群の減少列
+\[
+  G = G_0 \supseteq G_1 \supseteq G_2 \supseteq \cdots \supseteq \{1\}
+\]
+を与え、添字 $i$ が「分岐の深さ」を直接表す。
+
+\subsection{下付番号の致命的欠陥}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth, node distance=1.6cm]
+  % Left: G filtration
+  \node[font=\bfseries] (Gtitle) {$G$ の下付番号};
+  \node[below=0.4cm of Gtitle] (G0) {$G_0$};
+  \node[below of=G0] (G1) {$G_1$};
+  \node[below of=G1] (G2) {$G_2$};
+  \node[below of=G2] (Gdots) {$\vdots$};
+  \draw[right hook->] (G1) -- (G0) node[midway,right] {\small $\trianglelefteq$};
+  \draw[right hook->] (G2) -- (G1) node[midway,right] {\small $\trianglelefteq$};
+  \draw[right hook->] (Gdots) -- (G2);
+
+  % Middle: H restriction
+  \node[right=3cm of Gtitle, font=\bfseries] (Htitle) {$H \leq G$ の制限};
+  \node[below=0.4cm of Htitle] (H0) {$H \cap G_0$};
+  \node[below of=H0] (H1) {$H \cap G_1$};
+  \node[below of=H1] (H2) {$H \cap G_2$};
+  \node[below of=H2] (Hdots) {$\vdots$};
+  \draw[right hook->] (H1) -- (H0);
+  \draw[right hook->] (H2) -- (H1);
+  \draw[right hook->] (Hdots) -- (H2);
+
+  % Right: H's own lower numbering
+  \node[right=3cm of Htitle, font=\bfseries] (Howtitle) {$H$ 自身の下付番号};
+  \node[below=0.4cm of Howtitle] (H0own) {$H_0$};
+  \node[below of=H0own] (H1own) {$H_1$};
+  \node[below of=H1own] (H2own) {$H_2$};
+  \node[below of=H2own] (Hdotsown) {$\vdots$};
+  \draw[right hook->] (H1own) -- (H0own);
+  \draw[right hook->] (H2own) -- (H1own);
+  \draw[right hook->] (Hdotsown) -- (H2own);
+
+  % Inequality signs
+  \node[right=0.8cm of H0, font=\Large, color=red] {$\neq$};
+  \node[right=0.8cm of H1, font=\Large, color=red] {$\neq$};
+  \node[right=0.8cm of H2, font=\Large, color=red] {$\neq$};
+\end{tikzpicture}
+\caption{下付番号の欠陥：$H \cap G_i$ は一般に $H$ 自身の分岐フィルトレーション $H_i$ と一致しない。
+添字のずれが生じる。}
+\label{fig:lower-numbering-defect}
+\end{figure}
+
+下付番号の問題点：$H \leq G$ に対し、$H$ を $G$ の分岐フィルトレーションで制限した
+$H \cap G_i$ は、一般に $H$ 自身の分岐指標で決まる分岐フィルトレーション $H_i$
+と一致しない（図~\ref{fig:lower-numbering-defect}）。
+
+\subsection{解決策：Herbrand 関数}
+
+Herbrand の解決策は添字を変換することである。
+\textbf{Herbrand 関数}（連続版）：
+\[
+  \varphi(t) = \int_0^t \frac{1}{[G_0 : G_s]}\,ds
+\]
+（$G_s$ の指数の逆数を積分する）により得られる\textbf{上付番号}は：
+\[
+  G^u = G_{\psi(u)}, \quad \psi = \varphi^{-1}
+\]
+と定義され、\textbf{制限と可換}になる：
+\[
+  H^u = H \cap G^u \quad (\text{上付番号は制限と可換！})
+\]
+
+\begin{keyidea}
+\textsc{StructureTower} の視点での核心：
+\[
+  \text{上付番号塔} = \mathrm{reindex}\,\varPhi\,h_{\varPhi}\,(\mathrm{ramificationTower}\,\mathrm{rd})
+\]
+Herbrand 関数 $\varPhi$ は L1 で定義した抽象的 \texttt{reindex} の
+\textbf{具体的数論的インスタンス}である。
+「reindex の選び方に算術的内容がある」ことを示す最初の例。
+\end{keyidea}
+
+\subsection{NT2 の構成}
+
+\begin{center}
+\begin{tikzpicture}
+  \node[draw,rounded corners,fill=blue!8,text width=3.5cm,align=center] (nt21)
+    {\S NT2-1\\次数付き塔};
+  \node[draw,rounded corners,fill=green!8,text width=3.5cm,align=center,
+    right=1cm of nt21] (nt22)
+    {\S NT2-2\\Herbrand 関数};
+  \node[draw,rounded corners,fill=orange!8,text width=3.5cm,align=center,
+    right=1cm of nt22] (nt23)
+    {\S NT2-3\\上付番号塔};
+  \node[draw,rounded corners,fill=purple!8,text width=3.5cm,align=center,
+    below=1cm of nt22] (nt24)
+    {\S NT2-4\\商との整合性};
+  \node[draw,rounded corners,fill=red!8,text width=3.5cm,align=center,
+    right=1cm of nt24] (nt25)
+    {\S NT2-5\\Hasse-Arf 定式化};
+  \draw[->] (nt21) -- (nt22);
+  \draw[->] (nt22) -- (nt23);
+  \draw[->] (nt23) -- (nt24);
+  \draw[->] (nt22) -- (nt24);
+  \draw[->] (nt24) -- (nt25);
+\end{tikzpicture}
+\end{center}
+
+% =============================================================================
+\section{\S NT2-1. 次数付き塔（Graded Tower）}
+% =============================================================================
+
+\subsection{連続レベル間の差分}
+
+\textsc{StructureTower} は「各レベル以下の元の集合」を与えるが、
+「ちょうどそのレベルにある元」の集合を直接記述する概念がなかった。
+次数付き塔理論はこの空白を埋める。
+
+\begin{definition}[次数片（gradedPiece）]\label{def:graded-piece}
+  $\mathbb{N}^{\mathrm{op}}$ 添字の塔 $T \in \textsc{StructureTower}\,\mathbb{N}^{\mathrm{op}}\,\alpha$
+  に対し、\textbf{次数 $n$ の次数片}を
+  \[
+    \mathrm{gradedPiece}(T,n)
+    := \mathrm{level}(\tilde{n}) \setminus \mathrm{level}(\widetilde{n+1})
+    \quad (n \in \mathbb{N})
+  \]
+  で定める（$\tilde{n} = \mathrm{toDual}(n) \in \mathbb{N}^{\mathrm{op}}$）。
+
+  分岐塔では $\mathrm{gradedPiece}(\mathrm{ramificationTower}\,\mathrm{rd},\,n) = G_n \setminus G_{n+1}$
+  —「分岐の深さがちょうど $n$ の自己同型」の集合。
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth]
+  % Number line for levels
+  \draw[->] (0,0) -- (9,0) node[right] {$n$ (深さ)};
+  % Bars for levels
+  \foreach \i/\col in {0/blue!40, 1/blue!30, 2/blue!20, 3/blue!10} {
+    \fill[\col] (\i*2, 0.1) rectangle (\i*2+1.8, 1.5-\i*0.3);
+  }
+  \draw[thick] (0,0.1) rectangle (1.8,1.5);
+  \draw[thick] (2,0.1) rectangle (3.8,1.2);
+  \draw[thick] (4,0.1) rectangle (5.8,0.9);
+  \draw[thick] (6,0.1) rectangle (7.8,0.6);
+  % Labels
+  \node at (0.9, 0.75) {\small $G_0$};
+  \node at (2.9, 0.65) {\small $G_1$};
+  \node at (4.9, 0.5) {\small $G_2$};
+  \node at (6.9, 0.35) {\small $G_3$};
+  % Graded pieces
+  \node[above, color=red] at (0.9, 1.5) {\small $\mathrm{grd}(0)$};
+  \node[above, color=red] at (2.9, 1.2) {\small $\mathrm{grd}(1)$};
+  % Arrows showing difference
+  \draw[<->, red, thick] (1.9, 1.5) -- (1.9, 1.2) node[midway, right] {\small $G_0\setminus G_1$};
+  \draw[<->, red, thick] (3.9, 1.2) -- (3.9, 0.9) node[midway, right] {\small $G_1\setminus G_2$};
+\end{tikzpicture}
+\caption{次数片 $\mathrm{gradedPiece}(T,n) = G_n \setminus G_{n+1}$ の図示。
+各バーの高さが部分群の「大きさ」を表す。差分が次数片。}
+\label{fig:graded-piece}
+\end{figure}
+
+\subsection{次数片の基本性質}
+
+\begin{proposition}[成員条件]\label{prop:mem-graded-piece}
+  \[
+    x \in \mathrm{gradedPiece}(T,n) \iff
+    x \in T.\mathrm{level}(\tilde{n}) \;\land\; x \notin T.\mathrm{level}(\widetilde{n+1})
+  \]
+\end{proposition}
+
+\begin{proof}
+  差分集合の定義（\texttt{Set.mem\_diff}）から直ちに従う。
+\end{proof}
+
+\begin{theorem}[次数片の互いに素性]\label{thm:graded-piece-disjoint}
+  $m \neq n$ ならば $\mathrm{gradedPiece}(T,m) \cap \mathrm{gradedPiece}(T,n) = \emptyset$。
+\end{theorem}
+
+\begin{proof}
+  $m < n$ の場合を示す（$m > n$ は対称的）。
+  $x \in \mathrm{gradedPiece}(T,m)$ ならば $x \notin T.\mathrm{level}(\widetilde{m+1})$。
+  一方 $n \geq m+1$ より、単調性から
+  $T.\mathrm{level}(\tilde{n}) \subseteq T.\mathrm{level}(\widetilde{m+1})$
+  （$\mathbb{N}^{\mathrm{op}}$ では $\tilde{n} \leq \widetilde{m+1}$）。
+  したがって $x \in \mathrm{gradedPiece}(T,n)$ ならば $x \in T.\mathrm{level}(\tilde{n})
+  \subseteq T.\mathrm{level}(\widetilde{m+1})$ となり矛盾。
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth]
+  \draw[->] (-0.5, 0) -- (8.5, 0) node[right] {$n$};
+  % gradedPiece intervals (disjoint)
+  \fill[blue!30] (0,0.2) rectangle (1.5, 0.8);
+  \fill[green!30] (2,0.2) rectangle (3.5, 0.8);
+  \fill[orange!30] (4,0.2) rectangle (5.5, 0.8);
+  \fill[red!30] (6,0.2) rectangle (7.5, 0.8);
+  \node at (0.75, 0.5) {\small $\mathrm{grd}(0)$};
+  \node at (2.75, 0.5) {\small $\mathrm{grd}(1)$};
+  \node at (4.75, 0.5) {\small $\mathrm{grd}(2)$};
+  \node at (6.75, 0.5) {\small $\mathrm{grd}(3)$};
+  % Disjoint labels
+  \foreach \x in {1.75, 3.75, 5.75} {
+    \node at (\x, 0.5) {\Large $\cap$};
+    \node at (\x, 0.2) {\small $=\emptyset$};
+  }
+  \node[above] at (4, 0.8) {\bfseries 互いに素};
+\end{tikzpicture}
+\caption{定理~\ref{thm:graded-piece-disjoint}：次数片は互いに素。
+異なる次数の元は同時に2つの次数片に属せない。}
+\label{fig:graded-disjoint}
+\end{figure}
+
+\begin{proposition}[和集合との関係]\label{prop:union-graded}
+  \[
+    \bigcup_{n \in \mathbb{N}} \mathrm{gradedPiece}(T,n) \subseteq T.\mathrm{union}
+  \]
+\end{proposition}
+
+\begin{proof}
+  $x \in \mathrm{gradedPiece}(T,n)$ ならば $x \in T.\mathrm{level}(\tilde{n})$。
+  したがって $x \in \bigcup_i T.\mathrm{level}(i) = T.\mathrm{union}$。
+\end{proof}
+
+\begin{mathinsight}
+命題~\ref{prop:union-graded} の逆は一般に成立しない。
+$T.\mathrm{union}$ の元 $x$ が $T.\mathrm{level}(\tilde{n})$ に属しても、
+$T.\mathrm{level}(\widetilde{n+1})$ からも「脱出しない」場合、
+$x$ はどの次数片にも属さない（「最大次数」を持たない元）。
+
+分離条件（$\bigcap_n G_n = \{1\}$）のもとでは、
+$1$ を除く各元は「最後に属するレベル」が存在し、
+$\bigcup_n \mathrm{gradedPiece}(T,n) = T.\mathrm{union} \setminus \{1\}$
+という完全分解が成立する（有限群の場合）。
+\end{mathinsight}
+
+\begin{proposition}[分岐塔での具体化]\label{prop:graded-ramification}
+  \[
+    \mathrm{gradedPiece}(\mathrm{ramificationTower}(\mathrm{rd}),\,n)
+    = \lvert G_n \rvert \setminus \lvert G_{n+1} \rvert
+  \]
+  （$G_n = \mathrm{rd.groups}(n)$、台集合の差分）。
+\end{proposition}
+
+\begin{proof}
+  \texttt{ramificationTower\_level} を展開すれば定義から直接従う。
+\end{proof}
+
+\begin{mathinsight}
+次数付き塔理論が \textsc{OrderHom} を超える3点：
+\begin{enumerate}
+  \item \textbf{隣接レベルの概念}：$\mathbb{N}^{\mathrm{op}}$ の離散構造（後者関数 $n \mapsto n+1$）
+    に依存する。一般の前順序では「隣接する」という概念がない。
+  \item \textbf{直和分解}：$T.\mathrm{union} = \bigsqcup_n \mathrm{gradedPiece}(T,n)$
+    （適切な条件下）は非自明な定理。
+  \item \textbf{分岐指標}：$b(\sigma) = $ 「$\sigma$ が属する次数片のインデックス」
+    として解釈できる。
+\end{enumerate}
+\end{mathinsight}
+
+% =============================================================================
+\section{\S NT2-2. Herbrand 関数}
+% =============================================================================
+
+\subsection{連続版から離散版へ}
+
+連続版の Herbrand 関数
+\[
+  \varphi(t) = \int_0^t [G_0 : G_s]^{-1}\,ds
+\]
+を $\mathbb{N}$ 上で離散化する。
+$s \in [i, i+1)$ の範囲では $G_s = G_i$（一定）なので：
+\[
+  \varphi(n) = \sum_{i=1}^{n} \frac{|G_i|}{|G_0|}
+\]
+
+Lean での扱いやすさのため，\textbf{スケーリング版}（$|G_0|$ 倍）を採用する：
+\[
+  \Phi(0) = 0, \qquad \Phi(n) = \sum_{i=1}^{n} |G_i| \quad (n \geq 1)
+\]
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth, scale=0.85]
+  \draw[->] (0,0) -- (7,0) node[right] {$n$ (下付番号)};
+  \draw[->] (0,0) -- (0,5) node[above] {$\Phi(n)$ (スケール上付)};
+  % Example: |G_1|=4, |G_2|=2, |G_3|=1, ...
+  \foreach \x/\y in {0/0, 1/4, 2/6, 3/7} {
+    \fill[blue] (\x, \y*0.6) circle (3pt);
+  }
+  \draw[blue, thick] (0,0) -- (1, 2.4) -- (2, 3.6) -- (3, 4.2);
+  \node[right, blue] at (3, 4.2) {\small $\Phi(n) = \Sigma_{i=1}^n |G_i|$};
+  % Slope indicators
+  \node[above, color=red] at (0.5, 1.2) {\small $|G_1|=4$};
+  \node[above, color=red] at (1.5, 3.0) {\small $|G_2|=2$};
+  \node[above, color=red] at (2.5, 3.9) {\small $|G_3|=1$};
+  % Reference line (identity)
+  \draw[dashed, gray] (0,0) -- (3, 1.8) node[right] {\small $\Phi(n) = n$};
+\end{tikzpicture}
+\caption{スケーリング Herbrand 関数 $\Phi$ の例（$|G_1|=4$，$|G_2|=2$，$|G_3|=1$）。
+$\Phi$ は単調増加し、$\Phi(n) \geq n$（各 $|G_i| \geq 1$ のとき）。
+実際の Herbrand 関数は $\varphi(n) = \Phi(n)/|G_0|$。}
+\label{fig:herbrand-function}
+\end{figure}
+
+\subsection{scaledHerbrand の定義と基本性質}
+
+\begin{definition}[スケーリング Herbrand 関数]\label{def:scaled-herbrand}
+  $\mathrm{groupSize}\colon \mathbb{N} \to \mathbb{N}$（各レベルの群のサイズを抽象化）に対し、
+  \[
+    \mathrm{scaledHerbrand}(\mathrm{gs})\colon \mathbb{N} \to \mathbb{N}
+  \]
+  を漸化式
+  \[
+    \Phi(0) = 0, \qquad \Phi(n+1) = \Phi(n) + \mathrm{gs}(n+1)
+  \]
+  で定める。\textbf{Finset.sum による表現}：
+  \[
+    \Phi(n) = \sum_{i \in \{0,\ldots,n-1\}} \mathrm{gs}(i+1)
+    = \mathrm{gs}(1) + \mathrm{gs}(2) + \cdots + \mathrm{gs}(n)
+  \]
+\end{definition}
+
+\begin{leancode}
+def scaledHerbrand (groupSize : N -> N) : N -> N
+  | 0     => 0
+  | n + 1 => scaledHerbrand groupSize n + groupSize (n + 1)
+
+-- Finset.sum による明示的表現
+theorem scaledHerbrand_eq_sum (gs : N -> N) (n : N) :
+    scaledHerbrand gs n = (Finset.range n).sum (fun i => gs (i + 1)) := by
+  induction n with
+  | zero     => simp
+  | succ k ih => simp [Finset.sum_range_succ, ih]
+\end{leancode}
+
+\begin{theorem}[単調性]\label{thm:scaled-herbrand-mono}
+  $\mathrm{scaledHerbrand}(\mathrm{gs})$ は単調：$m \leq n \Rightarrow \Phi(m) \leq \Phi(n)$。
+\end{theorem}
+
+\begin{proof}
+  後者に関して $\Phi(n+1) = \Phi(n) + \mathrm{gs}(n+1) \geq \Phi(n)$（$\mathbb{N}$ での等式）。
+  \texttt{monotone\_nat\_of\_le\_succ} で一般の $m \leq n$ に帰着。
+\end{proof}
+
+\begin{theorem}[狭義単調性]\label{thm:scaled-herbrand-strict-mono}
+  $\mathrm{gs}(i) > 0$（$i > 0$ のとき）ならば $\Phi$ は狭義単調：
+  $m < n \Rightarrow \Phi(m) < \Phi(n)$。
+
+  数論的意味：各 $G_i \neq \emptyset$（部分群は必ず単位元を含む）より $|G_i| \geq 1$。
+  よって実際の分岐データでは Herbrand 関数は狭義単調 $\Rightarrow$ 単射
+  $\Rightarrow$ 逆関数 $\psi = \Phi^{-1}$ が存在する。
+\end{theorem}
+
+\begin{proof}
+  \[
+    \Phi(n) < \Phi(n) + \mathrm{gs}(n+1) = \Phi(n+1)
+  \]
+  （$\mathrm{gs}(n+1) > 0$ より）。\texttt{strictMono\_nat\_of\_lt\_succ} で帰着。
+\end{proof}
+
+\subsection{herbrandReindex: ℕᵒᵈ → ℕᵒᵈ への変換}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=3cm, row sep=2cm]
+  \mathbb{N}
+    \arrow[r, "\Phi", "\text{単調}"']
+  & \mathbb{N} \\
+  \mathbb{N}^{\mathrm{op}}
+    \arrow[u, "\mathrm{ofDual}"]
+    \arrow[r, "\text{herbrandReindex}"', dashrightarrow]
+  & \mathbb{N}^{\mathrm{op}}
+    \arrow[u, "\mathrm{ofDual}"']
+\end{tikzcd}
+\caption{\texttt{herbrandReindex} の構成。
+$\mathbb{N}$ 上の単調な $\Phi$ から $\mathbb{N}^{\mathrm{op}}$ 上の単調写像を誘導する。
+$\mathbb{N}^{\mathrm{op}}$ では大小関係が逆転するので、$\Phi$ が単調 $\Rightarrow$
+\texttt{herbrandReindex} も単調。}
+\label{fig:herbrand-reindex}
+\end{figure}
+
+\begin{definition}[herbrandReindex]\label{def:herbrand-reindex}
+  \[
+    \mathrm{herbrandReindex}(\mathrm{gs})\colon \mathbb{N}^{\mathrm{op}} \to \mathbb{N}^{\mathrm{op}},
+    \qquad n \mapsto \mathrm{toDual}(\Phi(\mathrm{ofDual}(n)))
+  \]
+\end{definition}
+
+\begin{proposition}\label{prop:herbrand-reindex-mono}
+  \texttt{herbrandReindex gs} は単調写像（$\mathbb{N}^{\mathrm{op}} \to \mathbb{N}^{\mathrm{op}}$）。
+\end{proposition}
+
+\begin{proof}
+  $i \leq j$ in $\mathbb{N}^{\mathrm{op}}$ $\Leftrightarrow$ $\mathrm{ofDual}(j) \leq \mathrm{ofDual}(i)$ in $\mathbb{N}$
+  $\Rightarrow$ $\Phi(\mathrm{ofDual}(j)) \leq \Phi(\mathrm{ofDual}(i))$ （$\Phi$ の単調性）
+  $\Leftrightarrow$ $\mathrm{toDual}(\Phi(\mathrm{ofDual}(i))) \leq \mathrm{toDual}(\Phi(\mathrm{ofDual}(j)))$
+  in $\mathbb{N}^{\mathrm{op}}$。
+\end{proof}
+
+% =============================================================================
+\section{\S NT2-3. 上付番号塔}
+% =============================================================================
+
+\subsection{reindex による構成}
+
+\begin{definition}[上付番号塔]\label{def:upper-numbering-tower}
+  分岐データ $\mathrm{rd}$，サイズ関数 $\mathrm{gs}$ に対し、
+  \textbf{上付番号塔}を
+  \begin{align*}
+    \mathrm{upperNumberingTower}(\mathrm{rd},\mathrm{gs})
+    &:= \mathrm{reindex}\,(\mathrm{herbrandReindex}\,\mathrm{gs})\,
+       h_\Phi\,(\mathrm{ramificationTower}\,\mathrm{rd}) \\
+    &\in \textsc{StructureTower}\,\mathbb{N}^{\mathrm{op}}\,G
+  \end{align*}
+  で定める（$h_\Phi$：命題~\ref{prop:herbrand-reindex-mono} の単調性証明）。
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=2.5cm, row sep=2cm]
+  \mathbb{N}^{\mathrm{op}}
+    \arrow[r, "\text{herbrandReindex}"]
+    \arrow[rr, bend left=20, "\text{level (上付番号)}"]
+  & \mathbb{N}^{\mathrm{op}}
+    \arrow[r, "\text{level (下付番号)}"]
+  & \mathcal{P}(G) \\
+  u
+    \arrow[r, mapsto]
+  & \Phi(u)
+    \arrow[r, mapsto]
+  & G_{\Phi(u)}
+\end{tikzcd}
+\caption{上付番号塔の構成。上付番号 $u$ における level は
+$G^u = G_{\Phi(u)}$（$\Phi$ を経由して下付番号の塔を参照する）。}
+\label{fig:upper-numbering-tower}
+\end{figure}
+
+\begin{proposition}[level の明示的表示]\label{prop:upper-numbering-level}
+  \[
+    (\mathrm{upperNumberingTower}(\mathrm{rd},\mathrm{gs})).\mathrm{level}(n)
+    = \lvert \mathrm{rd.groups}(\Phi(\mathrm{ofDual}(n)))\rvert
+  \]
+\end{proposition}
+
+\begin{proof}
+  \texttt{reindex\_level} と \texttt{ramificationTower\_level} を合成。
+  $\mathrm{simp}$ で直接確認できる。
+\end{proof}
+
+\begin{proposition}[レベル 0 の整合性]\label{prop:upper-zero}
+  \[
+    (\mathrm{upperNumberingTower}(\mathrm{rd},\mathrm{gs})).\mathrm{level}(\tilde{0})
+    = \lvert \mathrm{rd.groups}(0)\rvert = \lvert G_0\rvert
+  \]
+\end{proposition}
+
+\begin{proof}
+  $\Phi(0) = 0$（\texttt{scaledHerbrand\_zero}）より直ちに。
+\end{proof}
+
+\subsection{下付番号との比較}
+
+\begin{theorem}[NatInclusion 関係]\label{thm:upper-nat-inclusion}
+  $\mathrm{gs}(n) \geq 1$ ならば $\Phi(n) \geq n$ であり、
+  \[
+    \mathrm{NatInclusion}(\mathrm{upperNumberingTower}\,\mathrm{rd}\,\mathrm{gs},\;\mathrm{ramificationTower}\,\mathrm{rd})
+  \]
+  すなわち各 $n \in \mathbb{N}^{\mathrm{op}}$ で
+  $G^n = G_{\Phi(n)} \subseteq G_n$（上付番号の方が細かいフィルタリング）。
+\end{theorem}
+
+\begin{proof}
+  $\Phi(n) \geq n$ より $G_{\Phi(n)} \leq G_n$（$\mathrm{rd.antitone}$）。
+  台集合の包含が従う。
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth, scale=0.9]
+  \draw[->] (0,0) -- (7,0) node[right] {$n$};
+  % Lower numbering levels (wider)
+  \foreach \i in {0,...,5} {
+    \fill[blue!20] (\i*1.1, 0.1) rectangle (\i*1.1+1.0, 1.5-\i*0.2);
+  }
+  % Upper numbering levels (narrower -- more filtered)
+  \foreach \i in {0,...,5} {
+    \fill[red!30] (\i*1.1+0.1, 0.1) rectangle (\i*1.1+0.9, 1.3-\i*0.25);
+    \draw[red, thick] (\i*1.1+0.1, 0.1) rectangle (\i*1.1+0.9, 1.3-\i*0.25);
+  }
+  % Legend
+  \fill[blue!20] (0, -0.6) rectangle (0.5, -0.3);
+  \node[right] at (0.6, -0.45) {\small 下付番号 $G_n$};
+  \fill[red!30] (3, -0.6) rectangle (3.5, -0.3);
+  \draw[red, thick] (3, -0.6) rectangle (3.5, -0.3);
+  \node[right] at (3.6, -0.45) {\small 上付番号 $G^n \subseteq G_n$};
+\end{tikzpicture}
+\caption{定理~\ref{thm:upper-nat-inclusion}：上付番号の方が「細かい」。
+各 $n$ で $G^n \subseteq G_n$。}
+\label{fig:upper-vs-lower}
+\end{figure}
+
+\subsection{二重 reindex の合成則}
+
+\begin{theorem}[二重 reindex]\label{thm:double-reindex}
+  2つの Herbrand 関数を合成することに対応する塔の等式：
+  \begin{align*}
+    &\mathrm{reindex}\,(\mathrm{herbrandReindex}\,\mathrm{gs}_1)\,h_1\,
+     (\mathrm{upperNumberingTower}\,\mathrm{rd}\,\mathrm{gs}_2) \\
+    &= \mathrm{reindex}\,(\mathrm{herbrandReindex}\,\mathrm{gs}_2 \circ \mathrm{herbrandReindex}\,\mathrm{gs}_1)\,
+       (h_2 \circ h_1)\,(\mathrm{ramificationTower}\,\mathrm{rd})
+  \end{align*}
+\end{theorem}
+
+\begin{proof}
+  \texttt{reindex\_comp} の直接的インスタンス。
+  \texttt{simp} と \texttt{reindex} の定義展開で確認できる。
+\end{proof}
+
+\begin{mathinsight}
+定理~\ref{thm:double-reindex} の意味：
+「下付番号 $\to$ 上付番号(gs₂) $\to$ 再添字(gs₁)」という2段階の操作は、
+「下付番号 $\to$ 合成 Herbrand $\mathrm{gs}_2 \circ \mathrm{gs}_1$ による添字変換」に等しい。
+これは \textsc{StructureTower} の \texttt{reindex\_comp} が数論の文脈で
+自動的に成立することを示す — 抽象的な関手の等式が算術的内容を自動的に含む。
+\end{mathinsight}
+
+% =============================================================================
+\section{\S NT2-4. 商との整合性}
+% =============================================================================
+
+\subsection{部分群への制限}
+
+\begin{definition}[部分群への制限塔]\label{def:restrict-subgroup}
+  $T \in \textsc{StructureTower}\,\mathbb{N}^{\mathrm{op}}\,G$，$H \leq G$ に対し、
+  \[
+    \mathrm{restrictToSubgroup}(T,H).\mathrm{level}(n) := T.\mathrm{level}(n) \cap \lvert H\rvert
+  \]
+  は $\textsc{StructureTower}\,\mathbb{N}^{\mathrm{op}}\,G$ を定める。
+\end{definition}
+
+\begin{proposition}[制限は NatInclusion で以下]\label{prop:restrict-nat-inclusion}
+  \[
+    \mathrm{NatInclusion}(\mathrm{restrictToSubgroup}(T,H),\;T)
+  \]
+\end{proposition}
+
+\begin{proof}
+  $(T.\mathrm{level}(n) \cap \lvert H\rvert) \subseteq T.\mathrm{level}(n)$
+  （\texttt{Set.inter\_subset\_left}）。
+\end{proof}
+
+\subsection{上付番号の商整合性}
+
+下付番号が制限と非整合（図~\ref{fig:lower-numbering-defect}）なのに対し、
+上付番号は整合する。これを定式化する。
+
+\begin{definition}[上付番号整合条件]\label{def:upper-numbering-compatible}
+  分岐データ $\mathrm{rd}_G$（$G$ 用），$\mathrm{rd}_H$（$H \leq G$ 用），
+  サイズ関数 $\mathrm{gs}_G$，$\mathrm{gs}_H$，$H \leq G$ に対し、
+  \textbf{上付番号整合条件}（\texttt{UpperNumberingCompatible}）を
+  \[
+    \forall n \in \mathbb{N}^{\mathrm{op}},\;
+    (\mathrm{upperTower}(\mathrm{rd}_G,\mathrm{gs}_G)).\mathrm{level}(n) \cap \lvert H\rvert
+    = (\mathrm{upperTower}(\mathrm{rd}_H,\mathrm{gs}_H)).\mathrm{level}(n)
+  \]
+  で定める。
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=3cm, row sep=2.5cm]
+  G^u = G_{\Phi_G(u)}
+    \arrow[r, hookrightarrow]
+    \arrow[d, "\cap\, H"']
+  & G_{\Phi_G(u-1)}
+    \arrow[d, "\cap\, H"] \\
+  G^u \cap H
+    \arrow[r, equal, "\text{整合条件}"]
+  & H^u = H_{\Phi_H(u)}
+\end{tikzcd}
+\caption{上付番号の整合条件：$G$ の上付番号塔を $H$ に制限すると、
+$H$ 自身の上付番号塔（適切な $\Phi_H$ で定義）と一致する。
+これが Herbrand 変換の本質的性質。}
+\label{fig:upper-compatibility}
+\end{figure}
+
+\begin{remark}
+  定義~\ref{def:upper-numbering-compatible} の条件が成立するとき、
+  上付番号は「正しい reindex」であると言う。
+  下付番号（$\Phi = \mathrm{id}$ に対応する恒等 reindex）では
+  一般にこの条件が失敗する。
+\end{remark}
+
+\subsection{下付番号は恒等 reindex}
+
+\begin{theorem}[下付番号 = 恒等 reindex]\label{thm:lower-is-id-reindex}
+  \[
+    \mathrm{reindex}\,(\mathrm{id}\colon \mathbb{N}^{\mathrm{op}} \to \mathbb{N}^{\mathrm{op}})\,
+    \mathrm{monotone\_id}\,(\mathrm{ramificationTower}\,\mathrm{rd})
+    = \mathrm{ramificationTower}\,\mathrm{rd}
+  \]
+\end{theorem}
+
+\begin{proof}
+  \texttt{reindex\_id} の直接適用。
+\end{proof}
+
+\begin{mathinsight}
+定理~\ref{thm:lower-is-id-reindex} は「下付番号 = $\Phi = \mathrm{id}$ による reindex」
+であることを明示する。上付番号との対比：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+ & \textbf{reindex 関数} & \textbf{制限との整合} \\
+\midrule
+下付番号 & $\mathrm{id}$（恒等写像） & 一般に$\times$ \\
+上付番号 & Herbrand $\Phi$（非自明） & $\bigcirc$（Hasse-Arf 条件下） \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textsc{StructureTower} の言語では、「どの reindex を選ぶか」が
+「部分構造との整合性」を決定する。Herbrand 関数は
+この問いへの数論的な答え。
+\end{mathinsight}
+
+% =============================================================================
+\section{\S NT2-5. Hasse-Arf 定理の定式化}
+% =============================================================================
+
+\subsection{Hasse-Arf 定理の概要}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth, node distance=1.5cm]
+  \node[draw, rounded corners, fill=blue!10, text width=4cm, align=center] (ha)
+    {\textbf{Hasse-Arf 定理}\\(1930/1951)};
+  \node[draw, rounded corners, fill=green!10, text width=5cm, align=center,
+    right=1.5cm of ha] (stmt)
+    {$L/K$ アーベルガロア拡大\\$\Rightarrow$\\上付番号のジャンプは$\in \mathbb{Z}$};
+  \node[draw, rounded corners, fill=orange!10, text width=5cm, align=center,
+    below=1.5cm of ha] (struct)
+    {\textsc{StructureTower} 版\\$|G_0| \mid \Phi(b)$\\（$b$: 下付番号のジャンプ）};
+  \draw[->] (ha) -- (stmt);
+  \draw[->] (ha) -- (struct);
+  \node[above=0.3cm of ha] {\small 類体論の深い定理};
+\end{tikzpicture}
+\caption{Hasse-Arf 定理の概要と \textsc{StructureTower} での定式化。}
+\label{fig:hasse-arf-overview}
+\end{figure}
+
+下付番号のジャンプ（break）$b$ は定義から $\mathbb{N}$ の元（整数）だが、
+上付番号のジャンプ $\varphi(b) = \Phi(b)/|G_0|$ は一般には有理数になる。
+Hasse-Arf 定理はアーベル拡大でこれが整数になることを主張する。
+
+\subsection{ジャンプ集合}
+
+\begin{definition}[ジャンプ集合]\label{def:jump-set}
+  $T \in \textsc{StructureTower}\,\mathbb{N}^{\mathrm{op}}\,\alpha$ に対し、
+  \textbf{ジャンプ集合}を
+  \[
+    \mathrm{jumpSet}(T) := \bigl\{\,n \in \mathbb{N} \;\big|\;
+    \mathrm{gradedPiece}(T,n) \neq \emptyset\,\bigr\}
+  \]
+  で定める。すなわち「段差のある」インデックスの集合。
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth]
+  \draw[->] (-0.5,0) -- (9,0) node[right] {$n$};
+  % G_n steps
+  \fill[blue!20] (0, 0.1) rectangle (2.5, 1.8);
+  \fill[blue!20] (2.5, 0.1) rectangle (4.5, 1.2);
+  \fill[blue!20] (4.5, 0.1) rectangle (6.5, 0.7);
+  \fill[blue!20] (6.5, 0.1) rectangle (8.5, 0.3);
+  \draw[thick] (0, 0.1) -- (0, 1.8) -- (2.5, 1.8);
+  \draw[thick] (2.5, 1.2) -- (4.5, 1.2);
+  \draw[thick] (4.5, 0.7) -- (6.5, 0.7);
+  \draw[thick] (6.5, 0.3) -- (8.5, 0.3);
+  % Jump indicators
+  \draw[very thick, red] (2.5, 1.2) -- (2.5, 1.8);
+  \draw[very thick, red] (4.5, 0.7) -- (4.5, 1.2);
+  \draw[very thick, red] (6.5, 0.3) -- (6.5, 0.7);
+  % Jump set markers
+  \foreach \x/\lab in {2.5/b_1, 4.5/b_2, 6.5/b_3} {
+    \fill[red] (\x, -0.15) circle (3pt);
+    \node[below, red] at (\x, -0.15) {\small $\lab$};
+  }
+  \node[above] at (4.5, 1.8) {\small ジャンプ集合 $= \{b_1, b_2, b_3\}$};
+  \draw[decorate, decoration={brace, amplitude=5pt}, red]
+    (0, 2.0) -- (8.5, 2.0) node[midway, above=5pt] {\small $\mathrm{jumpSet}(T)$};
+\end{tikzpicture}
+\caption{ジャンプ集合の図示。赤い縦線の位置（$b_1, b_2, b_3$）が
+$\mathrm{gradedPiece}$ が非空になるインデックス。}
+\label{fig:jump-set}
+\end{figure}
+
+\begin{proposition}[成員条件]\label{prop:mem-jump-set}
+  \[
+    n \in \mathrm{jumpSet}(T) \iff
+    \exists x,\; x \in T.\mathrm{level}(\tilde{n}) \;\land\; x \notin T.\mathrm{level}(\widetilde{n+1})
+  \]
+\end{proposition}
+
+\begin{proof}
+  定義の展開。\texttt{Set.Nonempty}，\texttt{Set.mem\_diff} を展開すれば等価。
+\end{proof}
+
+\subsection{Hasse-Arf 条件}
+
+\begin{definition}[Hasse-Arf 条件]\label{def:hasse-arf-condition}
+  分岐データ $\mathrm{rd}$，サイズ関数 $\mathrm{gs}$，$|G_0|$ のサイズ $g_0$ に対し、
+  \textbf{Hasse-Arf 条件}を
+  \[
+    \mathrm{HasseArfCondition}(\mathrm{rd},\mathrm{gs},g_0) :=
+    \forall b \in \mathrm{jumpSet}(\mathrm{ramificationTower}\,\mathrm{rd}),\;
+    g_0 \mid \Phi(b)
+  \]
+  で定める。
+\end{definition}
+
+\begin{mathinsight}
+条件 $g_0 \mid \Phi(b)$（$g_0 = |G_0|$）は
+\[
+  \frac{\Phi(b)}{|G_0|} = \varphi(b) \in \mathbb{Z}
+\]
+と等価。すなわち「上付番号のジャンプが整数値」という古典的 Hasse-Arf 定理の
+\textsc{StructureTower} 版定式化。
+
+\textsc{StructureTower} 的意味：Herbrand \texttt{reindex} による
+$\mathrm{gradedPiece}$ の「移動先」が $\mathbb{N}$ の格子点に着地する。
+アーベル拡大でないと、着地点が有理数になり、
+$\mathbb{N}$ 上の \textsc{StructureTower} として整合的に定義できない。
+\end{mathinsight}
+
+\begin{proposition}[ジャンプ 0 での自明性]\label{prop:hasse-arf-zero}
+  $\Phi(0) = 0$ は任意の $g_0$ で割り切れる：$g_0 \mid \Phi(0)$。
+\end{proposition}
+
+\begin{proof}
+  \texttt{scaledHerbrand\_zero} より $\Phi(0) = 0$。\texttt{dvd\_zero}。
+\end{proof}
+
+\subsection{有限ジャンプ集合}
+
+\begin{definition}[有限ジャンプ集合]\label{def:finite-jump-set}
+  \[
+    \mathrm{HasFiniteJumpSet}(\mathrm{rd}) :=
+    \exists N \in \mathbb{N},\; \forall n \geq N,\; n \notin \mathrm{jumpSet}(\mathrm{ramificationTower}\,\mathrm{rd})
+  \]
+\end{definition}
+
+\begin{theorem}[eventual bot から有限ジャンプ]\label{thm:finite-jump-eventual-bot}
+  $\exists N,\;\forall n \geq N,\;G_n = \{1\}$ ならば $\mathrm{HasFiniteJumpSet}(\mathrm{rd})$。
+\end{theorem}
+
+\begin{proof}
+  $N$ 以上では $G_n = \{1\}$，$G_{n+1} = \{1\}$ なので
+  $\mathrm{gradedPiece}(T,n) = \{1\} \setminus \{1\} = \emptyset$。
+  したがって $n \notin \mathrm{jumpSet}(T)$。
+
+  形式的証明のキー：
+  \begin{enumerate}
+    \item $n \in \mathrm{jumpSet}(T)$ を仮定し矛盾を導く。
+    \item 成員 $x$ を得て、$G_n = \{1\}$ より $x = 1$。
+    \item $G_{n+1} = \{1\}$ より $1 \in G_{n+1}$，$x \notin G_{n+1}$ に矛盾。
+  \end{enumerate}
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth]
+  \draw[->] (0,0) -- (9,0) node[right] {$n$};
+  % Jumping region
+  \fill[blue!15] (0,0.1) rectangle (5,1.5);
+  % Stable region
+  \fill[gray!20] (5,0.1) rectangle (8.5,0.4);
+  \draw[very thick, red] (5, 0) -- (5, 1.7) node[above] {\small $N$};
+  % Graded pieces in jumping region
+  \foreach \x/\h in {0.5/1.4, 1.5/1.0, 2.5/0.7, 3.5/0.4, 4.5/0.2} {
+    \fill[red!40] (\x-0.4, 0.1) rectangle (\x+0.4, \h);
+  }
+  \node[below, blue] at (2.5, -0.2) {\small ジャンプあり};
+  \node[below, gray] at (6.5, -0.2) {\small ジャンプなし ($G_n = \{1\}$)};
+  % Brace
+  \draw[decorate, decoration={brace, amplitude=5pt}]
+    (0, 1.8) -- (5, 1.8) node[midway, above=5pt] {\small 有限個のジャンプ};
+\end{tikzpicture}
+\caption{定理~\ref{thm:finite-jump-eventual-bot}：分離条件で安定すると、
+十分大きい $n$ ではジャンプが消える。ジャンプ集合は有限。}
+\label{fig:finite-jumps}
+\end{figure}
+
+% =============================================================================
+\section{全体のまとめと展望}
+% =============================================================================
+
+\subsection{NT2 で構築したこと}
+
+\begin{enumerate}[label=\S NT2-\arabic*.]
+  \item \textbf{次数付き塔（Graded Tower）}：
+    $\mathrm{gradedPiece}(T,n) = G_n \setminus G_{n+1}$。
+    互いに素性（定理~\ref{thm:graded-piece-disjoint}），
+    和集合との関係（命題~\ref{prop:union-graded}），
+    分岐塔での具体化（命題~\ref{prop:graded-ramification}）。
+    $\to$ \textsc{OrderHom} では自然に記述できない「隣接レベルの概念」。
+
+  \item \textbf{Herbrand 関数}：
+    $\mathrm{scaledHerbrand}\,\mathrm{gs}\colon \mathbb{N} \to \mathbb{N}$
+    （$\Phi(n) = \sum \mathrm{gs}(i+1)$）。
+    単調性（定理~\ref{thm:scaled-herbrand-mono}），
+    狭義単調性（定理~\ref{thm:scaled-herbrand-strict-mono}），
+    Finset.sum 表現，
+    $\mathrm{herbrandReindex}\colon \mathbb{N}^{\mathrm{op}} \to \mathbb{N}^{\mathrm{op}}$。
+
+  \item \textbf{上付番号塔}：
+    $\mathrm{upperNumberingTower}(\mathrm{rd},\mathrm{gs})
+    = \mathrm{reindex}\,(\Phi)\,(\mathrm{ramificationTower}\,\mathrm{rd})$。
+    L1 の \texttt{reindex} の\textbf{最初の数論的インスタンス}。
+    レベル 0 の整合性（命題~\ref{prop:upper-zero}），
+    NatInclusion 関係（定理~\ref{thm:upper-nat-inclusion}），
+    二重 reindex 合成則（定理~\ref{thm:double-reindex}）。
+
+  \item \textbf{商との整合性}：
+    $\mathrm{restrictToSubgroup}$：塔の部分群への制限。
+    $\mathrm{UpperNumberingCompatible}$：上付番号が制限と可換である条件の定式化。
+    $\mathrm{lowerNumbering\_is\_trivial\_reindex}$（定理~\ref{thm:lower-is-id-reindex}）。
+    $\to$ \textbf{Tower Comparison Theory の数論的基本定理}。
+
+  \item \textbf{Hasse-Arf の定式化}：
+    $\mathrm{jumpSet}(T)$：塔の段差が存在するインデックス集合。
+    $\mathrm{HasseArfCondition}$：$|G_0| \mid \Phi(b)$（全ジャンプに対して）。
+    $\mathrm{HasFiniteJumpSet}$：分岐塔のジャンプ集合は有限。
+    $\to$ アーベル拡大でのみ上付番号が $\mathbb{N}$ 上で整合する。
+\end{enumerate}
+
+\subsection{StructureTower 理論への貢献（NT1 + NT2）}
+
+\begin{table}[H]
+\centering
+\caption{NT1 + NT2 の貢献と \textsc{OrderHom} との比較}
+\label{tab:contributions}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.5cm}p{2.5cm}p{5.5cm}}
+\toprule
+\textbf{発見} & \textbf{OrderHom で可能か} & \textbf{StructureTower の優位性} \\
+\midrule
+gradedPiece & \mbox{$\triangle$（定義は可能）} & 隣接概念が添字の離散構造に依存 \\
+jumpSet & $\triangle$ & gradedPiece から自然に導出 \\
+Herbrand reindex & $\bigcirc$（関数合成） & 「塔の内部構造が reindex を決定」 \\
+商との整合性 & $\times$ & restrictToSubgroup + NatInclusion \\
+二重 reindex & $\bigcirc$ & reindex\_comp の直接適用 \\
+Hasse-Arf 条件 & $\times$ & jumpSet + scaledHerbrand の整除性 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+特に「商との整合性」（\S NT2-4）は \textsc{OrderHom} の語彙では
+自然に記述できない。「異なる対象上の2つの \textsc{OrderHom} を
+共通の添字空間で比較し，部分構造への制限と可換になる reindex を見つける」
+という問題は，\textsc{StructureTower} の $\mathrm{Hom} + \mathrm{reindex} + \mathrm{NatInclusion}$
+の組み合わせで初めて自然に定式化できる。
+
+\subsection{NT3 以降の展望}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \node[draw,rounded corners,fill=gray!10,text width=3cm,align=center] (nt1)
+    {\textbf{NT1}\\分岐塔\\下付番号};
+  \node[draw,rounded corners,fill=blue!10,text width=3.5cm,align=center,
+    right=1.2cm of nt1] (nt2)
+    {\textbf{NT2}\\Herbrand\\上付番号\\（本稿）};
+  \node[draw,rounded corners,fill=green!10,text width=4cm,align=center,
+    right=1.2cm of nt2] (nt3)
+    {\textbf{NT3}\\局所類体論\\Artin 写像\\Tower Comparison};
+  \node[draw,rounded corners,fill=orange!10,text width=3.5cm,align=center,
+    below=1.2cm of nt2] (nt4)
+    {\textbf{NT4}\\副有限群\\$\pi_1(X)$ の塔\\遠アーベル幾何};
+  \draw[->] (nt1) -- (nt2);
+  \draw[->] (nt2) -- (nt3);
+  \draw[->,dashed] (nt3) -- (nt4);
+  \draw[->,dashed] (nt2) -- (nt4);
+\end{tikzpicture}
+\caption{数論シリーズの全体展望。NT2（本稿）は下付番号の欠陥を修正し，
+類体論（NT3）と遠アーベル幾何（NT4）への橋を準備する。}
+\label{fig:nt-roadmap}
+\end{figure}
+
+\begin{description}
+  \item[NT3: 局所類体論と Tower Comparison]
+    Artin 写像 $\theta\colon K^\times \to G^{\mathrm{ab}}$ を通じて，
+    \texttt{idealPowTower}（$K$ の素イデアル冪）と
+    \texttt{upperNumberingTower}（$G$ の上付番号分岐）を
+    $\theta$ が \textsc{StructureTower} Hom として結ぶことを形式化。
+    $\to$ Tower Comparison Theory の完全な数論的インスタンス。
+
+  \item[NT4: 副有限群と逆極限]
+    $\pi_1(X)$ のフィルトレーション $\to$ \textsc{StructureTower}。
+    逆極限 $= \mathrm{global}$ の副有限版。
+    望月の「宇宙際 Teichmüller 理論」= 異なる副有限塔間の「リンク」？
+\end{description}
+
+% =============================================================================
+\end{document}
