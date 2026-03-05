@@ -298,11 +298,18 @@ variable {G : Type*} [Group G]
     - S ⊆ T → subgroupClosure S ⊆ subgroupClosure T          （単調）
     - ↑H = subgroupClosure ↑H（部分群の台集合は不動点）        -/
 noncomputable def subgroupClosure : ClosureOperator (Set G) :=
-  ClosureOperator.mk'
-    (fun S => ↑(Subgroup.closure S))
-    (fun S => Subgroup.subset_closure)
-    (fun S T hST => SetLike.coe_subset_coe.mpr (Subgroup.closure_mono hST))
-    (fun S => by simp [Subgroup.closure_closure])
+  {
+    toFun := fun S => ↑(Subgroup.closure S)
+    monotone' := by
+      intro S T hST
+      exact SetLike.coe_subset_coe.mpr (Subgroup.closure_mono hST)
+    le_closure' := by
+      intro S
+      exact Subgroup.subset_closure
+    idempotent' := by
+      intro S
+      exact congrArg SetLike.coe (Subgroup.closure_eq (Subgroup.closure S))
+  }
 
 /-- 🟡 Exercise NT1-2a: 部分群の台集合は subgroupClosure の不動点。
     H : Subgroup G に対し、subgroupClosure ↑H = ↑H。
@@ -312,7 +319,7 @@ noncomputable def subgroupClosure : ClosureOperator (Set G) :=
     Hint-2: subgroupClosure の定義を展開して Subgroup.closure_eq を使う。 -/
 theorem subgroupClosure_carrier_eq (H : Subgroup G) :
     subgroupClosure (↑H : Set G) = ↑H := by
-  simp [subgroupClosure, ClosureOperator.mk']
+  change ↑(Subgroup.closure (↑H : Set G)) = (↑H : Set G)
   exact congrArg SetLike.coe (Subgroup.closure_eq H)
 
 /-- 🟡 Exercise NT1-2b: 部分群フィルトレーション塔は ClosedTower。
@@ -329,7 +336,10 @@ def subgroupFiltrationClosedTower (f : ℕ →o (Subgroup G)ᵒᵈ) :
     ClosedTower subgroupClosure ℕᵒᵈ (α := G) where
   level n := ↑(OrderDual.ofDual (f (OrderDual.ofDual n)))
   monotone_level := (subgroupFiltrationTower f).monotone_level
-  level_closed n := subgroupClosure_carrier_eq _
+  level_closed n := by
+    simpa using
+      (subgroupClosure_carrier_eq
+        (H := OrderDual.ofDual (f (OrderDual.ofDual n))))
 
 /-- 正規部分群フィルトレーションの条件。
     各 f n が G の正規部分群であること。
@@ -532,15 +542,7 @@ theorem isSeparatedFiltration_iff_global (f : ℕ →o (Subgroup G)ᵒᵈ) :
   have hglobal : (subgroupFiltrationTower f).global =
       ↑(⨅ n : ℕ, OrderDual.ofDual (f n)) := by
     ext x
-    simp only [StructureTower.global, subgroupFiltrationTower_level, Set.mem_iInter]
-    constructor
-    · intro h
-      rw [Subgroup.mem_iInf]
-      intro n
-      exact h (OrderDual.toDual n)
-    · intro h n
-      rw [Subgroup.mem_iInf] at h
-      exact h (OrderDual.ofDual n)
+    simp [StructureTower.global, subgroupFiltrationTower_level]
   constructor
   · intro h
     rw [hglobal, h]
@@ -585,8 +587,9 @@ theorem escape_of_isSeparatedFiltration
 noncomputable def ramificationBreak
     (rd : RamificationData G)
     (hSep : IsSeparatedFiltration rd.groups)
-    {σ : G} (hσ : σ ≠ 1) : ℕ :=
-  Nat.find (escape_of_isSeparatedFiltration rd.toOrderHom hSep hσ)
+    {σ : G} (hσ : σ ≠ 1) : ℕ := by
+  classical
+  exact Nat.find (escape_of_isSeparatedFiltration rd.toOrderHom hSep hσ)
 
 /-- 🔴 Exercise NT1-4c: 分岐指標の特徴づけ。
     b(σ) = n ↔ σ ∈ G_n かつ σ ∉ G_{n+1}。
@@ -602,8 +605,10 @@ theorem ramificationBreak_spec
     (rd : RamificationData G)
     (hSep : IsSeparatedFiltration rd.groups)
     {σ : G} (hσ : σ ≠ 1) :
-    σ ∉ (rd.groups (ramificationBreak rd hSep hσ) : Subgroup G) :=
-  Nat.find_spec (escape_of_isSeparatedFiltration rd.toOrderHom hSep hσ)
+    σ ∉ (rd.groups (ramificationBreak rd hSep hσ) : Subgroup G) := by
+  classical
+  simpa [ramificationBreak] using
+    (Nat.find_spec (escape_of_isSeparatedFiltration rd.toOrderHom hSep hσ))
 
 theorem mem_of_lt_ramificationBreak
     (rd : RamificationData G)
@@ -611,8 +616,11 @@ theorem mem_of_lt_ramificationBreak
     {σ : G} (hσ : σ ≠ 1) {n : ℕ}
     (hn : n < ramificationBreak rd hSep hσ) :
     σ ∈ (rd.groups n : Subgroup G) := by
+  classical
   by_contra h
-  exact Nat.find_min (escape_of_isSeparatedFiltration rd.toOrderHom hSep hσ) hn h
+  exact
+    (Nat.find_min (escape_of_isSeparatedFiltration rd.toOrderHom hSep hσ)
+      (by simpa [ramificationBreak] using hn)) h
 
 end SeparationGroup
 
@@ -646,7 +654,7 @@ end SeparationGroup
 
 section RingGroupBridge
 
-variable {R : Type*} [CommRing R] {G : Type*} [Group G]
+variable {R : Type*} [CommRing R] {G : Type*}
 
 /-- 群作用による塔の保存。
     G が R に作用し、各 σ ∈ G が idealPowTower I の Hom を誘導する。
@@ -701,11 +709,11 @@ theorem ramificationSubgroup_antitone (I : Ideal R) (action : G → R →+* R) :
     Hint-1: action of identity is RingHom.id。
     Hint-2: sub_self, Ideal.zero_mem。 -/
 theorem id_mem_ramificationSubgroup (I : Ideal R) (action : G → R →+* R)
+    [Group G]
     (hId : action 1 = RingHom.id R) (n : ℕ) :
     (1 : G) ∈ ramificationSubgroup I action n := by
   intro x
-  simp [ramificationSubgroup, hId, sub_self]
-  exact Ideal.zero_mem _
+  simp [hId]
 
 end RingGroupBridge
 
