@@ -1,0 +1,905 @@
+% =============================================================================
+% StructureTower NT4: 副有限塔と遠アーベル幾何
+% LuaLaTeX document — Lean 4 形式化の数学的解説
+% =============================================================================
+\documentclass[a4paper,11pt]{ltjsarticle}
+
+% --- Core packages ---
+\usepackage{luatexja-fontspec}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz-cd}
+\usetikzlibrary{cd,arrows,shapes,positioning,decorations.pathmorphing}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{stmaryrd}
+
+% --- Page geometry ---
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+
+% --- Fonts ---
+\setmainjfont{Noto Serif JP}
+\setsansjfont{Noto Sans JP}
+
+% --- Colors ---
+\definecolor{leanblue}{HTML}{2563EB}
+\definecolor{leanbg}{HTML}{F8FAFC}
+\definecolor{leancomment}{HTML}{6B7280}
+\definecolor{leankeyword}{HTML}{7C3AED}
+\definecolor{leanstring}{HTML}{059669}
+\definecolor{accentcolor}{HTML}{1E40AF}
+\definecolor{theoremcolor}{HTML}{EFF6FF}
+\definecolor{definitioncolor}{HTML}{F0FDF4}
+\definecolor{remarkcolor}{HTML}{FFF7ED}
+
+% --- Hyperref ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accentcolor,
+  urlcolor=leanblue,
+  citecolor=accentcolor,
+  pdftitle={StructureTower NT4: 副有限塔と遠アーベル幾何},
+  pdfauthor={su},
+}
+
+% --- Theorem environments ---
+\theoremstyle{definition}
+\newtheorem{definition}{定義}[section]
+\newtheorem{example}[definition]{例}
+
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{補題}
+\newtheorem{proposition}[definition]{命題}
+\newtheorem{corollary}[definition]{系}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{注意}
+
+% --- Lean code environment ---
+\lstdefinelanguage{lean4}{
+  morekeywords={def,theorem,lemma,example,instance,class,structure,
+    where,let,in,do,if,then,else,match,with,fun,return,
+    import,open,namespace,section,end,variable,
+    inductive,abbrev,noncomputable,private,protected,
+    sorry,admit,have,show,suffices,calc,by,exact,
+    apply,intro,intros,constructor,cases,induction,
+    simp,rw,rfl,ext,ring,linarith,omega,norm_num,
+    decide,trivial,assumption,contradiction,
+    Type,Prop,Sort,Set,true,false,
+    check,eval,print,attribute,deriving},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+}
+
+\lstnewenvironment{leancode}[1][]{%
+  \lstset{
+    language=lean4,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{leankeyword}\bfseries,
+    commentstyle=\color{leancomment}\itshape,
+    stringstyle=\color{leanstring},
+    backgroundcolor=\color{leanbg},
+    frame=single,
+    rulecolor=\color{leanblue!30},
+    framesep=8pt,
+    xleftmargin=12pt,
+    xrightmargin=12pt,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{leancomment},
+    numbersep=8pt,
+    aboveskip=1em,
+    belowskip=1em,
+    #1
+  }%
+}{}
+
+% --- Tcolorbox styles ---
+\newtcolorbox{proofstrategy}{
+  colback=remarkcolor,
+  colframe=orange!60!black,
+  title={\textbf{証明戦略}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{mathinsight}{
+  colback=theoremcolor,
+  colframe=accentcolor,
+  title={\textbf{数学的洞察}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+\newtcolorbox{leaninsight}{
+  colback=definitioncolor,
+  colframe=leanstring!80!black,
+  title={\textbf{Lean 4 実装メモ}},
+  fonttitle=\sffamily,
+  boxrule=0.5pt,
+  arc=3pt,
+}
+
+% --- Macros ---
+\newcommand{\ST}{\mathsf{ST}}
+\newcommand{\Hom}{\mathrm{Hom}}
+\newcommand{\id}{\mathrm{id}}
+\newcommand{\Gal}{\mathrm{Gal}}
+\newcommand{\Frac}{\mathrm{Frac}}
+\newcommand{\colim}{\varinjlim}
+\newcommand{\lims}{\varprojlim}
+\newcommand{\Ind}{\mathrm{Ind}}
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\Nod}{\mathbb{N}^{\mathrm{op}}}
+\newcommand{\pione}{\pi_1^{\mathrm{\acute{e}t}}}
+
+% --- Header/Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\sffamily\nouppercase{\leftmark}}
+\fancyhead[R]{\small\sffamily Lean 4 形式化}
+\fancyfoot[C]{\thepage}
+
+% =============================================================================
+\begin{document}
+
+% --- Title ---
+\title{%
+  {\LARGE\sffamily\bfseries StructureTower NT4:\\[0.3em]
+   副有限塔と遠アーベル幾何}\\[0.5em]
+  {\large\sffamily Lean 4 による形式化とその数学的解説}%
+}
+\author{su}
+\date{\today}
+\maketitle
+
+% --- AI Disclosure ---
+\begin{center}
+\small
+\textit{AI assistance disclosure:}\\
+Lean ソースコードは Claude (Anthropic) で骨格を生成し、
+Codex (OpenAI) で修正した。\\
+\TeX\ 文書は Claude Code (Anthropic) で生成した。\\
+著者による加筆・修正は行っていない。\\
+内容の正確性は保証されず、誤りがあれば著者の責任である。
+\end{center}
+
+\vspace{1em}
+
+% --- Abstract ---
+\begin{abstract}
+本ノートは Lean 4 / Mathlib4 による形式化プロジェクト「StructureTower 数論シリーズ NT4」の
+数学的解説である。NT1--NT3 で構築した有限ガロア群のフィルトレーション理論を副有限群へと拡張し、
+遠アーベル幾何の核心的概念を \(\mathrm{StructureTower}\) の言語で記述する。
+
+具体的には以下を扱う：
+\begin{enumerate}
+  \item \textbf{副有限塔}（\S\ref{sec:profinite}）：
+    分離条件付き正規部分群列から \(\mathrm{StructureTower}\) を構成し、
+    切詰め操作（有限近似）を定式化する。
+  \item \textbf{塔のネットワーク}（\S\ref{sec:network}）：
+    整合的な塔の族とその極限塔を構成する。副有限極限の構造塔版。
+  \item \textbf{復元問題}（\S\ref{sec:reconstruction}）：
+    塔の不変量・塔の同型・遠アーベル対応の骨格を定式化する。
+    「塔の同型 \(\Rightarrow\) 幾何学的同型」という遠アーベル性の抽象化。
+  \item \textbf{Hodge 劇場の骨格}（\S\ref{sec:hodge}）：
+    望月の IUT 理論における Hodge 劇場を、素点で添字された
+    \(\mathrm{RingGroupTowerData}\) の族として定式化する。
+  \item \textbf{リンクと不定性}（\S\ref{sec:links}）：
+    IUT の \(\Theta\)-リンクと3種類の不定性を \(\mathrm{StructureTower}\) で表現する。
+\end{enumerate}
+
+全 5 節を通じて \texttt{sorry} を用いない完全形式化を達成した。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{序文と動機}
+\label{sec:intro}
+% =============================================================================
+
+\subsection{StructureTower の復習}
+
+NT1--NT3 で構築した基盤を簡潔に振り返る。
+
+\begin{definition}[StructureTower]
+\label{def:st}
+前順序集合 $(\iota, \leq)$ と型 $\alpha$ に対し、
+\emph{StructureTower} $T$ とは次のデータの組である：
+\[
+  T = (\mathrm{level} : \iota \to \mathcal{P}(\alpha),\;
+       \text{monotone\_level} : i \leq j \Rightarrow T.\mathrm{level}(i) \subseteq T.\mathrm{level}(j))
+\]
+すなわち、$\iota$ で添字された $\alpha$ の部分集合の単調増大族である。
+\end{definition}
+
+基本的な派生概念として次を定義する：
+\[
+  \mathrm{union}(T) = \bigcup_{i \in \iota} T.\mathrm{level}(i), \quad
+  \mathrm{global}(T) = \bigcap_{i \in \iota} T.\mathrm{level}(i).
+\]
+
+\begin{definition}[Hom と NatInclusion]
+2つの塔 $T_1 : \ST(\iota, \alpha)$, $T_2 : \ST(\iota, \beta)$ に対し、
+\begin{itemize}
+  \item \emph{Hom} $f : T_1 \to T_2$ は関数 $f : \alpha \to \beta$ で、
+    任意の $i$ について $f(T_1.\mathrm{level}(i)) \subseteq T_2.\mathrm{level}(i)$ を満たすもの。
+  \item \emph{NatInclusion} $T_1 \leq T_2$（同じ型上）は
+    $\forall i,\; T_1.\mathrm{level}(i) \subseteq T_2.\mathrm{level}(i)$ のこと。
+\end{itemize}
+\end{definition}
+
+\subsection{NT4 の動機：副有限群の世界へ}
+
+代数的数論において最も基本的な対象は\emph{副有限群}である：
+\[
+  G_K = \Gal(\overline{K}/K) = \lims_L \Gal(L/K),
+  \quad
+  \pione(X) = \lims_{Y \to X} \mathrm{Aut}(Y/X).
+\]
+これらは開正規部分群の減少列 $G \supseteq N_1 \supseteq N_2 \supseteq \cdots$（$\bigcap N_i = \{1\}$）
+によって決定される。各商 $G/N_i$ は有限群であり、NT1 の \(\mathrm{ramificationTower}\) が適用できる。
+
+\begin{mathinsight}
+副有限群の構造塔的視点：
+\[
+  G = \lims_n G/N_n \longleftrightarrow \ST(\Nod, G),\quad
+  T.\mathrm{level}(n) = N_n.
+\]
+NT4 の核心は「塔の族の整合的極限」として副有限群を捉え、
+その上に遠アーベル幾何の枠組みを構築することにある。
+\end{mathinsight}
+
+遠アーベル幾何の核心的思想は次のように定式化できる：
+\begin{center}
+  \textit{算術的対象（数体・双曲的曲線）は\\
+  そのエタール基本群（と上のフィルトレーション）から復元できる。}
+\end{center}
+
+StructureTower の言語では：
+\[
+  \text{幾何的対象 } X \;\leftrightarrow\;
+  \pione(X) \text{ 上の StructureTower},
+  \quad
+  \text{遠アーベル性} = \text{この対応が同型を保つこと。}
+\]
+
+% =============================================================================
+\section{副有限塔}
+\label{sec:profinite}
+% =============================================================================
+
+\subsection{定義と基本性質}
+
+\begin{definition}[RamificationData（NT1 の復習）]
+\label{def:ramdata}
+群 $G$ に対し、$\mathrm{RamificationData}$ とは
+\[
+  \mathrm{groups} : \Nat \to \mathrm{Subgroup}(G),\quad
+  \text{antitone},\quad
+  \mathrm{groups}(0) \leq \top,\quad
+  \text{各 } N_n \text{ は正規部分群}
+\]
+のデータの組である。これから \(\mathrm{ramificationTower}(\mathrm{rd}) : \ST(\Nod, G)\) が得られ、
+$\mathrm{level}(n) = N_n$（$n \in \Nod$）が定義される。
+\end{definition}
+
+\begin{definition}[IsSeparatedFiltration]
+正規部分群列 $f : \Nat \to \mathrm{Subgroup}(G)$ が\emph{分離的}であるとは、
+\[
+  \bigsqcap_{n \in \Nat} f(n) = \bot \quad
+  (\text{すなわち } \bigcap_{n} N_n = \{1\})
+\]
+が成り立つことをいう。
+\end{definition}
+
+\begin{definition}[ProfiniteTowerData]
+\label{def:profinite}
+$\mathrm{ProfiniteTowerData}$ は $\mathrm{RamificationData}$ に分離条件を追加したものである：
+\[
+  \mathrm{ProfiniteTowerData}(G) = \mathrm{RamificationData}(G) + \mathrm{separated}.
+\]
+これは副有限群 $G = \lims_n G/N_n$ の StructureTower 的記述の前提条件を与える。
+\end{definition}
+
+\begin{leancode}[caption={ProfiniteTowerData と profiniteTower の Lean 定義}]
+structure ProfiniteTowerData (G : Type*) [Group G] extends
+    RamificationData G where
+  separated : IsSeparatedFiltration groups
+
+def profiniteTower (pd : ProfiniteTowerData G) : StructureTower Nod G :=
+  ramificationTower pd.toRamificationData
+\end{leancode}
+
+\begin{theorem}[profiniteTower\_global\_eq]
+\label{thm:global}
+$\mathrm{pd} : \mathrm{ProfiniteTowerData}(G)$ に対し、
+\[
+  \mathrm{global}(\mathrm{profiniteTower}(\mathrm{pd})) = \{1_G\}.
+\]
+\end{theorem}
+
+\begin{proof}
+$x \in \mathrm{global}(T)$ は $x \in \bigcap_n N_n$ を意味する。
+分離条件 $\bigsqcap_n N_n = \bot$ より $x \in N_n$ が全 $n$ で成り立つことと
+$x = 1$ は同値である。
+
+Lean ではこれを次のように証明する：
+\begin{proofstrategy}
+\texttt{Subgroup.mem\_iInf} で $x \in \bigsqcap N_n$ を全称命題に変換し、
+\texttt{pd.separated}（$= \bigsqcap N_n = \bot$）と \texttt{Subgroup.mem\_bot} を組み合わせる。
+\end{proofstrategy}
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=2.5cm, row sep=1.5cm]
+  G \arrow[r, equals, "\mathrm{level}(0)"]
+  & N_0 = G \\
+  N_1 \arrow[u, hook] \arrow[r, equals, "\mathrm{level}(1)"]
+  & N_1 \\
+  N_2 \arrow[u, hook] \arrow[r, equals, "\mathrm{level}(2)"]
+  & N_2 \\
+  \vdots \arrow[u, hook]
+  & \vdots \\
+  \{1\} \arrow[u, hook] \arrow[r, equals, "\mathrm{global}"]
+  & \{1\}
+\end{tikzcd}
+\caption{副有限塔のフィルトレーション構造。
+正規部分群列 $G = N_0 \supseteq N_1 \supseteq N_2 \supseteq \cdots$ が
+$\ST(\Nod, G)$ の各レベルを与え、global が $\{1\}$ に収束する（分離条件）。}
+\label{fig:profinite}
+\end{figure}
+
+\subsection{切詰め塔（有限近似）}
+
+副有限群の重要な操作のひとつが「$n$ での切詰め」である。
+これは「有限部分拡大 $L_n/K$ の情報だけを見る」という操作に対応する。
+
+\begin{definition}[truncateTower]
+\label{def:truncate}
+$T : \ST(\Nod, \alpha)$ と $n : \Nat$ に対し、\emph{切詰め塔}を
+\[
+  \mathrm{truncateTower}(T, n).\mathrm{level}(k) = T.\mathrm{level}(\min(n, k))
+\]
+で定義する（$k \in \Nod$ として $k \leq n$ のときは $T.\mathrm{level}(k)$ をそのまま、
+$k \geq n$ のときは $T.\mathrm{level}(n)$ で止まる）。
+\end{definition}
+
+\begin{remark}
+$\Nod = \Nat^{\mathrm{op}}$ の単調性に注意：$i \leq j$（$\Nod$ の意味で）とは
+$j \leq i$（$\Nat$ の意味で）であり、添字が小さいほど「細かい」フィルトレーションを表す。
+したがって切詰めは $k \geq n$ の部分（粗い部分）を $n$ のレベルで止める操作である。
+\end{remark}
+
+\begin{proposition}[切詰めの NatInclusion]
+$T : \ST(\Nod, \alpha)$ に対し、
+\[
+  \mathrm{NatInclusion}(T, \mathrm{truncateTower}(T, n)).
+\]
+すなわち $T.\mathrm{level}(k) \subseteq \mathrm{truncateTower}(T, n).\mathrm{level}(k)$。
+\end{proposition}
+
+\begin{proposition}[切詰めの単調性]
+$m \leq n$ ならば
+\[
+  \mathrm{NatInclusion}(\mathrm{truncateTower}(T, n),\; \mathrm{truncateTower}(T, m)).
+\]
+粗い切詰め（小さい $m$）の方が各レベルが「広い」。
+\end{proposition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=3cm, row sep=1.2cm]
+  T & \mathrm{truncate}(T,2) & \mathrm{truncate}(T,1) \\[-0.5em]
+  T.\mathrm{level}(0) \arrow[r, hook]
+  & T.\mathrm{level}(\min 2,0)=T.\mathrm{level}(0) \arrow[r, hook]
+  & T.\mathrm{level}(\min 1,0)=T.\mathrm{level}(0) \\
+  T.\mathrm{level}(1) \arrow[u, hook] \arrow[r, hook]
+  & T.\mathrm{level}(1) \arrow[u, hook] \arrow[r, hook]
+  & T.\mathrm{level}(1) \arrow[u, hook] \\
+  T.\mathrm{level}(2) \arrow[u, hook] \arrow[r, hook]
+  & T.\mathrm{level}(2) \arrow[u, hook] \arrow[r, equals, "k\geq 2\text{ で止まる}"]
+  & T.\mathrm{level}(1) \arrow[u, equals] \\
+  T.\mathrm{level}(3) \arrow[u, hook] \arrow[r, hook]
+  & T.\mathrm{level}(2) \arrow[u, equals] \arrow[r, equals]
+  & T.\mathrm{level}(1) \arrow[u, equals]
+\end{tikzcd}
+\caption{切詰め操作の比較。$T, \mathrm{truncate}(T,2), \mathrm{truncate}(T,1)$
+の各レベルの関係。深いレベルほど元の塔との差が現れる。
+各行の包含が NatInclusion を与える。}
+\label{fig:truncate}
+\end{figure}
+
+% =============================================================================
+\section{塔のネットワーク}
+\label{sec:network}
+% =============================================================================
+
+\subsection{塔の対の族}
+
+遠アーベル幾何では、一つの数体 $K$ に対して複数のフィルトレーション付き対象が
+同時に存在し、互いに整合的に関係する。
+
+\begin{definition}[TowerPairingFamily]
+$T_1 : \Nat \to \ST(\iota, \alpha)$, $T_2 : \Nat \to \ST(\iota, \beta)$ に対し、
+\emph{塔の対の族}（TowerPairingFamily）とは次のデータである：
+\begin{itemize}
+  \item $\mathrm{pairing}(n) : \mathrm{TowerPairing}(T_1(n), T_2(n))$（各 $n$ での対）
+  \item $\mathrm{forward\_coherent}$：
+    $x \in T_1(n).\mathrm{level}(i)$ かつ $x \in T_1(n+1).\mathrm{level}(i)$ ならば
+    $\mathrm{pairing}(n).\mathrm{forward}(x) = \mathrm{pairing}(n+1).\mathrm{forward}(x)$
+\end{itemize}
+\end{definition}
+
+\subsection{整合的族と極限塔}
+
+\begin{definition}[IsCoherentFamily]
+\label{def:coherent}
+$T : \Nat \to \ST(\iota, \alpha)$ が\emph{整合的}（IsCoherentFamily）であるとは、
+\[
+  \forall n \leq m,\quad \mathrm{NatInclusion}(T(m), T(n))
+\]
+が成り立つことである。すなわち、$m$ が大きいほど塔が「細かい」（各レベルが小さい）。
+\end{definition}
+
+\begin{remark}
+切詰め塔の族 $n \mapsto \mathrm{truncateTower}(T, n)$ は整合的族の典型例である。
+命題 \ref{prop:trunccoherent} として形式化されている。
+\end{remark}
+
+\begin{proposition}[truncateTower\_coherent]
+\label{prop:trunccoherent}
+$T : \ST(\Nod, \alpha)$ に対し、
+$n \mapsto \mathrm{truncateTower}(T, n)$ は整合的族である。
+\end{proposition}
+
+\begin{definition}[limTower（極限塔）]
+\label{def:limtower}
+整合的族 $T : \Nat \to \ST(\iota, \alpha)$ に対し、\emph{極限塔}を
+\[
+  \mathrm{limTower}(T, -).\mathrm{level}(i) = \bigcup_{n \in \Nat} T(n).\mathrm{level}(i)
+\]
+で定義する。
+\end{definition}
+
+\begin{mathinsight}
+この定義は副有限極限の「双対的」な構造を反映している。
+副有限群 $G = \lims_n G/N_n$ において、各 $G/N_n$ を
+$\ST(\Nod, G/N_n)$ として捉えると、その「直和」（$\bigcup_n$）が
+$G$ 自身の塔構造に対応する。
+\end{mathinsight}
+
+\begin{proposition}[natInclusion\_of\_limTower]
+各 $n$ について、
+\[
+  \mathrm{NatInclusion}(T(n), \mathrm{limTower}(T, -)).
+\]
+\end{proposition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=1.8cm, row sep=1.5cm]
+  T(0) \arrow[dr, "\leq" description, sloped]
+    & T(1) \arrow[d, "\leq" description]
+    & T(2) \arrow[dl, "\leq" description, sloped]
+    & \cdots \arrow[dll, "\leq" description, sloped] \\
+  & \mathrm{limTower}(T)
+\end{tikzcd}
+\caption{整合的族の極限塔。各 $T(n)$ から $\mathrm{limTower}(T)$ への NatInclusion が存在し、
+$\mathrm{limTower}$ は族の「最大の塔」（各レベルで合併）を与える。
+副有限群においては各切詰め塔 $\mathrm{truncate}(G_{\bullet}, n)$ の極限が
+元の副有限塔 $G_{\bullet}$ に対応する。}
+\label{fig:limtower}
+\end{figure}
+
+% =============================================================================
+\section{復元問題と遠アーベル対応}
+\label{sec:reconstruction}
+% =============================================================================
+
+\subsection{塔の不変量}
+
+\begin{definition}[TowerInvariant]
+$(\iota, \alpha)$ の\emph{塔の不変量}とは、
+\[
+  \mathrm{Inv} = (\mathrm{value\_type} : \mathrm{Type},\;
+                 \mathrm{compute} : \ST(\iota, \alpha) \to \mathrm{value\_type})
+\]
+のデータである。
+\end{definition}
+
+典型的な不変量として次の2つがある：
+
+\begin{example}[jumpSetInvariant と globalInvariant]
+\[
+  \mathrm{jumpSetInvariant}.\mathrm{compute}(T) = \mathrm{jumpSet}(T) \subseteq \Nat,
+\]
+\[
+  \mathrm{globalInvariant}.\mathrm{compute}(T) = \mathrm{global}(T) \subseteq \alpha.
+\]
+ここで $\mathrm{jumpSet}(T) = \{n \in \Nat \mid \mathrm{gradedPiece}(T, n) \neq \emptyset\}$。
+\end{example}
+
+\subsection{塔の同型と遠アーベル対応}
+
+\begin{definition}[TowerIso]
+$T_1 : \ST(\iota, \alpha)$, $T_2 : \ST(\iota, \beta)$ の間の\emph{塔の同型}とは、
+$\mathrm{TowerPairing}(T_1, T_2)$ の拡張で、追加条件
+\[
+  \forall i,\quad \mathrm{forward}(T_1.\mathrm{level}(i)) = T_2.\mathrm{level}(i)
+\]
+を満たすものである。
+\end{definition}
+
+\begin{proposition}[towerIso\_natInclusion\_eq]
+$\mathrm{iso} : \mathrm{TowerIso}(T_1, T_2)$ に対し、
+\[
+  \forall i,\quad (\mathrm{map}(\mathrm{iso}.\mathrm{forward}, T_1)).\mathrm{level}(i)
+  = T_2.\mathrm{level}(i).
+\]
+\end{proposition}
+
+\begin{definition}[AnabelianCorrespondence（遠アーベル対応）]
+\label{def:anabelian}
+型 $D$（幾何学的データ）と型 $\alpha$（係数）に対し、
+\emph{遠アーベル対応}とは次のデータである：
+\begin{align*}
+  &\mathrm{toTower} : D \to \ST(\Nod, \alpha), \\
+  &\mathrm{fromIso} : \forall d_1, d_2 : D,\; \mathrm{TowerIso}(\mathrm{toTower}(d_1), \mathrm{toTower}(d_2)) \to \mathrm{Prop}, \\
+  &\mathrm{faithful} : \forall d_1, d_2,\; \forall \mathrm{iso},\; \mathrm{fromIso}(d_1, d_2, \mathrm{iso}).
+\end{align*}
+$\mathrm{faithful}$ 条件が「塔の同型から幾何的同値を復元できる」という遠アーベル性を表す。
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=4cm, row sep=2.5cm]
+  d_1 \in D
+  \arrow[r, "\mathrm{toTower}"]
+  \arrow[d, dashed, "\text{幾何的同値}" description]
+  & T_1 = \mathrm{toTower}(d_1)
+  \arrow[d, "\mathrm{TowerIso}"]
+  \\
+  d_2 \in D
+  \arrow[r, "\mathrm{toTower}"]
+  & T_2 = \mathrm{toTower}(d_2)
+\end{tikzcd}
+\caption{遠アーベル対応の図式。右縦の矢印（TowerIso）が存在するとき、
+$\mathrm{faithful}$ 条件により左縦の矢印（幾何的同値）が存在する。
+具体的には $D = $ 数体の集合、$T = $ 絶対ガロア群のフィルトレーション、
+$\mathrm{faithful}$ が Neukirch--Uchida 定理に対応する。}
+\label{fig:anabelian}
+\end{figure}
+
+\begin{remark}
+Neukirch--Uchida 定理（1969--1977）は、代数的数体 $K, L$ について
+$\Gal(\overline{\mathbb{Q}}/K) \cong \Gal(\overline{\mathbb{Q}}/L)$
+ならば $K \cong L$ を主張する。これは図 \ref{fig:anabelian} における
+$D = $ \{代数的数体\}、$\mathrm{toTower}(K) = $ 絶対ガロア群のフィルトレーション
+とした場合の $\mathrm{faithful}$ に対応する。
+
+望月の定理（2012）は $D = $ \{$p$-進体上の双曲的曲線\} に対する対応を与える。
+\end{remark}
+
+% =============================================================================
+\section{Hodge 劇場の骨格}
+\label{sec:hodge}
+% =============================================================================
+
+\subsection{動機：IUT 理論の枠組み}
+
+望月新一の宇宙際 Teichmüller 理論（IUT 理論）における基本的な構造単位が
+\emph{Hodge 劇場}である。数体 $K$ の素点 $\mathfrak{p}$ ごとに局所データが存在し、
+それらが整合的にまとめられた構造を指す。
+
+\begin{definition}[HodgeTheaterData]
+\label{def:hodge}
+素点の集合 $P$、可換環 $R$、群 $G$ に対し、
+\emph{Hodge 劇場データ}とは次のデータの組である：
+\begin{align*}
+  &\mathrm{primeIdeal} : P \to \mathrm{Ideal}(R), \\
+  &\mathrm{action} : P \to G \to (R \xrightarrow{\sim} R), \\
+  &\mathrm{groupFilt} : P \to \Nat \to \mathrm{Subgroup}(G), \\
+  &\text{antitone} : \forall \mathfrak{p},\; \mathrm{antitone}(\mathrm{groupFilt}(\mathfrak{p})), \\
+  &\text{compatible} : \forall \mathfrak{p},\, n,\, \sigma \in \mathrm{groupFilt}(\mathfrak{p}, n),\,
+    \forall x \in R,\; \mathrm{action}(\mathfrak{p}, \sigma)(x) - x \in \mathrm{primeIdeal}(\mathfrak{p})^n.
+\end{align*}
+\end{definition}
+
+各素点 $\mathfrak{p}$ でのデータは NT3 の $\mathrm{RingGroupTowerData}$ に対応する：
+
+\begin{leancode}[caption={HodgeTheaterData の各素点への分解}]
+def HodgeTheaterData.atPrime (h : HodgeTheaterData P R G) (p : P)
+    : RingGroupTowerData R G where
+  ideal               := h.primeIdeal p
+  action              := h.action p
+  groupFiltration     := h.groupFilt p
+  groupFiltration_antitone := h.antitone p
+  compatible          := h.compatible p
+\end{leancode}
+
+\subsection{各素点での塔}
+
+\begin{definition}[ringTowerAt と groupTowerAt]
+$h : \mathrm{HodgeTheaterData}(P, R, G)$ と $\mathfrak{p} \in P$ に対し、
+\begin{align*}
+  h.\mathrm{ringTowerAt}(\mathfrak{p}).\mathrm{level}(n) &= h.\mathrm{primeIdeal}(\mathfrak{p})^n, \\
+  h.\mathrm{groupTowerAt}(\mathfrak{p}).\mathrm{level}(n) &= h.\mathrm{groupFilt}(\mathfrak{p}, n).
+\end{align*}
+\end{definition}
+
+\begin{theorem}[ringTower\_natInclusion\_of\_le]
+$h.\mathrm{primeIdeal}(\mathfrak{p}) \leq h.\mathrm{primeIdeal}(\mathfrak{q})$ ならば
+\[
+  \mathrm{NatInclusion}(h.\mathrm{ringTowerAt}(\mathfrak{p}),\; h.\mathrm{ringTowerAt}(\mathfrak{q})).
+\]
+すなわち、イデアルの包含関係がそのまま塔の包含関係を誘導する。
+\end{theorem}
+
+\begin{proof}
+$\mathfrak{p} \leq \mathfrak{q}$ ならば $\mathfrak{q}^n \leq \mathfrak{p}^n$（逆向き）が成り立つが、
+ここでは $\mathfrak{p} \leq \mathfrak{q}$（イデアルとしての包含）から
+$\mathfrak{p}^n \leq \mathfrak{q}^n$ を得る。
+Lean では \texttt{Ideal.pow\_right\_mono} を使う。
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=2.8cm, row sep=1.8cm]
+  & h.\mathrm{ringTowerAt}(\mathfrak{p}) \arrow[rd, "\mathrm{NatInclusion}"]
+  & \\
+  h : \mathrm{HodgeTheaterData} \arrow[ru, "\mathrm{ringTowerAt}(\mathfrak{p})"]
+    \arrow[r, "\mathrm{ringTowerAt}(\mathfrak{q})" description]
+    \arrow[rd, "\mathrm{groupTowerAt}(\mathfrak{p})"']
+  & h.\mathrm{ringTowerAt}(\mathfrak{q}) \arrow[r, "\text{if }\mathfrak{p}\leq\mathfrak{q}"]
+  & \mathrm{NatIncl}
+  \\
+  & h.\mathrm{groupTowerAt}(\mathfrak{p})
+  &
+\end{tikzcd}
+\caption{HodgeTheaterData から各素点での塔の構成。
+素点 $\mathfrak{p}$ に対して環塔・群塔が得られ、
+素点間の整除関係（$\mathfrak{p} \leq \mathfrak{q}$）が
+環塔の NatInclusion を誘導する。}
+\label{fig:hodge}
+\end{figure}
+
+\begin{definition}[TheaterMorphism]
+2つの Hodge 劇場データ $h_1, h_2$ の間の\emph{劇場射}とは、
+各素点 $\mathfrak{p}$ について
+\begin{itemize}
+  \item $\mathrm{ringHom}(\mathfrak{p}) : \Hom(h_1.\mathrm{ringTowerAt}(\mathfrak{p}),\, h_2.\mathrm{ringTowerAt}(\mathfrak{p}))$
+  \item $\mathrm{groupHom}(\mathfrak{p}) : \Hom(h_1.\mathrm{groupTowerAt}(\mathfrak{p}),\, h_2.\mathrm{groupTowerAt}(\mathfrak{p}))$
+\end{itemize}
+を与えるものである。恒等劇場射 $\id : h \to h$ は各素点で $\Hom.\id$ を取ることで得られる。
+\end{definition}
+
+% =============================================================================
+\section{リンクと不定性}
+\label{sec:links}
+% =============================================================================
+
+\subsection{IUT 理論における非標準性}
+
+IUT 理論の最も独創的な概念は\textbf{不定性}である。
+通常の数学では2つの Hodge 劇場は「標準的な同型」で結ばれるが、
+IUT 理論ではこの標準性を意図的に壊す。
+
+\begin{definition}[IndeterminacyType（不定性の分類）]
+IUT 理論に現れる3種類の不定性を次の帰納型で表現する：
+\[
+  \mathrm{IndeterminacyType} ::= \mathrm{conjugation} \mid \mathrm{multiplicative} \mid \mathrm{logarithmic}.
+\]
+\begin{itemize}
+  \item \textbf{Ind1（共役不定性）}：群の内部自己同型 $x \mapsto gxg^{-1}$ の非一意性。
+  \item \textbf{Ind2（乗法的不定性）}：$p$-進単数群 $\mathcal{O}_K^{\times}$ の作用。
+  \item \textbf{Ind3（対数的不定性）}：$p$-進対数 $\log$ と指数 $\exp$ の選択の非一意性。
+\end{itemize}
+\end{definition}
+
+\begin{definition}[conjugacyIndeterminacy（共役不定性）]
+$\mathrm{rd} : \mathrm{RamificationData}(G)$ に対し、
+\[
+  \mathrm{conjugacyIndeterminacy}(\mathrm{rd}) =
+  \{ h \in \Hom(T, T) \mid \exists g \in G,\; h(x) = gxg^{-1} \}
+\]
+ここで $T = \mathrm{ramificationTower}(\mathrm{rd})$。
+\end{definition}
+
+\begin{proposition}
+$\id_T \in \mathrm{conjugacyIndeterminacy}(\mathrm{rd})$。
+\end{proposition}
+
+\begin{proof}
+$g = 1$ とすると $1 \cdot x \cdot 1^{-1} = x$ より恒等写像が共役不定性に属する。
+\end{proof}
+
+\subsection{不定性を含む対}
+
+\begin{definition}[IndeterminatePairing（不定性付き対）]
+\label{def:indpair}
+$T_1 : \ST(\Nod, \alpha)$, $T_2 : \ST(\Nod, \beta)$ に対し、
+\emph{不定性付き対}とは次のデータである：
+\begin{align*}
+  &\mathrm{forwardSet} \subseteq (\alpha \to \beta), \\
+  &\mathrm{all\_preserve} : \forall f \in \mathrm{forwardSet},\; \forall i,\;
+    f(T_1.\mathrm{level}(i)) \subseteq T_2.\mathrm{level}(i), \\
+  &\mathrm{nonempty} : \mathrm{forwardSet} \neq \emptyset.
+\end{align*}
+任意の $f \in \mathrm{forwardSet}$ が $T_1 \to T_2$ の Hom を与えるが、
+$f$ の選択は一意でない（不定性）。
+\end{definition}
+
+\begin{proposition}[someHom]
+$p : \mathrm{IndeterminatePairing}(T_1, T_2)$ に対し、
+（選択公理を用いて）$p.\mathrm{nonempty}$ から具体的な Hom を取り出せる：
+\[
+  p.\mathrm{someHom} : \Hom(T_1, T_2).
+\]
+\end{proposition}
+
+\begin{leancode}[caption={IndeterminatePairing と someHom}]
+noncomputable def IndeterminatePairing.someHom
+    {T1 : StructureTower Nod a} {T2 : StructureTower Nod b}
+    (p : IndeterminatePairing T1 T2) : Hom T1 T2 where
+  toFun    := p.nonempty.some
+  preserves := p.all_preserve _ p.nonempty.some_mem
+\end{leancode}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=4.5cm, row sep=2cm]
+  T_1
+  \arrow[r, bend left=30, "f_1 \in \mathrm{forwardSet}"]
+  \arrow[r, "f_2 \in \mathrm{forwardSet}" description]
+  \arrow[r, bend right=30, "f_3 \in \mathrm{forwardSet}"']
+  & T_2
+\end{tikzcd}
+\caption{不定性付き対（IndeterminatePairing）。$T_1$ から $T_2$ への写像が
+$\mathrm{forwardSet}$ という集合として与えられ、その中の任意の $f$ が Hom 条件を満たす。
+IUT 理論の $\Theta$-リンクはこの不定性付き対として定式化される。
+どの $f$ を選ぶかが「フロベニウス環の選択」に対応する。}
+\label{fig:indeterminate}
+\end{figure}
+
+\begin{mathinsight}
+IUT 理論の核心的主張は、不定性付き対を通じた「環と群の構造の比較」である。
+$\Theta$-リンクは環の塔を保存するが群の塔は保存しない（またはその逆）という
+非標準的な写像であり、まさに $\mathrm{forwardSet}$ の非一意性に相当する。
+
+3種類の不定性（Ind1, Ind2, Ind3）は Lean では：
+\begin{itemize}
+  \item Ind1 $\leftrightarrow$ \texttt{conjugacyIndeterminacy}（共役 Hom の集合）
+  \item Ind2 $\leftrightarrow$ 環塔の自己 Hom の族（乗法的変形）
+  \item Ind3 $\leftrightarrow$ 異なる \texttt{reindex} の選択（対数スケール変換）
+\end{itemize}
+として \texttt{forwardSet} の具体例として捉えられる。
+\end{mathinsight}
+
+% =============================================================================
+\section{NT4 の全体像と数論シリーズの完結}
+\label{sec:summary}
+% =============================================================================
+
+\subsection{概念の階層図}
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=1.5cm, row sep=1.2cm]
+  & \text{L1--L7（基盤）} \arrow[d] \\
+  & \text{NT1: 群の塔} \arrow[d] \arrow[dl] \arrow[dr] \\
+  \text{\footnotesize conjugationHom} &
+  \text{NT2: Herbrand reindex} \arrow[d] &
+  \text{\footnotesize ramificationBreak} \\
+  & \text{NT3: Tower Comparison} \arrow[d] \arrow[dl] \arrow[dr] \\
+  \text{\footnotesize TowerPairing} &
+  \text{NT4: 副有限 + 遠アーベル} &
+  \text{\footnotesize RingGroupTowerData} \\
+  & \arrow[ul] \arrow[u] \arrow[ur] \\
+  \text{\footnotesize ProfiniteTowerData} &
+  \text{\footnotesize TowerIso + Anabelian} &
+  \text{\footnotesize HodgeTheaterData + Indeterminacy}
+\end{tikzcd}
+\caption{NT1--NT4 の概念階層。各段階が前段階の概念を拡張・深化する。}
+\label{fig:hierarchy}
+\end{figure}
+
+\subsection{NT4 で示された主な定理・定義の一覧}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+節 & 名称 & 数学的内容 \\
+\midrule
+\S\ref{sec:profinite} & \texttt{ProfiniteTowerData} & 副有限群のフィルトレーション \\
+& \texttt{profiniteTower\_global\_eq} & global $= \{1\}$（副有限完備化の完全分離性） \\
+& \texttt{truncateTower} & $n$ での有限近似 \\
+& \texttt{truncateTower\_monotone} & 切詰めの単調性 \\
+\midrule
+\S\ref{sec:network} & \texttt{TowerPairingFamily} & 対の添字付き族 \\
+& \texttt{IsCoherentFamily} & 逆系的整合性 \\
+& \texttt{limTower} & 整合的族の極限塔（$\bigcup_n$）\\
+& \texttt{natInclusion\_of\_limTower} & 各 $T(n)$ は極限以下 \\
+\midrule
+\S\ref{sec:reconstruction} & \texttt{TowerInvariant} & 塔から計算可能な量 \\
+& \texttt{TowerIso} & レベル一致を保証する双方向 Hom \\
+& \texttt{AnabelianCorrespondence} & 遠アーベル復元の骨格 \\
+\midrule
+\S\ref{sec:hodge} & \texttt{HodgeTheaterData} & 素点添字の劇場 \\
+& \texttt{ringTowerAt / groupTowerAt} & 各素点での塔 \\
+& \texttt{ringTower\_natInclusion\_of\_le} & 素点間整除 $\Rightarrow$ 塔の包含 \\
+& \texttt{TheaterMorphism.id} & 恒等劇場射 \\
+\midrule
+\S\ref{sec:links} & \texttt{IndeterminacyType} & 共役・乗法・対数の3分類 \\
+& \texttt{conjugacyIndeterminacy} & 共役 Hom の集合 \\
+& \texttt{IndeterminatePairing} & 不定性を含む対 \\
+& \texttt{someHom} & 選択公理による Hom の抽出 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{数論シリーズ NT1--NT4 の完結}
+
+NT1--NT4 を通じて示した主定理を\emph{数論的塔双対性}として次のように要約できる：
+
+\begin{theorem}[数論的塔双対性（非形式的）]
+数論的フィルトレーション
+（分岐群列、イデアル冪、Herbrand 上付番号、副有限完備化、Hodge 劇場）は、
+$\mathrm{StructureTower}$ の
+$\Hom + \mathrm{reindex} + \mathrm{Pairing} + \mathrm{Indeterminacy}$ の体系として
+自然に記述され、以下が成り立つ：
+\begin{enumerate}
+  \item 群の塔は偏差写像を通じて環の塔から決定される（IsExactPairing）。
+  \item Herbrand reindex は部分群制限と可換になる唯一の reindex。
+  \item 副有限極限は切詰め塔の整合的族の limTower として構成される。
+  \item 遠アーベル復元は TowerIso の忠実性として定式化される。
+  \item IUT の不定性は IndeterminatePairing として捉えられる。
+\end{enumerate}
+\end{theorem}
+
+\begin{mathinsight}
+この結果の重要な点は、$\mathrm{OrderHom}(\iota, \mathcal{P}(\alpha))$（単なる単調写像）では
+自然に記述できない構造が、StructureTower の Hom 圏的な言語を採用することで
+統一的に扱えるという点にある。特に点5（不定性）は、
+「複数の選択が許される」という IUT 理論の本質的な非標準性を
+$\mathrm{forwardSet}$ という集合で明示的に表現している。
+\end{mathinsight}
+
+\begin{remark}[今後の課題]
+本シリーズで形式化できなかった（あるいは sorry を使わずに証明困難な）主な事項：
+\begin{itemize}
+  \item 具体的な Neukirch--Uchida 定理の Lean 形式化
+    （数体の形式的定義が Mathlib に未実装）
+  \item Hodge 劇場の「無限個の素点」版
+    （型理論的に多相的な型族が必要）
+  \item $\Theta$-リンクの具体的な構成
+    （Teichmüller 代表系の形式化が必要）
+  \item NT4-5 の IndeterminatePairing と IUT 四本定理の直接的な対応
+\end{itemize}
+これらは今後の形式化の課題として残る。
+\end{remark}
+
+% =============================================================================
+\end{document}
