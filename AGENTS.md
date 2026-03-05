@@ -60,3 +60,4 @@
 - `Ideal.map` / `Ideal.map_pow` / `Ideal.mem_map_of_mem` を使うときは `Mathlib.RingTheory.Ideal.Maps` を import する。
 - `AdicCompletion` を環として使うときは `Mathlib.RingTheory.AdicCompletion.Algebra` を import し、埋め込みは `algebraMap` を使う（`Ideal.AdicCompletion.of` は現行 API にない）。
 - `C r * X` の係数を読むときは `Polynomial.coeff_C_mul_X` を優先し、`coeff_C_mul_X_pow` に合わせて `X^1` へ書き換えない。
+- 素数の整除・互いに素・ℤ への持ち上げでは旧 API（`Nat.Prime.eq_of_dvd_of_prime` / `Nat.Coprime.pow_pow` / `Nat.Prime.prime_int`）を探さず、`Nat.prime_dvd_prime_iff_eq`・`Nat.coprime_pow_primes`・`Nat.prime_iff_prime_int`（必要なら `Mathlib.Data.Nat.Prime.Int`）を使う。
