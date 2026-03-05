@@ -247,16 +247,22 @@ theorem mem_gradedPiece_iff (T : StructureTower ℕᵒᵈ α) (n : ℕ) (x : α)
 theorem gradedPiece_disjoint (T : StructureTower ℕᵒᵈ α) {m n : ℕ} (h : m ≠ n) :
     gradedPiece T m ∩ gradedPiece T n = ∅ := by
   ext x
-  simp only [Set.mem_inter_iff, mem_gradedPiece_iff, Set.mem_empty_iff_false,
-    iff_false, not_and]
-  intro ⟨hm, hm'⟩ ⟨hn, _⟩
-  rcases Nat.lt_or_gt_of_ne h with h_lt | h_gt
-  · -- m < n → n ≥ m + 1 → level(toDual n) ⊆ level(toDual (m+1))
-    exact hm' (T.monotone_level (by exact OrderDual.toDual_le_toDual.mpr h_lt) hn)
-  · -- n < m → m ≥ n + 1 → level(toDual m) ⊆ level(toDual (n+1))
-    have : x ∈ T.level (OrderDual.toDual (n + 1)) :=
-      T.monotone_level (by exact OrderDual.toDual_le_toDual.mpr h_gt) hm
-    exact hm' (T.monotone_level (by exact OrderDual.toDual_le_toDual.mpr h_lt) hn)
+  constructor
+  · intro hx
+    rcases hx with ⟨hm, hn⟩
+    rcases (mem_gradedPiece_iff T m x).1 hm with ⟨hm0, hm1⟩
+    rcases (mem_gradedPiece_iff T n x).1 hn with ⟨hn0, hn1⟩
+    rcases Nat.lt_or_gt_of_ne h with hmn | hnm
+    · have hx' : x ∈ T.level (OrderDual.toDual (m + 1)) := by
+        have hle : m + 1 ≤ n := Nat.succ_le_of_lt hmn
+        exact T.monotone_level (OrderDual.toDual_le_toDual.mpr hle) hn0
+      exact hm1 hx'
+    · have hx' : x ∈ T.level (OrderDual.toDual (n + 1)) := by
+        have hle : n + 1 ≤ m := Nat.succ_le_of_lt hnm
+        exact T.monotone_level (OrderDual.toDual_le_toDual.mpr hle) hm0
+      exact hn1 hx'
+  · intro hx
+    exact False.elim hx
 
 /-- 🟡 Exercise NT2-1d: グレードの和集合と union の関係（上向き）。
     ⋃ₙ gradedPiece T n ⊆ union T。
@@ -348,10 +354,10 @@ def scaledHerbrand (groupSize : ℕ → ℕ) : ℕ → ℕ
     Hint-2: Φ(n+1) = Φ(n) + gs(n+1) ≥ Φ(n)。 -/
 theorem scaledHerbrand_monotone (gs : ℕ → ℕ) :
     Monotone (scaledHerbrand gs) := by
-  intro m n hmn
-  induction hmn with
-  | refl => le_refl _
-  | step h ih => exact le_trans ih (Nat.le_add_right _ _)
+  refine monotone_nat_of_le_succ ?_
+  intro n
+  rw [scaledHerbrand_succ]
+  exact Nat.le_add_right _ _
 
 /-- 🟡 Exercise NT2-2c: scaledHerbrand は Finset.sum で表現できる。
     Φ(n) = Σ_{i ∈ Finset.range n} gs(i + 1)。
@@ -376,14 +382,13 @@ theorem scaledHerbrand_eq_sum (gs : ℕ → ℕ) (n : ℕ) :
     Hint-2: m + 1 ≤ n で Φ(m+1) = Φ(m) + gs(m+1) ≥ Φ(m) + 1。 -/
 theorem scaledHerbrand_strictMono (gs : ℕ → ℕ) (hgs : ∀ i, 0 < i → 0 < gs i) :
     StrictMono (scaledHerbrand gs) := by
-  intro m n hmn
-  induction hmn with
-  | refl => exact absurd (lt_irrefl m) (fun h => h)
-  | @step k _ ih =>
-    simp only [scaledHerbrand_succ]
-    rcases Nat.eq_or_lt_of_le (Nat.lt_of_lt_of_le hmn (le_refl _)) with heq | hlt
-    · omega
-    · exact lt_of_lt_of_le ih (Nat.le_add_right _ _)
+  refine strictMono_nat_of_lt_succ ?_
+  intro n
+  calc
+    scaledHerbrand gs n < scaledHerbrand gs n + gs (n + 1) := by
+      exact Nat.lt_add_of_pos_right (hgs (n + 1) (Nat.succ_pos _))
+    _ = scaledHerbrand gs (n + 1) := by
+      rw [scaledHerbrand_succ]
 
 /-- Herbrand 関数から ℕᵒᵈ → ℕᵒᵈ の単調写像を構成。
     ℕᵒᵈ の順序では Φ が単調 ⟹ toDual ∘ Φ ∘ ofDual は反単調だが、
@@ -649,7 +654,7 @@ def HasseArfCondition (rd : RamificationData G) (gs : ℕ → ℕ) (g0size : ℕ
 
     Hint-1: scaledHerbrand_zero。
     Hint-2: dvd_zero。 -/
-theorem hasseArf_at_zero (rd : RamificationData G) (gs : ℕ → ℕ) (g0size : ℕ) :
+theorem hasseArf_at_zero (_rd : RamificationData G) (gs : ℕ → ℕ) (g0size : ℕ) :
     g0size ∣ scaledHerbrand gs 0 := by
   simp
 
@@ -668,12 +673,24 @@ theorem hasFiniteJumpSet_of_eventually_bot (rd : RamificationData G)
     (hBot : ∃ N : ℕ, ∀ n, N ≤ n → rd.groups n = ⊥) :
     HasFiniteJumpSet rd := by
   obtain ⟨N, hN⟩ := hBot
-  exact ⟨N, fun n hn => by
-    simp [jumpSet, gradedPiece, ramificationTower_level, Set.Nonempty]
-    intro x hx
-    have : rd.groups n = ⊥ := hN n hn
-    rw [this] at hx
-    simpa [Subgroup.mem_bot] using hx⟩
+  refine ⟨N, fun n hn => ?_⟩
+  intro hnJump
+  rcases (mem_jumpSet_iff (T := ramificationTower rd) n).1 hnJump with ⟨x, hxₙ, hxₙ₁⟩
+  have hgn : rd.groups n = ⊥ := hN n hn
+  have hx_eq_one : x = 1 := by
+    have hx_bot : x ∈ (⊥ : Subgroup G) := by
+      simpa [ramificationTower_level, hgn] using hxₙ
+    simpa [Subgroup.mem_bot] using hx_bot
+  have hgn_succ : rd.groups (n + 1) = ⊥ := by
+    apply le_antisymm
+    · have hle : rd.groups (n + 1) ≤ rd.groups n := rd.antitone (Nat.le_succ n)
+      simpa [hgn] using hle
+    · exact bot_le
+  have hx_succ : x ∈ (ramificationTower rd).level (OrderDual.toDual (n + 1)) := by
+    have hx_bot : x ∈ (⊥ : Subgroup G) := by
+      simp [hx_eq_one]
+    simpa [ramificationTower_level, hgn_succ] using hx_bot
+  exact hxₙ₁ hx_succ
 
 end HasseArf
 
