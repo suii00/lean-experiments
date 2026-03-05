@@ -340,7 +340,9 @@ theorem natInclusion_map_iff_hom {α β : Type*}
   constructor
   · intro h i x hx
     exact h i ⟨x, hx, rfl⟩
-  · intro h i y ⟨x, hx, rfl⟩
+  · intro h i y hy
+    rcases (show y ∈ f '' T₁.level i from by
+      simpa [map_level] using hy) with ⟨x, hx, rfl⟩
     exact h i x hx
 
 /-- 🟡 Exercise NT3-2b: comap による NatInclusion。
@@ -447,7 +449,7 @@ section DualTowerPair
 
 variable {ι : Type*} [Preorder ι]
 
-/-- 写像による塔の誘導（前像塔）。
+/- 写像による塔の誘導（前像塔）。
     f : α → β に対し、T : StructureTower ι β から
     comap f T : StructureTower ι α を構成。
     L2 で定義済みだが、NT3 の文脈で意味を再確認。
@@ -694,7 +696,6 @@ theorem deviation_mul (action : G → R →+* R) (σ τ : G)
     deviationMap action (σ * τ) x =
       deviationMap action σ (action τ x) + deviationMap action τ x := by
   simp [deviationMap, hcomp]
-  ring
 
 /-- 🔴 Exercise NT3-5d: 環-群整合性の基本定理。
     d : RingGroupTowerData R G に対し、
