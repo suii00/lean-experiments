@@ -63,3 +63,4 @@
 - 素数の整除・互いに素・ℤ への持ち上げでは旧 API（`Nat.Prime.eq_of_dvd_of_prime` / `Nat.Coprime.pow_pow` / `Nat.Prime.prime_int`）を探さず、`Nat.prime_dvd_prime_iff_eq`・`Nat.coprime_pow_primes`・`Nat.prime_iff_prime_int`（必要なら `Mathlib.Data.Nat.Prime.Int`）を使う。
 - `ClosureOperator (Set G)` を手で定義するときは `ClosureOperator.mk'` より `where` で `toFun` / `monotone'` / `le_closure'` / `idempotent'` を明示すると型ずれを避けやすい。
 - 空集合等式は `Set.eq_empty_iff_forall_not_mem` に依存せず、`ext x` で `x ∈ S ↔ False` を直接示すと環境差分に強い。
+- `min` の単調性補題は `Nat.min_le_min_left/right` ではなくグローバルの `min_le_min_left/right` を使う（現行 mathlib では `Nat.` 版がない）。
