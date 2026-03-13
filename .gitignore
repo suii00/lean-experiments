@@ -3,6 +3,11 @@ build/
 lake-packages/
 .lake/
 
+#Claude Code
+/logs/
+*.jsonl
+.claude/
+
 # IDE files
 .vscode/
 *.code-workspace
