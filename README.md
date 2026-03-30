@@ -9,6 +9,9 @@ AI が生成したアイデアを出発点に、定義・公理・反例・Lean 
 
 
 ### 構造の階層を意識する
+
+AIが出したこの階層図（Mathlibの型クラス構造）を出発点に、AIがStructureTowerという概念を生成した
+
 ```
 Set → Preorder → PartialOrder → Lattice → DistribLattice
    ↘ Magma → Semigroup → Monoid → Group → CommGroup
