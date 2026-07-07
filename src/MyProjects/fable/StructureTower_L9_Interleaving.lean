@@ -225,12 +225,11 @@ open scoped NNReal
 /-- ℝ 上の標準 shift: r ↦ r + ε（ε : ℝ≥0）。解析・TDA 側の添字。 -/
 def realShift : ShiftFamily ℝ ℝ≥0 where
   shift ε r := r + ε
-  monotone_shift := fun _ _ _ h => add_le_add_right h _
+  monotone_shift := fun _ _ _ h => by dsimp only; gcongr
   le_shift := fun ε r => le_add_of_nonneg_right ε.coe_nonneg
   shift_zero := fun r => by simp
   shift_add := fun ε δ r => by push_cast; ring
-  shift_mono_param := fun {ε δ} h r =>
-    add_le_add_left (NNReal.coe_le_coe.mpr h) r
+  shift_mono_param := fun {ε δ} h r => by gcongr
 
 /-- ℕᵒᵈ 上の標準 shift: n ↦ n - ε（切り捨て引き算）。
     減少フィルトレーション（イデアル冪・分岐群列）の添字。
