@@ -44,6 +44,7 @@
 import Mathlib.Data.Set.Lattice
 import Mathlib.Data.NNReal.Basic
 import Mathlib.Data.ENNReal.Basic
+import Mathlib.Data.ENNReal.Operations
 import Mathlib.Order.CompleteLattice.Basic
 
 open Set Function OrderDual
@@ -434,7 +435,14 @@ theorem interleavingDist_triangle (S : ShiftFamily ι ℝ≥0)
     (T₁ T₂ T₃ : StructureTower ι α) :
     interleavingDist S T₁ T₃ ≤
       interleavingDist S T₁ T₂ + interleavingDist S T₂ T₃ := by
-  sorry
+  rw [interleavingDist, interleavingDist, interleavingDist]
+  refine ENNReal.le_iInf₂_add_iInf₂ ?_
+  intro ε hε δ hδ
+  have h13 : Interleaving S (ε + δ) T₁ T₃ := Interleaving.trans hε hδ
+  calc
+    (⨅ ε' ∈ {ε : ℝ≥0 | Interleaving S ε T₁ T₃}, (ε' : ℝ≥0∞))
+        ≤ ((ε + δ : ℝ≥0) : ℝ≥0∞) := iInf₂_le (ε + δ) h13
+    _ = (ε : ℝ≥0∞) + (δ : ℝ≥0∞) := by simp
 
 -- ════════════════════════════════════════════════════════════
 -- L9 の全体像
