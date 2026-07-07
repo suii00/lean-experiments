@@ -220,7 +220,7 @@ theorem interleaving_reindex (S : ShiftFamily ι M)
 -- §5. 具体的 ShiftFamily: ℝ と ℕᵒᵈ
 -- ════════════════════════════════════════════════════════════
 
-open scoped NNReal
+open scoped NNReal ENNReal
 
 /-- ℝ 上の標準 shift: r ↦ r + ε（ε : ℝ≥0）。解析・TDA 側の添字。 -/
 def realShift : ShiftFamily ℝ ℝ≥0 where
