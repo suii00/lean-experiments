@@ -404,7 +404,10 @@ theorem interleavingDist_self (S : ShiftFamily ι ℝ≥0)
     (T : StructureTower ι α) :
     interleavingDist S T T = 0 := by
   refine le_antisymm ?_ (zero_le _)
-  simpa using iInf₂_le (0 : ℝ≥0) (interleaving_refl S T)
+  rw [interleavingDist]
+  refine le_trans (iInf₂_le (0 : ℝ≥0) ?_) ?_
+  · exact interleaving_refl S T
+  · simp
 
 theorem interleavingDist_comm (S : ShiftFamily ι ℝ≥0)
     (T₁ T₂ : StructureTower ι α) :
