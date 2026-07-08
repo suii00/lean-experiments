@@ -401,7 +401,13 @@ theorem charRankExists_iff_upperSet_least (ι : Type*) [Preorder ι] :
         (fun _ => hne)
     refine ⟨r PUnit.unit, ?_⟩
     have hleast := (isCharRank_iff_isLeast _ r).mp hr PUnit.unit
-    rwa [show reachSet _ PUnit.unit = s from Set.setOf_mem_eq] at hleast
+    have hreach :
+        reachSet
+            (⟨fun i => {_u : PUnit | i ∈ s}, fun hij _u hu => hs hij hu⟩)
+            PUnit.unit = s := by
+      ext i
+      simp [reachSet]
+    rwa [hreach] at hleast
   · intro hleast α T hexh
     choose r hr using fun x =>
       hleast (reachSet T x) (isUpperSet_reachSet T x) (hexh x)
@@ -451,7 +457,13 @@ theorem exists_prodNat_tower_no_charRank :
     fun _ => hne, ?_⟩
   intro r hr
   have hleast := (isCharRank_iff_isLeast _ r).mp hr PUnit.unit
-  rw [show reachSet _ PUnit.unit = s from Set.setOf_mem_eq] at hleast
+  have hreach :
+      reachSet
+        (⟨fun i => {_u : PUnit | i ∈ s}, fun hij _u hu => hs hij hu⟩)
+        PUnit.unit = s := by
+    ext i
+    simp [reachSet]
+  rw [hreach] at hleast
   exact hno _ hleast
 
 /-- 主定理経由の同内容（両方向の運用確認を兼ねる）。 -/
@@ -471,8 +483,12 @@ theorem real_exists_upperSet_no_least :
   refine ⟨Set.Ioi 0, isUpperSet_Ioi 0, ⟨1, Set.mem_Ioi.mpr one_pos⟩, ?_⟩
   rintro m ⟨hm, hlb⟩
   have hm' : (0 : ℝ) < m := Set.mem_Ioi.mp hm
-  have hhalf := hlb (Set.mem_Ioi.mpr (half_pos hm'))
-  linarith
+  have hhalf_mem : m / 2 ∈ Set.Ioi (0 : ℝ) := by
+    exact Set.mem_Ioi.mpr (div_pos hm' (by norm_num))
+  have hhalf : m ≤ m / 2 := hlb hhalf_mem
+  have hlt : m / 2 < m := by
+    exact half_lt_self hm'
+  exact not_le_of_gt hlt hhalf
 
 -- ════════════════════════════════════════════════════════════
 -- 全体のまとめ
